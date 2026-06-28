@@ -162,6 +162,7 @@ export default function Clients() {
     setType("tous");
   };
 
+  const handleView = (client) => navigate(`/clients/${client.id}`);
   const handleEdit = (client) => navigate(`/clients/${client.id}/modifier`);
   const handleDelete = (client) => {
     const ok = window.confirm(`Supprimer définitivement « ${client.nom} » ? Cette action est irréversible.`);
@@ -304,6 +305,7 @@ export default function Clients() {
                       client={c}
                       selected={selection.has(c.id)}
                       onToggle={() => toggleSelection(c.id)}
+                      onView={() => handleView(c)}
                       onEdit={() => handleEdit(c)}
                       onDelete={() => handleDelete(c)}
                     />
@@ -386,14 +388,19 @@ function FilterGroup({ label, options, value, onChange, ariaLabel }) {
   );
 }
 
-function LigneClient({ client, selected, onToggle, onEdit, onDelete }) {
+function LigneClient({ client, selected, onToggle, onView, onEdit, onDelete }) {
   return (
-    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+    <tr
+      onClick={onView}
+      className="cursor-pointer transition-colors hover:bg-[#F1F3F5]"
+      style={{ borderBottom: `1px solid ${C.border}` }}
+    >
       <td className="px-3 py-3">
         <input
           type="checkbox"
           checked={selected}
           onChange={onToggle}
+          onClick={(e) => e.stopPropagation()}
           aria-label={`Sélectionner ${client.nom}`}
           className="h-4 w-4 cursor-pointer rounded focus-visible:ring-2"
           style={{ accentColor: C.primary }}
@@ -435,7 +442,7 @@ function LigneClient({ client, selected, onToggle, onEdit, onDelete }) {
       <td className="px-3 py-3"><CelluleScore score={client.score} /></td>
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1">
-          <BoutonAction label={`Voir ${client.nom}`} icon={Eye} />
+          <BoutonAction label={`Voir ${client.nom}`} icon={Eye} onClick={onView} />
           <BoutonAction label={`Modifier ${client.nom}`} icon={Pencil} onClick={onEdit} />
           <BoutonAction label={`Supprimer ${client.nom}`} icon={Trash2} couleur={C.error} onClick={onDelete} />
         </div>
@@ -480,10 +487,14 @@ function CelluleScore({ score }) {
 }
 
 function BoutonAction({ label, icon: Icon, couleur = C.textSecondary, onClick }) {
+  const handleClick = (e) => {
+    e.stopPropagation();
+    onClick?.();
+  };
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       aria-label={label}
       title={label}
       className="rounded-lg p-1.5 transition-colors focus:outline-none focus-visible:ring-2"
