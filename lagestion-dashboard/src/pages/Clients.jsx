@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX,
 } from "lucide-react";
 import { C } from "../theme";
-import { clients as allClients } from "../data/clients";
+import { useClients } from "../context/ClientsContext.jsx";
 
 const STATUTS = {
   actif:    { label: "Actif",    color: C.success,        bg: "rgba(39,174,96,0.12)" },
@@ -81,6 +82,9 @@ function libelleScore(score) {
 }
 
 export default function Clients() {
+  const navigate = useNavigate();
+  const { clients: tousClients, deleteClient } = useClients();
+
   const [requete, setRequete] = useState("");
   const requeteDeb = useDebouncedValue(requete, 250);
   const [statut, setStatut] = useState("tous");
@@ -91,7 +95,7 @@ export default function Clients() {
 
   const filtres = useMemo(() => {
     const q = requeteDeb.trim().toLowerCase();
-    return allClients.filter((c) => {
+    return tousClients.filter((c) => {
       if (statut !== "tous" && c.statut !== statut) return false;
       if (type !== "tous" && c.type !== type) return false;
       if (q) {
@@ -100,7 +104,7 @@ export default function Clients() {
       }
       return true;
     });
-  }, [requeteDeb, statut, type]);
+  }, [requeteDeb, statut, type, tousClients]);
 
   const tries = useMemo(() => {
     const arr = [...filtres];
@@ -158,6 +162,19 @@ export default function Clients() {
     setType("tous");
   };
 
+  const handleEdit = (client) => navigate(`/clients/${client.id}/modifier`);
+  const handleDelete = (client) => {
+    const ok = window.confirm(`Supprimer définitivement « ${client.nom} » ? Cette action est irréversible.`);
+    if (!ok) return;
+    deleteClient(client.id);
+    setSelection((prev) => {
+      if (!prev.has(client.id)) return prev;
+      const next = new Set(prev);
+      next.delete(client.id);
+      return next;
+    });
+  };
+
   return (
     <>
       {/* En-tête de page */}
@@ -167,17 +184,17 @@ export default function Clients() {
             Clients
           </h2>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-            {allClients.length} {allClients.length > 1 ? "clients enregistrés" : "client enregistré"}
+            {tousClients.length} {tousClients.length > 1 ? "clients enregistrés" : "client enregistré"}
           </p>
         </div>
-        <button
-          type="button"
+        <Link
+          to="/clients/nouveau"
           className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
           style={{ backgroundColor: C.primary }}
         >
           <Plus size={16} aria-hidden="true" />
           Nouveau client
-        </button>
+        </Link>
       </div>
 
       {/* Barre d'outils */}
@@ -287,6 +304,8 @@ export default function Clients() {
                       client={c}
                       selected={selection.has(c.id)}
                       onToggle={() => toggleSelection(c.id)}
+                      onEdit={() => handleEdit(c)}
+                      onDelete={() => handleDelete(c)}
                     />
                   ))}
                 </tbody>
@@ -367,7 +386,7 @@ function FilterGroup({ label, options, value, onChange, ariaLabel }) {
   );
 }
 
-function LigneClient({ client, selected, onToggle }) {
+function LigneClient({ client, selected, onToggle, onEdit, onDelete }) {
   return (
     <tr style={{ borderBottom: `1px solid ${C.border}` }}>
       <td className="px-3 py-3">
@@ -417,8 +436,8 @@ function LigneClient({ client, selected, onToggle }) {
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1">
           <BoutonAction label={`Voir ${client.nom}`} icon={Eye} />
-          <BoutonAction label={`Modifier ${client.nom}`} icon={Pencil} />
-          <BoutonAction label={`Supprimer ${client.nom}`} icon={Trash2} couleur={C.error} />
+          <BoutonAction label={`Modifier ${client.nom}`} icon={Pencil} onClick={onEdit} />
+          <BoutonAction label={`Supprimer ${client.nom}`} icon={Trash2} couleur={C.error} onClick={onDelete} />
         </div>
       </td>
     </tr>
@@ -460,10 +479,11 @@ function CelluleScore({ score }) {
   );
 }
 
-function BoutonAction({ label, icon: Icon, couleur = C.textSecondary }) {
+function BoutonAction({ label, icon: Icon, couleur = C.textSecondary, onClick }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       aria-label={label}
       title={label}
       className="rounded-lg p-1.5 transition-colors focus:outline-none focus-visible:ring-2"
