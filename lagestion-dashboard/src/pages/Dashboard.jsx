@@ -5,6 +5,8 @@ import {
 } from "lucide-react";
 import { C, euro, num } from "../theme";
 import Card from "../components/Card";
+import { useOpportunites } from "../context/OpportunitesContext.jsx";
+import { ETAPES } from "../data/opportunites";
 
 const CaChart = lazy(() => import("../components/charts/CaChart"));
 const DonutChart = lazy(() => import("../components/charts/DonutChart"));
@@ -36,13 +38,6 @@ const dominantSecteurIndex = repartition.reduce(
   (max, e, i, arr) => (e.valeur > arr[max].valeur ? i : max),
   0
 );
-
-const pipeline = [
-  { etape: "Qualification", montant: 124000 },
-  { etape: "Proposition", montant: 98000 },
-  { etape: "Négociation", montant: 67000 },
-  { etape: "Conclusion", montant: 41000 },
-];
 
 const facturesRecentes = [
   { num: "FAC-2026-0612", client: "Atelier Durand", montant: 4820, statut: "payee", echeance: "12 juin" },
@@ -132,6 +127,39 @@ const MOIS_PAR_PERIODE = { "30 jours": 1, "6 mois": 6, "12 mois": 12 };
 export default function Dashboard() {
   const [periode, setPeriode] = useState("12 mois");
   const [activeSecteurIndex, setActiveSecteurIndex] = useState(dominantSecteurIndex);
+  const { opportunites } = useOpportunites();
+
+  const pipeline = useMemo(() => {
+    const map = Object.fromEntries(
+      ETAPES.map((e) => [e, { etape: e, nombre: 0, montant: 0, pondere: 0 }])
+    );
+    opportunites.forEach((o) => {
+      const bucket = map[o.etape];
+      if (!bucket) return;
+      bucket.nombre += 1;
+      bucket.montant += o.montant;
+      bucket.pondere += o.montant * (o.probabilite / 100);
+    });
+    return ETAPES.map((e) => map[e]);
+  }, [opportunites]);
+
+  const pipelineTotaux = useMemo(
+    () =>
+      pipeline.reduce(
+        (acc, e) => ({
+          nombre: acc.nombre + e.nombre,
+          montant: acc.montant + e.montant,
+          pondere: acc.pondere + e.pondere,
+        }),
+        { nombre: 0, montant: 0, pondere: 0 }
+      ),
+    [pipeline]
+  );
+
+  const pipelineChartData = useMemo(
+    () => pipeline.map((e) => ({ etape: e.etape, montant: e.pondere })),
+    [pipeline]
+  );
 
   const nMois = MOIS_PAR_PERIODE[periode];
   const caFiltered = useMemo(() => caData.slice(-nMois), [nMois]);
@@ -174,7 +202,15 @@ export default function Dashboard() {
         <KpiCard index={0} titre="Chiffre d'affaires" valeur={euro(dernier.ca)} variation={variationLabel} positif={variationPositive} sousTitre="vs mois dernier" accent={C.primary} />
         <KpiCard index={1} titre="Nouveaux clients" valeur={num(34)} variation="+12 %" positif sousTitre="ce mois-ci" accent={C.secondary} />
         <KpiCard index={2} titre="Factures impayées" valeur={euro(33460)} variation="-4,2 %" positif={false} sousTitre="8 factures" accent={C.error} />
-        <KpiCard index={3} titre="Pipeline en cours" valeur={euro(330000)} variation="+6,8 %" positif sousTitre="42 opportunités" accent="#244A68" />
+        <KpiCard
+          index={3}
+          titre="Pipeline en cours"
+          valeur={euro(pipelineTotaux.pondere)}
+          variation="+6,8 %"
+          positif
+          sousTitre={`${pipelineTotaux.nombre} ${pipelineTotaux.nombre > 1 ? "opportunités" : "opportunité"}`}
+          accent="#244A68"
+        />
       </div>
 
       {/* Graphiques principaux */}
@@ -227,13 +263,13 @@ export default function Dashboard() {
         {/* Pipeline commercial */}
         <Card index={6} className="xl:col-span-2">
           <CardTitle
-            action={<span className="text-xs font-semibold" style={{ color: C.secondary }}>Total : {euro(330000)}</span>}
+            action={<span className="text-xs font-semibold" style={{ color: C.secondary }}>Total : {euro(pipelineTotaux.pondere)}</span>}
           >
             Pipeline commercial
           </CardTitle>
           <div style={{ width: "100%", height: 220 }}>
             <Suspense fallback={<ChartFallback height={220} />}>
-              <PipelineChart data={pipeline} />
+              <PipelineChart data={pipelineChartData} />
             </Suspense>
           </div>
         </Card>
