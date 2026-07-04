@@ -1,13 +1,14 @@
-import React, { useState } from "react";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar,
-} from "recharts";
+import React, { useState, useMemo, lazy, Suspense } from "react";
 import {
   TrendingUp, TrendingDown, Calendar, ArrowRight,
   CheckCircle2, Clock, AlertTriangle,
 } from "lucide-react";
 import { C, euro, num } from "../theme";
+import Card from "../components/Card";
+
+const CaChart = lazy(() => import("../components/charts/CaChart"));
+const DonutChart = lazy(() => import("../components/charts/DonutChart"));
+const PipelineChart = lazy(() => import("../components/charts/PipelineChart"));
 
 const caData = [
   { mois: "Juil.", ca: 41200, objectif: 40000 },
@@ -30,6 +31,11 @@ const repartition = [
   { nom: "Industrie", valeur: 19, couleur: C.accent },
   { nom: "Conseil", valeur: 16, couleur: C.info },
 ];
+
+const dominantSecteurIndex = repartition.reduce(
+  (max, e, i, arr) => (e.valeur > arr[max].valeur ? i : max),
+  0
+);
 
 const pipeline = [
   { etape: "Qualification", montant: 124000 },
@@ -60,7 +66,7 @@ const statutFacture = {
   retard: { label: "En retard", color: C.error, bg: "rgba(231,76,60,0.12)", icon: AlertTriangle },
 };
 
-function Badge({ statut }) {
+const Badge = React.memo(function Badge({ statut }) {
   const s = statutFacture[statut];
   const Icon = s.icon;
   return (
@@ -72,22 +78,19 @@ function Badge({ statut }) {
       {s.label}
     </span>
   );
-}
+});
 
-function KpiCard({ titre, valeur, variation, positif, sousTitre, accent }) {
+const KpiCard = React.memo(function KpiCard({ titre, valeur, variation, positif, sousTitre, accent, index = 0 }) {
   const TrendIcon = positif ? TrendingUp : TrendingDown;
   return (
-    <div
-      className="rounded-2xl p-5 transition-transform duration-200 hover:-translate-y-0.5"
-      style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}`, boxShadow: "0 1px 3px rgba(45,52,54,0.04)" }}
-    >
+    <Card index={index}>
       <div className="flex items-start justify-between">
         <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>
           {titre}
         </p>
         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent }} aria-hidden="true" />
       </div>
-      <p className="mt-3 text-2xl font-bold tabular-nums" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
+      <p className="mt-3 tabular-nums" style={{ color: C.textPrimary, fontSize: 40, fontWeight: 700, lineHeight: 1.1 }}>
         {valeur}
       </p>
       <div className="mt-2 flex items-center gap-2">
@@ -100,14 +103,14 @@ function KpiCard({ titre, valeur, variation, positif, sousTitre, accent }) {
         </span>
         <span className="text-xs" style={{ color: C.textSecondary }}>{sousTitre}</span>
       </div>
-    </div>
+    </Card>
   );
-}
+});
 
 function CardTitle({ children, action }) {
   return (
     <div className="mb-4 flex items-center justify-between">
-      <h3 className="text-base font-semibold" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
+      <h3 style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>
         {children}
       </h3>
       {action}
@@ -115,22 +118,31 @@ function CardTitle({ children, action }) {
   );
 }
 
-function ChartTooltip({ active, payload, label }) {
-  if (!active || !payload || !payload.length) return null;
+function ChartFallback({ height }) {
   return (
-    <div className="rounded-lg px-3 py-2 text-xs shadow-lg" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
-      <p className="mb-1 font-semibold" style={{ color: C.textPrimary }}>{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color || p.fill }}>
-          {p.name === "ca" ? "Chiffre d'affaires" : "Objectif"} : <span className="font-semibold">{euro(p.value)}</span>
-        </p>
-      ))}
-    </div>
+    <div
+      style={{ width: "100%", height, backgroundColor: "#F1F3F5", borderRadius: 8 }}
+      aria-hidden="true"
+    />
   );
 }
 
+const MOIS_PAR_PERIODE = { "30 jours": 1, "6 mois": 6, "12 mois": 12 };
+
 export default function Dashboard() {
   const [periode, setPeriode] = useState("12 mois");
+  const [activeSecteurIndex, setActiveSecteurIndex] = useState(dominantSecteurIndex);
+
+  const nMois = MOIS_PAR_PERIODE[periode];
+  const caFiltered = useMemo(() => caData.slice(-nMois), [nMois]);
+  const dernier = caFiltered[caFiltered.length - 1];
+  const precedent =
+    caFiltered.length >= 2
+      ? caFiltered[caFiltered.length - 2]
+      : caData[caData.length - nMois - 1];
+  const variationPct = precedent ? ((dernier.ca - precedent.ca) / precedent.ca) * 100 : 0;
+  const variationPositive = variationPct >= 0;
+  const variationLabel = `${variationPositive ? "+" : ""}${variationPct.toFixed(1).replace(".", ",")} %`;
 
   return (
     <>
@@ -144,6 +156,7 @@ export default function Dashboard() {
             <button
               key={p}
               onClick={() => setPeriode(p)}
+              aria-pressed={periode === p}
               className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2"
               style={{
                 color: periode === p ? "#fff" : C.textSecondary,
@@ -158,16 +171,16 @@ export default function Dashboard() {
 
       {/* Cartes KPI */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard titre="Chiffre d'affaires" valeur={euro(78400)} variation="+9,1 %" positif sousTitre="vs mois dernier" accent={C.primary} />
-        <KpiCard titre="Nouveaux clients" valeur={num(34)} variation="+12 %" positif sousTitre="ce mois-ci" accent={C.secondary} />
-        <KpiCard titre="Factures impayées" valeur={euro(33460)} variation="-4,2 %" positif={false} sousTitre="8 factures" accent={C.error} />
-        <KpiCard titre="Pipeline en cours" valeur={euro(330000)} variation="+6,8 %" positif sousTitre="42 opportunités" accent={C.accent} />
+        <KpiCard index={0} titre="Chiffre d'affaires" valeur={euro(dernier.ca)} variation={variationLabel} positif={variationPositive} sousTitre="vs mois dernier" accent={C.primary} />
+        <KpiCard index={1} titre="Nouveaux clients" valeur={num(34)} variation="+12 %" positif sousTitre="ce mois-ci" accent={C.secondary} />
+        <KpiCard index={2} titre="Factures impayées" valeur={euro(33460)} variation="-4,2 %" positif={false} sousTitre="8 factures" accent={C.error} />
+        <KpiCard index={3} titre="Pipeline en cours" valeur={euro(330000)} variation="+6,8 %" positif sousTitre="42 opportunités" accent="#244A68" />
       </div>
 
       {/* Graphiques principaux */}
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
         {/* Évolution du CA */}
-        <div className="rounded-2xl p-5 xl:col-span-2" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+        <Card index={4} className="xl:col-span-2">
           <CardTitle
             action={
               <span className="flex items-center gap-1.5 text-xs" style={{ color: C.textSecondary }}>
@@ -178,38 +191,23 @@ export default function Dashboard() {
             Évolution du chiffre d'affaires
           </CardTitle>
           <div style={{ width: "100%", height: 280 }}>
-            <ResponsiveContainer>
-              <AreaChart data={caData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gradCa" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={C.primary} stopOpacity={0.28} />
-                    <stop offset="100%" stopColor={C.primary} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
-                <XAxis dataKey="mois" tick={{ fontSize: 11, fill: C.textSecondary }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: C.textSecondary }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v / 1000}k`} />
-                <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="objectif" stroke={C.textSecondary} strokeDasharray="4 4" strokeWidth={1.5} fill="none" name="objectif" />
-                <Area type="monotone" dataKey="ca" stroke={C.primary} strokeWidth={2.5} fill="url(#gradCa)" name="ca" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<ChartFallback height={280} />}>
+              <CaChart data={caFiltered} />
+            </Suspense>
           </div>
-        </div>
+        </Card>
 
         {/* Répartition */}
-        <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+        <Card index={5}>
           <CardTitle>Répartition par secteur</CardTitle>
-          <div style={{ width: "100%", height: 180 }}>
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie data={repartition} dataKey="valeur" nameKey="nom" cx="50%" cy="50%" innerRadius={48} outerRadius={75} paddingAngle={3} stroke="none">
-                  {repartition.map((e, i) => <Cell key={i} fill={e.couleur} />)}
-                </Pie>
-                <Tooltip formatter={(v, n) => [`${v} %`, n]} contentStyle={{ borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          <Suspense fallback={<ChartFallback height={180} />}>
+            <DonutChart
+              data={repartition}
+              activeIndex={activeSecteurIndex}
+              setActiveIndex={setActiveSecteurIndex}
+              dominantIndex={dominantSecteurIndex}
+            />
+          </Suspense>
           <ul className="mt-3 space-y-2">
             {repartition.map((e) => (
               <li key={e.nom} className="flex items-center justify-between text-sm">
@@ -221,37 +219,27 @@ export default function Dashboard() {
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       </div>
 
       {/* Pipeline + Activité */}
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
         {/* Pipeline commercial */}
-        <div className="rounded-2xl p-5 xl:col-span-2" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+        <Card index={6} className="xl:col-span-2">
           <CardTitle
             action={<span className="text-xs font-semibold" style={{ color: C.secondary }}>Total : {euro(330000)}</span>}
           >
             Pipeline commercial
           </CardTitle>
           <div style={{ width: "100%", height: 220 }}>
-            <ResponsiveContainer>
-              <BarChart data={pipeline} layout="vertical" margin={{ left: 8, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11, fill: C.textSecondary }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v / 1000}k`} />
-                <YAxis type="category" dataKey="etape" tick={{ fontSize: 12, fill: C.textPrimary }} axisLine={false} tickLine={false} width={92} />
-                <Tooltip formatter={(v) => [euro(v), "Montant pondéré"]} contentStyle={{ borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12 }} cursor={{ fill: "rgba(45,91,127,0.05)" }} />
-                <Bar dataKey="montant" radius={[0, 6, 6, 0]} barSize={26}>
-                  {pipeline.map((_, i) => (
-                    <Cell key={i} fill={[C.primary, C.secondary, C.accent, C.info][i]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<ChartFallback height={220} />}>
+              <PipelineChart data={pipeline} />
+            </Suspense>
           </div>
-        </div>
+        </Card>
 
         {/* Activité récente */}
-        <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+        <Card index={7}>
           <CardTitle>Activité récente</CardTitle>
           <ul className="space-y-4">
             {activites.map((a, i) => (
@@ -264,11 +252,11 @@ export default function Dashboard() {
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       </div>
 
       {/* Dernières factures */}
-      <div className="mt-5 rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <Card index={8} className="mt-5">
         <CardTitle
           action={
             <button className="flex items-center gap-1 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
@@ -283,7 +271,7 @@ export default function Dashboard() {
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {["Numéro", "Client", "Montant", "Échéance", "Statut"].map((h) => (
-                  <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>
+                  <th key={h} scope="col" className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>
                     {h}
                   </th>
                 ))}
@@ -291,7 +279,7 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {facturesRecentes.map((f) => (
-                <tr key={f.num} className="transition-colors" style={{ borderBottom: `1px solid ${C.border}` }}>
+                <tr key={f.num} className="transition-colors hover:bg-[#F8F9FA]" style={{ borderBottom: `1px solid ${C.border}` }}>
                   <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>{f.num}</td>
                   <td className="px-3 py-3" style={{ color: C.textSecondary }}>{f.client}</td>
                   <td className="px-3 py-3 font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(f.montant)}</td>
@@ -302,7 +290,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </>
   );
 }

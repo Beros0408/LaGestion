@@ -18,7 +18,14 @@ Ne pas ajouter de fonctionnalité hors de ce périmètre sans décision explicit
 - Aucune nouvelle dépendance npm sans décision explicite (pas de Framer Motion au MVP : animations en CSS pur).
 - Couleurs exactes en styles en ligne ; mise en page en classes Tailwind.
 - Composants fonctionnels, un export par défaut par écran.
-- Application dans le sous-dossier lagestion-dashboard/. Composant principal : lagestion-dashboard/src/LagestionDashboard.jsx.
+- Application dans le sous-dossier lagestion-dashboard/. Structure :
+  - `src/App.jsx` + `src/main.jsx` : entrée + routeur React Router.
+  - `src/pages/` : un écran par fichier — `Dashboard.jsx`, `Clients.jsx`, `ClientForm.jsx`, `ClientDetail.jsx`.
+  - `src/components/` : briques partagées (`Layout.jsx`, `Card.jsx`, `form/*`, `charts/*`).
+  - `src/context/` : état applicatif partagé (`ClientsContext.jsx`).
+  - `src/data/` : jeux de données statiques du MVP.
+  - `src/theme.js` : tokens couleurs + formatters `euro` / `num`.
+  - `src/index.css` : Tailwind + utilitaires globaux (`.lg-card`, focus ring).
 
 ## 4. Design tokens — Couleurs (palette du cahier, section 5.1.2)
 Primaire (#2D5B7F = 600)
@@ -69,6 +76,13 @@ Ombres :
 
 ## 8. Composants (conventions)
 Briques réutilisables : Card, Button (états : normal, survol, pressé, chargement, désactivé, ghost, outline), Input/Select/Checkbox/Switch, Badge, KpiCard. Toute recette « CSS premium » se traduit en composant React + tokens, jamais en feuille CSS séparée.
+
+**Card** (`src/components/Card.jsx`) : conteneur de surface partagé par toutes les cartes du tableau de bord.
+- Base : fond blanc, bordure 1 px neutre-200 (#DFE6E9), rayon 16 px, padding 20 px, ombre SM (`0 1px 3px rgba(45,52,54,.06)`).
+- Survol : translation `-2px`, ombre MD (`0 4px 12px rgba(45,52,54,.08)`), bordure primaire-200 (#A9C4DC), transition 200 ms sur `transform`, `box-shadow`, `border-color`.
+- Apparition : fondu + translation 8 px vers le haut, 400 ms, avec un décalage de 60 ms par carte via le prop `index` (`animation-delay: index * 60ms`).
+- `prefers-reduced-motion: reduce` désactive transitions et animation.
+- Interdit sur les cartes : halo, lueur, pulsation, rotation, ombre colorée.
 
 ## 9. Accessibilité — RÈGLES NON NÉGOCIABLES (WCAG 2.1 AA)
 - Contraste texte ≥ 4,5:1 (≥ 3:1 pour le grand texte).
