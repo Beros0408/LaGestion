@@ -10,7 +10,7 @@ const navItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, to: "/dashboard" },
   { id: "clients", label: "Clients", icon: Users, to: "/clients" },
   { id: "opportunites", label: "Opportunités", icon: Briefcase, to: "/opportunites" },
-  { id: "factures", label: "Factures", icon: FileText },
+  { id: "factures", label: "Factures", icon: FileText, to: "/factures" },
   { id: "stock", label: "Stock", icon: Package, soon: true },
   { id: "campagnes", label: "Campagnes", icon: Mail, soon: true },
   { id: "rapports", label: "Rapports", icon: BarChart3 },
@@ -27,6 +27,7 @@ const breadcrumbLabels = {
   "/dashboard": "Tableau de bord",
   "/clients": "Clients",
   "/opportunites": "Opportunités",
+  "/factures": "Factures",
 };
 
 const itemClass =

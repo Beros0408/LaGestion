@@ -1,12 +1,13 @@
 import React, { useState, useMemo, lazy, Suspense } from "react";
-import {
-  TrendingUp, TrendingDown, Calendar, ArrowRight,
-  CheckCircle2, Clock, AlertTriangle,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, ArrowRight } from "lucide-react";
 import { C, euro, num } from "../theme";
 import Card from "../components/Card";
+import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
+import { useFactures } from "../context/FacturesContext.jsx";
+import { useClients } from "../context/ClientsContext.jsx";
 import { ETAPES } from "../data/opportunites";
+import { totalTTC } from "../utils/facture";
 
 const CaChart = lazy(() => import("../components/charts/CaChart"));
 const DonutChart = lazy(() => import("../components/charts/DonutChart"));
@@ -39,14 +40,6 @@ const dominantSecteurIndex = repartition.reduce(
   0
 );
 
-const facturesRecentes = [
-  { num: "FAC-2026-0612", client: "Atelier Durand", montant: 4820, statut: "payee", echeance: "12 juin" },
-  { num: "FAC-2026-0611", client: "Sarl Moreau & Fils", montant: 12400, statut: "en_attente", echeance: "28 juin" },
-  { num: "FAC-2026-0609", client: "Boutique Lefèvre", montant: 2310, statut: "retard", echeance: "10 juin" },
-  { num: "FAC-2026-0608", client: "Groupe Bernard", montant: 18750, statut: "en_attente", echeance: "30 juin" },
-  { num: "FAC-2026-0605", client: "Cabinet Petit", montant: 6900, statut: "payee", echeance: "05 juin" },
-];
-
 const activites = [
   { type: "facture", texte: "Facture FAC-2026-0612 réglée par Atelier Durand", quand: "Il y a 2 h", couleur: C.success },
   { type: "client", texte: "Nouveau client ajouté : Groupe Bernard", quand: "Il y a 5 h", couleur: C.primary },
@@ -55,25 +48,12 @@ const activites = [
   { type: "client", texte: "Fiche Sarl Moreau & Fils mise à jour", quand: "Il y a 2 j", couleur: C.secondary },
 ];
 
-const statutFacture = {
-  payee: { label: "Payée", color: C.success, bg: "rgba(39,174,96,0.12)", icon: CheckCircle2 },
-  en_attente: { label: "En attente", color: C.info, bg: "rgba(52,152,219,0.12)", icon: Clock },
-  retard: { label: "En retard", color: C.error, bg: "rgba(231,76,60,0.12)", icon: AlertTriangle },
-};
-
-const Badge = React.memo(function Badge({ statut }) {
-  const s = statutFacture[statut];
-  const Icon = s.icon;
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-      style={{ color: s.color, backgroundColor: s.bg }}
-    >
-      <Icon size={13} aria-hidden="true" />
-      {s.label}
-    </span>
-  );
-});
+function formatDateCourte(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" });
+}
 
 const KpiCard = React.memo(function KpiCard({ titre, valeur, variation, positif, sousTitre, accent, index = 0 }) {
   const TrendIcon = positif ? TrendingUp : TrendingDown;
@@ -128,6 +108,41 @@ export default function Dashboard() {
   const [periode, setPeriode] = useState("12 mois");
   const [activeSecteurIndex, setActiveSecteurIndex] = useState(dominantSecteurIndex);
   const { opportunites } = useOpportunites();
+  const { factures } = useFactures();
+  const { clients } = useClients();
+
+  const clientsParId = useMemo(() => {
+    const map = new Map();
+    clients.forEach((c) => map.set(c.id, c));
+    return map;
+  }, [clients]);
+
+  const facturesRecentes = useMemo(
+    () =>
+      [...factures]
+        .sort((a, b) => (b.dateEmission || "").localeCompare(a.dateEmission || ""))
+        .slice(0, 5)
+        .map((f) => ({
+          num: f.numero,
+          client: clientsParId.get(f.clientId)?.nom ?? "—",
+          montant: totalTTC(f),
+          echeance: formatDateCourte(f.dateEcheance),
+          statut: f.statut,
+        })),
+    [factures, clientsParId]
+  );
+
+  const impayes = useMemo(() => {
+    let montant = 0;
+    let nombre = 0;
+    factures.forEach((f) => {
+      if (f.statut === "En attente" || f.statut === "En retard") {
+        montant += totalTTC(f);
+        nombre += 1;
+      }
+    });
+    return { montant, nombre };
+  }, [factures]);
 
   const pipeline = useMemo(() => {
     const map = Object.fromEntries(
@@ -201,7 +216,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard index={0} titre="Chiffre d'affaires" valeur={euro(dernier.ca)} variation={variationLabel} positif={variationPositive} sousTitre="vs mois dernier" accent={C.primary} />
         <KpiCard index={1} titre="Nouveaux clients" valeur={num(34)} variation="+12 %" positif sousTitre="ce mois-ci" accent={C.secondary} />
-        <KpiCard index={2} titre="Factures impayées" valeur={euro(33460)} variation="-4,2 %" positif={false} sousTitre="8 factures" accent={C.error} />
+        <KpiCard
+          index={2}
+          titre="Factures impayées"
+          valeur={euro(impayes.montant)}
+          variation="-4,2 %"
+          positif={false}
+          sousTitre={`${impayes.nombre} ${impayes.nombre > 1 ? "factures" : "facture"}`}
+          accent={C.error}
+        />
         <KpiCard
           index={3}
           titre="Pipeline en cours"
@@ -320,7 +343,7 @@ export default function Dashboard() {
                   <td className="px-3 py-3" style={{ color: C.textSecondary }}>{f.client}</td>
                   <td className="px-3 py-3 font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(f.montant)}</td>
                   <td className="px-3 py-3" style={{ color: C.textSecondary }}>{f.echeance}</td>
-                  <td className="px-3 py-3"><Badge statut={f.statut} /></td>
+                  <td className="px-3 py-3"><BadgeStatutFacture statut={f.statut} /></td>
                 </tr>
               ))}
             </tbody>

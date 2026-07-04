@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import { ClientsProvider } from "./context/ClientsContext.jsx";
 import { OpportunitesProvider } from "./context/OpportunitesContext.jsx";
+import { FacturesProvider } from "./context/FacturesContext.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -11,7 +12,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <ClientsProvider>
         <OpportunitesProvider>
-          <App />
+          <FacturesProvider>
+            <App />
+          </FacturesProvider>
         </OpportunitesProvider>
       </ClientsProvider>
     </BrowserRouter>

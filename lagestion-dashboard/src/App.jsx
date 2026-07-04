@@ -7,6 +7,9 @@ import ClientForm from "./pages/ClientForm.jsx";
 import ClientDetail from "./pages/ClientDetail.jsx";
 import Opportunites from "./pages/Opportunites.jsx";
 import OpportuniteForm from "./pages/OpportuniteForm.jsx";
+import Factures from "./pages/Factures.jsx";
+import FactureForm from "./pages/FactureForm.jsx";
+import FactureDetail from "./pages/FactureDetail.jsx";
 
 export default function App() {
   return (
@@ -21,6 +24,10 @@ export default function App() {
         <Route path="/opportunites" element={<Opportunites />} />
         <Route path="/opportunites/nouvelle" element={<OpportuniteForm />} />
         <Route path="/opportunites/:id/modifier" element={<OpportuniteForm />} />
+        <Route path="/factures" element={<Factures />} />
+        <Route path="/factures/nouvelle" element={<FactureForm />} />
+        <Route path="/factures/:id" element={<FactureDetail />} />
+        <Route path="/factures/:id/modifier" element={<FactureForm />} />
       </Route>
     </Routes>
   );
