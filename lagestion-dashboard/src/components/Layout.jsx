@@ -9,7 +9,7 @@ import { C } from "../theme";
 const navItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, to: "/dashboard" },
   { id: "clients", label: "Clients", icon: Users, to: "/clients" },
-  { id: "opportunites", label: "Opportunités", icon: Briefcase },
+  { id: "opportunites", label: "Opportunités", icon: Briefcase, to: "/opportunites" },
   { id: "factures", label: "Factures", icon: FileText },
   { id: "stock", label: "Stock", icon: Package, soon: true },
   { id: "campagnes", label: "Campagnes", icon: Mail, soon: true },
@@ -26,6 +26,7 @@ const navSecondaires = [
 const breadcrumbLabels = {
   "/dashboard": "Tableau de bord",
   "/clients": "Clients",
+  "/opportunites": "Opportunités",
 };
 
 const itemClass =
