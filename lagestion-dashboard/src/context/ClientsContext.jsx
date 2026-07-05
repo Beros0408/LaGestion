@@ -4,7 +4,10 @@ import { useAuth } from "./AuthContext.jsx";
 
 const ClientsContext = createContext(null);
 
-const CHAMPS = ["type", "nom", "email", "telephone", "adresse", "statut", "tags", "notes", "score"];
+const CHAMPS = [
+  "type", "nom", "email", "telephone", "adresse", "statut", "tags", "notes", "score",
+  "siren", "siret", "tva_intra", "site_web", "date_naissance",
+];
 
 function preparerPayload(data) {
   const payload = {};
@@ -58,17 +61,13 @@ export function ClientsProvider({ children }) {
 
   const addClient = useCallback(
     async (data) => {
-      setErreur(null);
       const payload = preparerPayload(data);
       const { data: cree, error } = await supabase
         .from("clients")
         .insert(payload)
         .select()
         .single();
-      if (error) {
-        setErreur(error.message);
-        return null;
-      }
+      if (error) throw error;
       await chargerClients();
       return cree;
     },
@@ -76,7 +75,6 @@ export function ClientsProvider({ children }) {
   );
 
   const updateClient = useCallback(async (id, patch) => {
-    setErreur(null);
     const payload = preparerPayload(patch);
     const { data: maj, error } = await supabase
       .from("clients")
@@ -84,10 +82,7 @@ export function ClientsProvider({ children }) {
       .eq("id", id)
       .select()
       .single();
-    if (error) {
-      setErreur(error.message);
-      return null;
-    }
+    if (error) throw error;
     setClients((prev) => prev.map((c) => (c.id === id ? maj : c)));
     return maj;
   }, []);
