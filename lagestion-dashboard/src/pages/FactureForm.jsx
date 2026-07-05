@@ -4,7 +4,7 @@ import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { C, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
-import { STATUTS, TAUX_TVA } from "../data/factures";
+import { STATUTS, LIBELLE_STATUT, TAUX_TVA } from "../data/factures";
 import { ligneHT, totalHT, tvaParTaux, totalTTC } from "../utils/facture";
 import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
@@ -15,11 +15,11 @@ const VIDE = {
   client_id: "",
   date_emission: new Date().toISOString().slice(0, 10),
   date_echeance: "",
-  statut: "Brouillon",
+  statut: "brouillon",
   lignes: [{ ...LIGNE_VIDE }],
 };
 
-const STATUT_OPTIONS = STATUTS.map((s) => ({ value: s, label: s }));
+const STATUT_OPTIONS = STATUTS.map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
 
 const TAUX_OPTIONS = TAUX_TVA.map((t) => ({
   value: String(t),
@@ -31,7 +31,7 @@ function normaliser(existant) {
     client_id: existant.client_id != null ? String(existant.client_id) : "",
     date_emission: existant.date_emission ?? "",
     date_echeance: existant.date_echeance ?? "",
-    statut: existant.statut ?? "Brouillon",
+    statut: existant.statut ?? "brouillon",
     lignes: (existant.lignes ?? []).map((l) => ({
       description: l.description ?? "",
       quantite: l.quantite != null ? String(l.quantite) : "",

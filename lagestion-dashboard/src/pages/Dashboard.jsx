@@ -7,6 +7,7 @@ import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { ETAPES } from "../data/opportunites";
+import { STATUTS_IMPAYES } from "../data/factures";
 import { totalTTC } from "../utils/facture";
 
 const CaChart = lazy(() => import("../components/charts/CaChart"));
@@ -136,7 +137,7 @@ export default function Dashboard() {
     let montant = 0;
     let nombre = 0;
     factures.forEach((f) => {
-      if (f.statut === "En attente" || f.statut === "En retard") {
+      if (STATUTS_IMPAYES.includes(f.statut)) {
         montant += totalTTC(f);
         nombre += 1;
       }

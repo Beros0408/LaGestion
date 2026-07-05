@@ -7,14 +7,14 @@ import {
 import { C, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
-import { STATUTS } from "../data/factures";
+import { STATUTS, LIBELLE_STATUT, STATUTS_IMPAYES } from "../data/factures";
 import { totalTTC } from "../utils/facture";
 import { exporterFacturesExcel } from "../utils/excel";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 
 const STATUT_OPTIONS = [
   { id: "tous", label: "Tous" },
-  ...STATUTS.map((s) => ({ id: s, label: s })),
+  ...STATUTS.map((s) => ({ id: s, label: LIBELLE_STATUT[s] })),
 ];
 
 const COLUMNS = [
@@ -100,7 +100,7 @@ export default function Factures() {
       nombre += 1;
       const ttc = totalTTC(f);
       totalTotal += ttc;
-      if (f.statut === "En attente" || f.statut === "En retard") impaye += ttc;
+      if (STATUTS_IMPAYES.includes(f.statut)) impaye += ttc;
     });
     return { nombre, totalTotal, impaye };
   }, [factures]);
@@ -412,7 +412,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                     <div
                       role="menu"
                       aria-label="Choisir un statut"
-                      className="absolute right-full top-0 mr-1 w-40 overflow-hidden rounded-xl"
+                      className="absolute right-full top-0 mr-1 w-52 overflow-hidden rounded-xl"
                       style={{
                         backgroundColor: C.bgCard,
                         border: `1px solid ${C.border}`,
@@ -435,7 +435,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
                             style={{ color: actif ? C.primary : C.textPrimary, fontWeight: actif ? 600 : 400 }}
                           >
-                            {s}
+                            {LIBELLE_STATUT[s]}
                           </button>
                         );
                       })}

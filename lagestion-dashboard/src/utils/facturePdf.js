@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ligneHT, totalHT, tvaParTaux, totalTTC } from "./facture";
+import { LIBELLE_STATUT } from "../data/factures";
 
 const COLORS = {
   primary:       [45, 91, 127],
@@ -177,7 +178,7 @@ export function genererFacturePdf(facture, client, totaux) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.textSecondary);
-  doc.text(`Statut : ${facture.statut}`, margin, footerY);
+  doc.text(`Statut : ${LIBELLE_STATUT[facture.statut] ?? facture.statut ?? "—"}`, margin, footerY);
   doc.text(
     "En cas de retard de paiement, des pénalités seront exigibles au taux légal en vigueur.",
     pageW - margin,
