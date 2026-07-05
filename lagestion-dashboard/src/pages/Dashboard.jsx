@@ -151,9 +151,11 @@ export default function Dashboard() {
     opportunites.forEach((o) => {
       const bucket = map[o.etape];
       if (!bucket) return;
+      const montant = Number(o.montant) || 0;
+      const proba = Number(o.probabilite) || 0;
       bucket.nombre += 1;
-      bucket.montant += o.montant;
-      bucket.pondere += o.montant * (o.probabilite / 100);
+      bucket.montant += montant;
+      bucket.pondere += montant * (proba / 100);
     });
     return ETAPES.map((e) => map[e]);
   }, [opportunites]);

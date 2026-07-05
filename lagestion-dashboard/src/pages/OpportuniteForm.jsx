@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { AlertCircle } from "lucide-react";
 import { C } from "../theme";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
@@ -9,11 +10,11 @@ import Select from "../components/form/Select.jsx";
 
 const VIDE = {
   nom: "",
-  clientId: "",
+  client_id: "",
   montant: "",
   probabilite: "50",
   etape: "Qualification",
-  dateCloture: "",
+  date_cloture: "",
   responsable: "",
 };
 
@@ -22,11 +23,11 @@ const ETAPE_OPTIONS = ETAPES.map((e) => ({ value: e, label: e }));
 function normaliser(existant) {
   return {
     nom: existant.nom ?? "",
-    clientId: existant.clientId != null ? String(existant.clientId) : "",
+    client_id: existant.client_id != null ? String(existant.client_id) : "",
     montant: existant.montant != null ? String(existant.montant) : "",
     probabilite: existant.probabilite != null ? String(existant.probabilite) : "50",
     etape: existant.etape ?? "Qualification",
-    dateCloture: existant.dateCloture ?? "",
+    date_cloture: existant.date_cloture ?? "",
     responsable: existant.responsable ?? "",
   };
 }
@@ -34,19 +35,26 @@ function normaliser(existant) {
 export default function OpportuniteForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { opportunites, addOpportunite, updateOpportunite } = useOpportunites();
+  const { opportunites, addOpportunite, updateOpportunite, chargement } = useOpportunites();
   const { clients } = useClients();
 
   const modeEdition = Boolean(id);
-  const idNumerique = id ? Number(id) : null;
 
   const existant = useMemo(
-    () => (modeEdition ? opportunites.find((o) => o.id === idNumerique) : null),
-    [modeEdition, opportunites, idNumerique]
+    () => (modeEdition ? opportunites.find((o) => o.id === id) : null),
+    [modeEdition, opportunites, id]
   );
 
   const [form, setForm] = useState(() => (existant ? normaliser(existant) : VIDE));
   const [errors, setErrors] = useState({});
+  const [erreurSoumission, setErreurSoumission] = useState(null);
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
+
+  useEffect(() => {
+    if (modeEdition && existant) {
+      setForm(normaliser(existant));
+    }
+  }, [modeEdition, existant]);
 
   const clientOptions = useMemo(
     () => [
@@ -54,12 +62,12 @@ export default function OpportuniteForm() {
       ...clients
         .slice()
         .sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" }))
-        .map((c) => ({ value: String(c.id), label: c.nom })),
+        .map((c) => ({ value: c.id, label: c.nom })),
     ],
     [clients]
   );
 
-  if (modeEdition && !existant) {
+  if (modeEdition && !chargement && !existant) {
     return (
       <div
         className="rounded-2xl p-8 text-center"
@@ -95,8 +103,8 @@ export default function OpportuniteForm() {
     if (!data.nom.trim()) {
       errs.nom = "Le nom est requis.";
     }
-    if (!data.clientId) {
-      errs.clientId = "Le client est requis.";
+    if (!data.client_id) {
+      errs.client_id = "Le client est requis.";
     }
     const montant = Number(data.montant);
     if (data.montant === "" || Number.isNaN(montant) || montant <= 0) {
@@ -109,7 +117,7 @@ export default function OpportuniteForm() {
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = valider(form);
     setErrors(errs);
@@ -117,20 +125,28 @@ export default function OpportuniteForm() {
 
     const payload = {
       nom: form.nom.trim(),
-      clientId: Number(form.clientId),
+      client_id: form.client_id,
       montant: Number(form.montant),
       probabilite: Number(form.probabilite),
       etape: form.etape,
-      dateCloture: form.dateCloture || null,
+      date_cloture: form.date_cloture || null,
       responsable: form.responsable.trim(),
     };
 
-    if (modeEdition) {
-      updateOpportunite(idNumerique, payload);
-    } else {
-      addOpportunite(payload);
+    setErreurSoumission(null);
+    setEnvoiEnCours(true);
+    try {
+      if (modeEdition) {
+        await updateOpportunite(id, payload);
+      } else {
+        await addOpportunite(payload);
+      }
+      navigate("/opportunites");
+    } catch (err) {
+      setErreurSoumission(err?.message ?? "Une erreur est survenue.");
+    } finally {
+      setEnvoiEnCours(false);
     }
-    navigate("/opportunites");
   };
 
   return (
@@ -148,6 +164,21 @@ export default function OpportuniteForm() {
             : "Renseignez les informations de la nouvelle opportunité."}
         </p>
       </div>
+
+      {erreurSoumission && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{
+            backgroundColor: "rgba(231,76,60,0.08)",
+            color: C.error,
+            border: `1px solid ${C.error}`,
+          }}
+        >
+          <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span><strong className="font-semibold">Enregistrement impossible :</strong> {erreurSoumission}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} noValidate>
         <div
@@ -167,10 +198,10 @@ export default function OpportuniteForm() {
             <Select
               label="Client"
               required
-              value={form.clientId}
-              onChange={(e) => definir("clientId")(e.target.value)}
+              value={form.client_id}
+              onChange={(e) => definir("client_id")(e.target.value)}
               options={clientOptions}
-              error={errors.clientId}
+              error={errors.client_id}
             />
             <Input
               label="Responsable"
@@ -212,8 +243,8 @@ export default function OpportuniteForm() {
             <Input
               label="Date de clôture prévisionnelle"
               type="date"
-              value={form.dateCloture}
-              onChange={(e) => definir("dateCloture")(e.target.value)}
+              value={form.date_cloture}
+              onChange={(e) => definir("date_cloture")(e.target.value)}
             />
           </div>
         </div>
@@ -233,10 +264,15 @@ export default function OpportuniteForm() {
           </button>
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+            disabled={envoiEnCours}
+            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
             style={{ backgroundColor: C.primary }}
           >
-            {modeEdition ? "Enregistrer les modifications" : "Créer l'opportunité"}
+            {envoiEnCours
+              ? "Enregistrement…"
+              : modeEdition
+                ? "Enregistrer les modifications"
+                : "Créer l'opportunité"}
           </button>
         </div>
       </form>

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Calendar, User } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Calendar, User, AlertCircle } from "lucide-react";
 import { C, euro } from "../theme";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
@@ -28,7 +28,7 @@ function formaterDate(iso) {
 
 export default function Opportunites() {
   const navigate = useNavigate();
-  const { opportunites, deleteOpportunite, moveOpportunite } = useOpportunites();
+  const { opportunites, deleteOpportunite, moveOpportunite, chargement, erreur } = useOpportunites();
   const { clients } = useClients();
 
   const clientsParId = useMemo(() => {
@@ -43,14 +43,14 @@ export default function Opportunites() {
       if (map[o.etape]) map[o.etape].push(o);
     });
     ETAPES.forEach((e) => {
-      map[e].sort((a, b) => new Date(a.dateCloture) - new Date(b.dateCloture));
+      map[e].sort((a, b) => new Date(a.date_cloture) - new Date(b.date_cloture));
     });
     return map;
   }, [opportunites]);
 
   const totaux = useMemo(() => {
     const total = opportunites.length;
-    const pondere = opportunites.reduce((s, o) => s + o.montant * (o.probabilite / 100), 0);
+    const pondere = opportunites.reduce((s, o) => s + Number(o.montant) * (Number(o.probabilite) / 100), 0);
     return { total, pondere };
   }, [opportunites]);
 
@@ -60,7 +60,7 @@ export default function Opportunites() {
 
   const handleDrop = (etape, id) => {
     if (!id) return;
-    moveOpportunite(Number(id), etape);
+    moveOpportunite(id, etape);
     setColonneSurvolee(null);
   };
 
@@ -86,10 +86,16 @@ export default function Opportunites() {
             Opportunités
           </h2>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-            {totaux.total} {totaux.total > 1 ? "opportunités" : "opportunité"} · CA prévisionnel pondéré{" "}
-            <span className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>
-              {euro(totaux.pondere)}
-            </span>
+            {chargement ? (
+              "Chargement…"
+            ) : (
+              <>
+                {totaux.total} {totaux.total > 1 ? "opportunités" : "opportunité"} · CA prévisionnel pondéré{" "}
+                <span className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+                  {euro(totaux.pondere)}
+                </span>
+              </>
+            )}
           </p>
         </div>
         <Link
@@ -102,14 +108,44 @@ export default function Opportunites() {
         </Link>
       </div>
 
+      {erreur && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{
+            backgroundColor: "rgba(231,76,60,0.08)",
+            color: C.error,
+            border: `1px solid ${C.error}`,
+          }}
+        >
+          <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span><strong className="font-semibold">Impossible de charger les opportunités :</strong> {erreur}</span>
+        </div>
+      )}
+
+      {chargement && opportunites.length === 0 ? (
+        <div
+          className="flex flex-col items-center gap-3 rounded-2xl px-6 py-16 text-center"
+          style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+        >
+          <div
+            className="h-8 w-8 animate-spin rounded-full border-2"
+            style={{ borderColor: C.border, borderTopColor: C.primary }}
+            aria-hidden="true"
+          />
+          <p className="text-sm" role="status" aria-live="polite" style={{ color: C.textSecondary }}>
+            Chargement des opportunités…
+          </p>
+        </div>
+      ) : (
       <div
         className="grid gap-4"
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}
       >
         {ETAPES.map((etape) => {
           const items = parEtape[etape];
-          const montantTotal = items.reduce((s, o) => s + o.montant, 0);
-          const montantPondere = items.reduce((s, o) => s + o.montant * (o.probabilite / 100), 0);
+          const montantTotal = items.reduce((s, o) => s + Number(o.montant), 0);
+          const montantPondere = items.reduce((s, o) => s + Number(o.montant) * (Number(o.probabilite) / 100), 0);
           const style = ETAPE_STYLE[etape];
           const estSurvolee = colonneSurvolee === etape;
           return (
@@ -181,7 +217,7 @@ export default function Opportunites() {
                     <CarteOpportunite
                       key={op.id}
                       op={op}
-                      client={clientsParId.get(op.clientId)}
+                      client={clientsParId.get(op.client_id)}
                       etapeActuelle={etape}
                       menuOuvert={menuOuvert === op.id}
                       sousMenuOuvert={sousMenuOuvert}
@@ -205,6 +241,7 @@ export default function Opportunites() {
           );
         })}
       </div>
+      )}
     </>
   );
 }
@@ -411,7 +448,7 @@ function CarteOpportunite({
       >
         <span className="inline-flex items-center gap-1 tabular-nums">
           <Calendar size={12} aria-hidden="true" />
-          {formaterDate(op.dateCloture)}
+          {formaterDate(op.date_cloture)}
         </span>
         <span className="inline-flex min-w-0 items-center gap-1 truncate">
           <User size={12} aria-hidden="true" />
