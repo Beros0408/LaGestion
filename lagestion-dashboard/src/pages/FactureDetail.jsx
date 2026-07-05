@@ -1,10 +1,11 @@
 import React, { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pencil, Mail, Phone, MapPin } from "lucide-react";
+import { ArrowLeft, Pencil, Mail, Phone, MapPin, Download } from "lucide-react";
 import { C, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { ligneHT, totalHT, tvaParTaux, totalTTC } from "../utils/facture";
+import { genererFacturePdf } from "../utils/facturePdf";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 
 function formaterDateLongue(iso) {
@@ -84,6 +85,16 @@ export default function FactureDetail() {
             <ArrowLeft size={16} aria-hidden="true" />
             Retour à la liste
           </Link>
+          <button
+            type="button"
+            onClick={() => genererFacturePdf(facture, client, recap)}
+            aria-label={`Télécharger la facture ${facture.numero} en PDF`}
+            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
+            style={{ color: C.textSecondary, backgroundColor: "transparent", border: `1px solid ${C.border}` }}
+          >
+            <Download size={16} aria-hidden="true" />
+            Télécharger en PDF
+          </button>
           <Link
             to={`/factures/${facture.id}/modifier`}
             className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
