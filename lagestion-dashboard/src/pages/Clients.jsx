@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
-  ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download,
+  ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download, AlertCircle,
 } from "lucide-react";
 import { C } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
@@ -84,7 +84,7 @@ function libelleScore(score) {
 
 export default function Clients() {
   const navigate = useNavigate();
-  const { clients: tousClients, deleteClient } = useClients();
+  const { clients: tousClients, deleteClient, chargement, erreur } = useClients();
 
   const [requete, setRequete] = useState("");
   const requeteDeb = useDebouncedValue(requete, 250);
@@ -186,7 +186,9 @@ export default function Clients() {
             Clients
           </h2>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-            {tousClients.length} {tousClients.length > 1 ? "clients enregistrés" : "client enregistré"}
+            {chargement
+              ? "Chargement…"
+              : `${tousClients.length} ${tousClients.length > 1 ? "clients enregistrés" : "client enregistré"}`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -210,6 +212,21 @@ export default function Clients() {
           </Link>
         </div>
       </div>
+
+      {erreur && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{
+            backgroundColor: "rgba(231,76,60,0.08)",
+            color: C.error,
+            border: `1px solid ${C.error}`,
+          }}
+        >
+          <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span><strong className="font-semibold">Impossible de charger les clients :</strong> {erreur}</span>
+        </div>
+      )}
 
       {/* Barre d'outils */}
       <div className="rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
@@ -252,7 +269,9 @@ export default function Clients() {
 
       {/* Tableau */}
       <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
-        {total === 0 ? (
+        {chargement && tousClients.length === 0 ? (
+          <EtatChargement />
+        ) : total === 0 ? (
           <EtatVide onReset={reinitialiserFiltres} />
         ) : (
           <>
@@ -515,6 +534,26 @@ function BoutonAction({ label, icon: Icon, couleur = C.textSecondary, onClick })
     >
       <Icon size={16} aria-hidden="true" />
     </button>
+  );
+}
+
+function EtatChargement() {
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-2"
+        style={{ borderColor: C.border, borderTopColor: C.primary }}
+        aria-hidden="true"
+      />
+      <p
+        className="text-sm"
+        role="status"
+        aria-live="polite"
+        style={{ color: C.textSecondary }}
+      >
+        Chargement des clients…
+      </p>
+    </div>
   );
 }
 

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Briefcase, FileText, Package, Mail, BarChart3, Bot,
-  FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu,
+  FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut,
 } from "lucide-react";
 import { C } from "../theme";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const navItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, to: "/dashboard" },
@@ -39,8 +40,19 @@ const inactiveStyle = { color: C.textSecondary, backgroundColor: "transparent" }
 export default function Layout() {
   const [menuMobile, setMenuMobile] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const breadcrumb = breadcrumbLabels[location.pathname] || "Tableau de bord";
   const closeMobile = () => setMenuMobile(false);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } finally {
+      closeMobile();
+      navigate("/login", { replace: true });
+    }
+  };
 
   const renderNavItem = (item) => {
     const Icon = item.icon;
@@ -147,6 +159,20 @@ export default function Layout() {
             <p className="truncate text-xs" style={{ color: C.textSecondary }}>Plan Pro · Commercial</p>
           </div>
         </div>
+      </div>
+
+      <div className="px-2 pb-3 xl:px-3">
+        <button
+          type="button"
+          onClick={handleSignOut}
+          aria-label="Se déconnecter"
+          title="Se déconnecter"
+          className={itemClass}
+          style={inactiveStyle}
+        >
+          <LogOut size={20} aria-hidden="true" />
+          <span className="flex-1 text-left md:hidden xl:inline">Se déconnecter</span>
+        </button>
       </div>
     </aside>
   );
