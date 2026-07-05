@@ -85,11 +85,10 @@ export default function ClientForm() {
   const { clients, chargement } = useClients();
 
   const modeEdition = Boolean(id);
-  const idNumerique = id ? Number(id) : null;
 
   const existant = useMemo(
-    () => (modeEdition ? clients.find((c) => c.id === idNumerique) : null),
-    [modeEdition, clients, idNumerique]
+    () => (modeEdition ? clients.find((c) => c.id === id) : null),
+    [modeEdition, clients, id]
   );
 
   if (modeEdition && !existant) {
@@ -116,13 +115,13 @@ export default function ClientForm() {
   return (
     <FormulaireClient
       modeEdition={modeEdition}
-      idNumerique={idNumerique}
+      idClient={id}
       existant={existant}
     />
   );
 }
 
-function FormulaireClient({ modeEdition, idNumerique, existant }) {
+function FormulaireClient({ modeEdition, idClient, existant }) {
   const navigate = useNavigate();
   const { clients, addClient, updateClient } = useClients();
 
@@ -132,8 +131,8 @@ function FormulaireClient({ modeEdition, idNumerique, existant }) {
   const [soumission, setSoumission] = useState(false);
 
   const doublons = useMemo(
-    () => detecterDoublons(form, clients, idNumerique),
-    [form, clients, idNumerique]
+    () => detecterDoublons(form, clients, idClient),
+    [form, clients, idClient]
   );
   const certains = useMemo(() => doublons.filter((d) => d.confiance >= 100), [doublons]);
   const potentiels = useMemo(
@@ -199,7 +198,7 @@ function FormulaireClient({ modeEdition, idNumerique, existant }) {
     setDbError("");
     try {
       if (modeEdition) {
-        await updateClient(idNumerique, payload);
+        await updateClient(idClient, payload);
       } else {
         await addClient({ ...payload, score: 50 });
       }

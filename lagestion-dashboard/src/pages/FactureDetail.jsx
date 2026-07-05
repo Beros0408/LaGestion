@@ -18,16 +18,15 @@ function formaterDateLongue(iso) {
 export default function FactureDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { factures } = useFactures();
-  const { clients } = useClients();
+  const { factures, chargement } = useFactures();
+  const { clients, chargement: chargementClients } = useClients();
 
-  const idNumerique = Number(id);
   const facture = useMemo(
-    () => factures.find((f) => f.id === idNumerique),
-    [factures, idNumerique]
+    () => factures.find((f) => f.id === id),
+    [factures, id]
   );
   const client = useMemo(
-    () => (facture ? clients.find((c) => c.id === facture.clientId) : null),
+    () => (facture ? clients.find((c) => c.id === facture.client_id) : null),
     [clients, facture]
   );
 
@@ -39,6 +38,24 @@ export default function FactureDetail() {
       ttc: totalTTC(facture),
     };
   }, [facture]);
+
+  if (chargement && !facture) {
+    return (
+      <div
+        className="flex flex-col items-center gap-3 rounded-2xl px-6 py-16 text-center"
+        style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+      >
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2"
+          style={{ borderColor: C.border, borderTopColor: C.primary }}
+          aria-hidden="true"
+        />
+        <p className="text-sm" role="status" aria-live="polite" style={{ color: C.textSecondary }}>
+          Chargement de la facture…
+        </p>
+      </div>
+    );
+  }
 
   if (!facture) {
     return (
@@ -73,7 +90,7 @@ export default function FactureDetail() {
             <BadgeStatutFacture statut={facture.statut} />
           </div>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-            Émise le {formaterDateLongue(facture.dateEmission)} · Échéance le {formaterDateLongue(facture.dateEcheance)}
+            Émise le {formaterDateLongue(facture.date_emission)} · Échéance le {formaterDateLongue(facture.date_echeance)}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -122,11 +139,11 @@ export default function FactureDetail() {
               </thead>
               <tbody>
                 {facture.lignes.map((l, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <tr key={l.id ?? i} style={{ borderBottom: `1px solid ${C.border}` }}>
                     <td className="px-3 py-3" style={{ color: C.textPrimary }}>{l.description || "—"}</td>
                     <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{l.quantite}</td>
-                    <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{euro(l.prixUnitaire)}</td>
-                    <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{String(l.tauxTva).replace(".", ",")} %</td>
+                    <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{euro(l.prix_unitaire)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{String(l.taux_tva).replace(".", ",")} %</td>
                     <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(ligneHT(l))}</td>
                   </tr>
                 ))}
@@ -196,6 +213,10 @@ export default function FactureDetail() {
                 </p>
               )}
             </div>
+          ) : chargementClients ? (
+            <p className="text-sm" role="status" aria-live="polite" style={{ color: C.textSecondary }}>
+              Chargement du client…
+            </p>
           ) : (
             <p className="text-sm" style={{ color: C.textSecondary }}>Client introuvable.</p>
           )}
