@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
-  Eye, Pencil, Trash2, SearchX, MoreHorizontal, RefreshCw,
+  Eye, Pencil, Trash2, SearchX, MoreHorizontal, RefreshCw, Download,
 } from "lucide-react";
 import { C, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { STATUTS } from "../data/factures";
 import { totalTTC } from "../utils/facture";
+import { exporterFacturesExcel } from "../utils/excel";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 
 const STATUT_OPTIONS = [
@@ -142,14 +143,26 @@ export default function Factures() {
             </span>
           </p>
         </div>
-        <Link
-          to="/factures/nouvelle"
-          className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-          style={{ backgroundColor: C.primary }}
-        >
-          <Plus size={16} aria-hidden="true" />
-          Nouvelle facture
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => exporterFacturesExcel(triees, clients)}
+            aria-label="Exporter la liste des factures au format Excel"
+            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
+            style={{ color: C.textSecondary, backgroundColor: "transparent", border: `1px solid ${C.border}` }}
+          >
+            <Download size={16} aria-hidden="true" />
+            Exporter en Excel
+          </button>
+          <Link
+            to="/factures/nouvelle"
+            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+            style={{ backgroundColor: C.primary }}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Nouvelle facture
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>

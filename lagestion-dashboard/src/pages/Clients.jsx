@@ -2,10 +2,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
-  ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX,
+  ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download,
 } from "lucide-react";
 import { C } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
+import { exporterClientsExcel } from "../utils/excel";
 
 const STATUTS = {
   actif:    { label: "Actif",    color: C.success,        bg: "rgba(39,174,96,0.12)" },
@@ -188,14 +189,26 @@ export default function Clients() {
             {tousClients.length} {tousClients.length > 1 ? "clients enregistrés" : "client enregistré"}
           </p>
         </div>
-        <Link
-          to="/clients/nouveau"
-          className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-          style={{ backgroundColor: C.primary }}
-        >
-          <Plus size={16} aria-hidden="true" />
-          Nouveau client
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => exporterClientsExcel(tries)}
+            aria-label="Exporter la liste des clients au format Excel"
+            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
+            style={{ color: C.textSecondary, backgroundColor: "transparent", border: `1px solid ${C.border}` }}
+          >
+            <Download size={16} aria-hidden="true" />
+            Exporter en Excel
+          </button>
+          <Link
+            to="/clients/nouveau"
+            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+            style={{ backgroundColor: C.primary }}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Nouveau client
+          </Link>
+        </div>
       </div>
 
       {/* Barre d'outils */}
