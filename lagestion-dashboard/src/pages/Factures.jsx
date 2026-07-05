@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
-  Eye, Pencil, Trash2, SearchX, MoreHorizontal, RefreshCw, Download,
+  Eye, Pencil, Trash2, SearchX, MoreHorizontal, RefreshCw, Download, AlertCircle,
 } from "lucide-react";
 import { C, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -20,8 +20,8 @@ const STATUT_OPTIONS = [
 const COLUMNS = [
   { id: "numero",         label: "Numéro",       sortable: true,  align: "left" },
   { id: "clientNom",      label: "Client",       sortable: true,  align: "left" },
-  { id: "dateEmission",   label: "Émission",     sortable: true,  align: "left" },
-  { id: "dateEcheance",   label: "Échéance",     sortable: true,  align: "left" },
+  { id: "date_emission",  label: "Émission",     sortable: true,  align: "left" },
+  { id: "date_echeance",  label: "Échéance",     sortable: true,  align: "left" },
   { id: "montantTTC",     label: "Montant TTC",  sortable: true,  align: "right" },
   { id: "statut",         label: "Statut",       sortable: true,  align: "left" },
   { id: "actions",        label: "",             sortable: false, align: "right" },
@@ -45,13 +45,13 @@ function formaterDate(iso) {
 
 export default function Factures() {
   const navigate = useNavigate();
-  const { factures, deleteFacture, changerStatut } = useFactures();
+  const { factures, deleteFacture, changerStatut, chargement, erreur } = useFactures();
   const { clients } = useClients();
 
   const [requete, setRequete] = useState("");
   const requeteDeb = useDebouncedValue(requete, 250);
   const [statut, setStatut] = useState("tous");
-  const [tri, setTri] = useState({ col: "dateEmission", dir: "desc" });
+  const [tri, setTri] = useState({ col: "date_emission", dir: "desc" });
 
   const clientsParId = useMemo(() => {
     const map = new Map();
@@ -62,7 +62,7 @@ export default function Factures() {
   const enrichies = useMemo(() => {
     return factures.map((f) => ({
       ...f,
-      clientNom: clientsParId.get(f.clientId)?.nom ?? "Client inconnu",
+      clientNom: clientsParId.get(f.client_id)?.nom ?? "Client inconnu",
       montantTTC: totalTTC(f),
     }));
   }, [factures, clientsParId]);
@@ -134,13 +134,19 @@ export default function Factures() {
             Factures
           </h2>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-            {recap.nombre} {recap.nombre > 1 ? "factures" : "facture"} · Total facturé{" "}
-            <span className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(recap.totalTotal)}</span>
-            <span className="mx-1">·</span>
-            Impayé{" "}
-            <span className="font-semibold tabular-nums" style={{ color: recap.impaye > 0 ? C.error : C.textPrimary }}>
-              {euro(recap.impaye)}
-            </span>
+            {chargement ? (
+              "Chargement…"
+            ) : (
+              <>
+                {recap.nombre} {recap.nombre > 1 ? "factures" : "facture"} · Total facturé{" "}
+                <span className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(recap.totalTotal)}</span>
+                <span className="mx-1">·</span>
+                Impayé{" "}
+                <span className="font-semibold tabular-nums" style={{ color: recap.impaye > 0 ? C.error : C.textPrimary }}>
+                  {euro(recap.impaye)}
+                </span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -164,6 +170,21 @@ export default function Factures() {
           </Link>
         </div>
       </div>
+
+      {erreur && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{
+            backgroundColor: "rgba(231,76,60,0.08)",
+            color: C.error,
+            border: `1px solid ${C.error}`,
+          }}
+        >
+          <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span><strong className="font-semibold">Impossible de charger les factures :</strong> {erreur}</span>
+        </div>
+      )}
 
       <div className="rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
         <div className="flex flex-wrap items-end gap-4">
@@ -196,7 +217,9 @@ export default function Factures() {
       </div>
 
       <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
-        {triees.length === 0 ? (
+        {chargement && factures.length === 0 ? (
+          <EtatChargement />
+        ) : triees.length === 0 ? (
           <EtatVide onReset={reinitialiserFiltres} />
         ) : (
           <div className="overflow-x-auto">
@@ -330,8 +353,8 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
     >
       <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>{facture.numero}</td>
       <td className="px-3 py-3" style={{ color: C.textSecondary }}>{facture.clientNom}</td>
-      <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{formaterDate(facture.dateEmission)}</td>
-      <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{formaterDate(facture.dateEcheance)}</td>
+      <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{formaterDate(facture.date_emission)}</td>
+      <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{formaterDate(facture.date_echeance)}</td>
       <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(facture.montantTTC)}</td>
       <td className="px-3 py-3"><BadgeStatutFacture statut={facture.statut} /></td>
       <td className="px-3 py-3">
@@ -457,6 +480,21 @@ function BoutonAction({ label, icon: Icon, couleur = C.textSecondary, onClick })
     >
       <Icon size={16} aria-hidden="true" />
     </button>
+  );
+}
+
+function EtatChargement() {
+  return (
+    <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-2"
+        style={{ borderColor: C.border, borderTopColor: C.primary }}
+        aria-hidden="true"
+      />
+      <p className="text-sm" role="status" aria-live="polite" style={{ color: C.textSecondary }}>
+        Chargement des factures…
+      </p>
+    </div>
   );
 }
 

@@ -58,8 +58,8 @@ export function genererFacturePdf(facture, client, totaux) {
 
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.textSecondary);
-  doc.text(`Émise le ${formatDate(facture.dateEmission)}`, pageW - margin, 38, { align: "right" });
-  doc.text(`Échéance le ${formatDate(facture.dateEcheance)}`, pageW - margin, 43, { align: "right" });
+  doc.text(`Émise le ${formatDate(facture.date_emission)}`, pageW - margin, 38, { align: "right" });
+  doc.text(`Échéance le ${formatDate(facture.date_echeance)}`, pageW - margin, 43, { align: "right" });
 
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.3);
@@ -98,8 +98,8 @@ export function genererFacturePdf(facture, client, totaux) {
   const rows = lignes.map((l) => [
     l.description || "—",
     String(l.quantite ?? ""),
-    formatEuro(l.prixUnitaire),
-    formatTaux(l.tauxTva),
+    formatEuro(l.prix_unitaire),
+    formatTaux(l.taux_tva),
     formatEuro(ligneHT(l)),
   ]);
 

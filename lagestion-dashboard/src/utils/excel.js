@@ -75,9 +75,9 @@ export function exporterFacturesExcel(factures, clients) {
   ];
   const rows = factures.map((f) => [
     f.numero ?? "",
-    clientsParId.get(f.clientId)?.nom ?? "",
-    parseDate(f.dateEmission),
-    parseDate(f.dateEcheance),
+    clientsParId.get(f.client_id)?.nom ?? "",
+    parseDate(f.date_emission),
+    parseDate(f.date_echeance),
     f.statut ?? "",
     totalHT(f),
     totalTVA(f),

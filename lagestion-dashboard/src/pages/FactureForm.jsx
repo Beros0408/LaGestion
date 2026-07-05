@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { C, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
@@ -9,12 +9,12 @@ import { ligneHT, totalHT, tvaParTaux, totalTTC } from "../utils/facture";
 import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
 
-const LIGNE_VIDE = { description: "", quantite: "1", prixUnitaire: "", tauxTva: "20" };
+const LIGNE_VIDE = { description: "", quantite: "1", prix_unitaire: "", taux_tva: "20" };
 
 const VIDE = {
-  clientId: "",
-  dateEmission: new Date().toISOString().slice(0, 10),
-  dateEcheance: "",
+  client_id: "",
+  date_emission: new Date().toISOString().slice(0, 10),
+  date_echeance: "",
   statut: "Brouillon",
   lignes: [{ ...LIGNE_VIDE }],
 };
@@ -28,15 +28,15 @@ const TAUX_OPTIONS = TAUX_TVA.map((t) => ({
 
 function normaliser(existant) {
   return {
-    clientId: existant.clientId != null ? String(existant.clientId) : "",
-    dateEmission: existant.dateEmission ?? "",
-    dateEcheance: existant.dateEcheance ?? "",
+    client_id: existant.client_id != null ? String(existant.client_id) : "",
+    date_emission: existant.date_emission ?? "",
+    date_echeance: existant.date_echeance ?? "",
     statut: existant.statut ?? "Brouillon",
     lignes: (existant.lignes ?? []).map((l) => ({
       description: l.description ?? "",
       quantite: l.quantite != null ? String(l.quantite) : "",
-      prixUnitaire: l.prixUnitaire != null ? String(l.prixUnitaire) : "",
-      tauxTva: l.tauxTva != null ? String(l.tauxTva) : "20",
+      prix_unitaire: l.prix_unitaire != null ? String(l.prix_unitaire) : "",
+      taux_tva: l.taux_tva != null ? String(l.taux_tva) : "20",
     })),
   };
 }
@@ -44,19 +44,26 @@ function normaliser(existant) {
 export default function FactureForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { factures, addFacture, updateFacture } = useFactures();
+  const { factures, addFacture, updateFacture, chargement } = useFactures();
   const { clients } = useClients();
 
   const modeEdition = Boolean(id);
-  const idNumerique = id ? Number(id) : null;
 
   const existant = useMemo(
-    () => (modeEdition ? factures.find((f) => f.id === idNumerique) : null),
-    [modeEdition, factures, idNumerique]
+    () => (modeEdition ? factures.find((f) => f.id === id) : null),
+    [modeEdition, factures, id]
   );
 
   const [form, setForm] = useState(() => (existant ? normaliser(existant) : VIDE));
   const [errors, setErrors] = useState({});
+  const [erreurSoumission, setErreurSoumission] = useState(null);
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
+
+  useEffect(() => {
+    if (modeEdition && existant) {
+      setForm(normaliser(existant));
+    }
+  }, [modeEdition, existant]);
 
   const clientOptions = useMemo(
     () => [
@@ -64,7 +71,7 @@ export default function FactureForm() {
       ...clients
         .slice()
         .sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" }))
-        .map((c) => ({ value: String(c.id), label: c.nom })),
+        .map((c) => ({ value: c.id, label: c.nom })),
     ],
     [clients]
   );
@@ -73,8 +80,8 @@ export default function FactureForm() {
     () => ({
       lignes: form.lignes.map((l) => ({
         quantite: Number(l.quantite) || 0,
-        prixUnitaire: Number(l.prixUnitaire) || 0,
-        tauxTva: Number(l.tauxTva) || 0,
+        prix_unitaire: Number(l.prix_unitaire) || 0,
+        taux_tva: Number(l.taux_tva) || 0,
       })),
     }),
     [form.lignes]
@@ -89,7 +96,7 @@ export default function FactureForm() {
     [factureCalc]
   );
 
-  if (modeEdition && !existant) {
+  if (modeEdition && !chargement && !existant) {
     return (
       <div
         className="rounded-2xl p-8 text-center"
@@ -148,16 +155,16 @@ export default function FactureForm() {
 
   const valider = (data) => {
     const errs = {};
-    if (!data.clientId) errs.clientId = "Le client est requis.";
+    if (!data.client_id) errs.client_id = "Le client est requis.";
     if (data.lignes.length === 0) {
       errs.lignes = "Ajoutez au moins une ligne.";
     } else {
       const ligneItems = data.lignes.map((l) => {
         const e = {};
         const q = Number(l.quantite);
-        const p = Number(l.prixUnitaire);
+        const p = Number(l.prix_unitaire);
         if (l.quantite === "" || Number.isNaN(q) || q <= 0) e.quantite = "Quantité positive.";
-        if (l.prixUnitaire === "" || Number.isNaN(p) || p <= 0) e.prixUnitaire = "Prix positif.";
+        if (l.prix_unitaire === "" || Number.isNaN(p) || p <= 0) e.prix_unitaire = "Prix positif.";
         return e;
       });
       if (ligneItems.some((e) => Object.keys(e).length > 0)) errs.ligneItems = ligneItems;
@@ -165,31 +172,39 @@ export default function FactureForm() {
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = valider(form);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
     const payload = {
-      clientId: Number(form.clientId),
-      dateEmission: form.dateEmission,
-      dateEcheance: form.dateEcheance,
+      client_id: form.client_id,
+      date_emission: form.date_emission || null,
+      date_echeance: form.date_echeance || null,
       statut: form.statut,
       lignes: form.lignes.map((l) => ({
         description: l.description.trim(),
         quantite: Number(l.quantite),
-        prixUnitaire: Number(l.prixUnitaire),
-        tauxTva: Number(l.tauxTva),
+        prix_unitaire: Number(l.prix_unitaire),
+        taux_tva: Number(l.taux_tva),
       })),
     };
 
-    if (modeEdition) {
-      updateFacture(idNumerique, payload);
-    } else {
-      addFacture(payload);
+    setErreurSoumission(null);
+    setEnvoiEnCours(true);
+    try {
+      if (modeEdition) {
+        await updateFacture(id, payload);
+      } else {
+        await addFacture(payload);
+      }
+      navigate("/factures");
+    } catch (err) {
+      setErreurSoumission(err?.message ?? "Une erreur est survenue.");
+    } finally {
+      setEnvoiEnCours(false);
     }
-    navigate("/factures");
   };
 
   return (
@@ -200,10 +215,25 @@ export default function FactureForm() {
         </h2>
         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
           {modeEdition
-            ? `Facture ${existant.numero} — mettez à jour son contenu.`
+            ? `Facture ${existant?.numero ?? ""} — mettez à jour son contenu.`
             : "Le numéro sera généré automatiquement à l'enregistrement."}
         </p>
       </div>
+
+      {erreurSoumission && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{
+            backgroundColor: "rgba(231,76,60,0.08)",
+            color: C.error,
+            border: `1px solid ${C.error}`,
+          }}
+        >
+          <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span><strong className="font-semibold">Enregistrement impossible :</strong> {erreurSoumission}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} noValidate>
         <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
@@ -211,10 +241,10 @@ export default function FactureForm() {
             <Select
               label="Client"
               required
-              value={form.clientId}
-              onChange={(e) => definir("clientId")(e.target.value)}
+              value={form.client_id}
+              onChange={(e) => definir("client_id")(e.target.value)}
               options={clientOptions}
-              error={errors.clientId}
+              error={errors.client_id}
             />
             <Select
               label="Statut"
@@ -226,14 +256,14 @@ export default function FactureForm() {
             <Input
               label="Date d'émission"
               type="date"
-              value={form.dateEmission}
-              onChange={(e) => definir("dateEmission")(e.target.value)}
+              value={form.date_emission}
+              onChange={(e) => definir("date_emission")(e.target.value)}
             />
             <Input
               label="Date d'échéance"
               type="date"
-              value={form.dateEcheance}
-              onChange={(e) => definir("dateEcheance")(e.target.value)}
+              value={form.date_echeance}
+              onChange={(e) => definir("date_echeance")(e.target.value)}
             />
           </div>
         </div>
@@ -261,7 +291,7 @@ export default function FactureForm() {
           <div className="space-y-3">
             {form.lignes.map((l, i) => {
               const erreursLigne = errors.ligneItems?.[i] ?? {};
-              const ht = ligneHT({ quantite: Number(l.quantite) || 0, prixUnitaire: Number(l.prixUnitaire) || 0 });
+              const ht = ligneHT({ quantite: Number(l.quantite) || 0, prix_unitaire: Number(l.prix_unitaire) || 0 });
               return (
                 <div
                   key={i}
@@ -295,16 +325,16 @@ export default function FactureForm() {
                       inputMode="decimal"
                       min="0"
                       step="0.01"
-                      value={l.prixUnitaire}
-                      onChange={(e) => majLigne(i, "prixUnitaire", e.target.value)}
-                      error={erreursLigne.prixUnitaire}
+                      value={l.prix_unitaire}
+                      onChange={(e) => majLigne(i, "prix_unitaire", e.target.value)}
+                      error={erreursLigne.prix_unitaire}
                     />
                   </div>
                   <div className="col-span-4 md:col-span-2">
                     <Select
                       label="TVA"
-                      value={l.tauxTva}
-                      onChange={(e) => majLigne(i, "tauxTva", e.target.value)}
+                      value={l.taux_tva}
+                      onChange={(e) => majLigne(i, "taux_tva", e.target.value)}
                       options={TAUX_OPTIONS}
                     />
                   </div>
@@ -376,10 +406,15 @@ export default function FactureForm() {
           </button>
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+            disabled={envoiEnCours}
+            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
             style={{ backgroundColor: C.primary }}
           >
-            {modeEdition ? "Enregistrer les modifications" : "Créer la facture"}
+            {envoiEnCours
+              ? "Enregistrement…"
+              : modeEdition
+                ? "Enregistrer les modifications"
+                : "Créer la facture"}
           </button>
         </div>
       </form>

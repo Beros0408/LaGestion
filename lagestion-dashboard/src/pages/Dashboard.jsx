@@ -120,13 +120,13 @@ export default function Dashboard() {
   const facturesRecentes = useMemo(
     () =>
       [...factures]
-        .sort((a, b) => (b.dateEmission || "").localeCompare(a.dateEmission || ""))
+        .sort((a, b) => (b.date_emission || "").localeCompare(a.date_emission || ""))
         .slice(0, 5)
         .map((f) => ({
           num: f.numero,
-          client: clientsParId.get(f.clientId)?.nom ?? "—",
+          client: clientsParId.get(f.client_id)?.nom ?? "—",
           montant: totalTTC(f),
-          echeance: formatDateCourte(f.dateEcheance),
+          echeance: formatDateCourte(f.date_echeance),
           statut: f.statut,
         })),
     [factures, clientsParId]
