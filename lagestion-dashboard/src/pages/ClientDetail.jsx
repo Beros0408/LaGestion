@@ -1,18 +1,13 @@
 import React, { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import {
-  ArrowLeft, Pencil, Phone, Mail, MapPin, FileText,
-  Calendar as CalendarIcon, StickyNote,
-  CheckCircle2, Clock, AlertTriangle,
-} from "lucide-react";
-import { C, euro } from "../theme";
+import { ArrowLeft, Pencil, Phone, Mail, MapPin } from "lucide-react";
+import { C } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
-import { getClientActivity } from "../data/clientActivity";
 
 const AVATAR_PALETTE = [C.primary, C.secondary, C.accent, C.info];
 
 function initiales(nom) {
-  return nom
+  return (nom || "")
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
@@ -21,8 +16,9 @@ function initiales(nom) {
 }
 
 function couleurAvatar(nom) {
+  const s = nom || "";
   let h = 0;
-  for (let i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 
@@ -38,6 +34,11 @@ function libelleScore(score) {
   return "Score faible";
 }
 
+function urlComplete(u) {
+  if (!u) return null;
+  return /^https?:\/\//i.test(u) ? u : `https://${u}`;
+}
+
 const STATUT_CLIENT = {
   actif:    { label: "Actif",    color: C.success,        bg: "rgba(39,174,96,0.12)" },
   prospect: { label: "Prospect", color: C.info,           bg: "rgba(52,152,219,0.12)" },
@@ -49,42 +50,28 @@ const TYPE_CLIENT = {
   entreprise:  "Entreprise",
 };
 
-const STATUT_FACTURE = {
-  payee:      { label: "Payée",      color: C.success, bg: "rgba(39,174,96,0.12)",  icon: CheckCircle2 },
-  en_attente: { label: "En attente", color: C.info,    bg: "rgba(52,152,219,0.12)", icon: Clock },
-  retard:     { label: "En retard",  color: C.error,   bg: "rgba(231,76,60,0.12)",  icon: AlertTriangle },
-};
-
-const STATUT_OPP = {
-  qualification: { label: "Qualification", color: C.primary,   bg: "rgba(45,91,127,0.12)" },
-  proposition:   { label: "Proposition",   color: C.secondary, bg: "rgba(74,155,142,0.12)" },
-  negociation:   { label: "Négociation",   color: C.accent,    bg: "rgba(244,162,97,0.18)" },
-  conclusion:    { label: "Conclusion",    color: C.success,   bg: "rgba(39,174,96,0.12)" },
-};
-
-const TYPE_INTERACTION = {
-  appel:   { label: "Appel",   color: C.secondary,     icon: Phone },
-  email:   { label: "E-mail",  color: C.info,          icon: Mail },
-  reunion: { label: "Réunion", color: C.accent,        icon: CalendarIcon },
-  note:    { label: "Note",    color: C.textSecondary, icon: StickyNote },
-};
-
-const formatDate = (iso) =>
-  new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(iso));
-
 export default function ClientDetail() {
   const { id } = useParams();
-  const numericId = Number(id);
-  const { clients } = useClients();
+  const { clients, chargement } = useClients();
 
   const client = useMemo(
-    () => clients.find((c) => c.id === numericId),
-    [clients, numericId]
+    () => clients.find((c) => String(c.id) === String(id)),
+    [clients, id]
   );
 
-  const activity = useMemo(() => getClientActivity(numericId), [numericId]);
-
   if (!client) {
+    if (chargement) {
+      return (
+        <div
+          className="rounded-2xl p-8 text-center"
+          style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+          role="status"
+          aria-live="polite"
+        >
+          <p className="text-sm" style={{ color: C.textSecondary }}>Chargement du client…</p>
+        </div>
+      );
+    }
     return (
       <div
         className="rounded-2xl p-8 text-center"
@@ -106,7 +93,17 @@ export default function ClientDetail() {
     );
   }
 
-  const scoreCouleur = couleurScore(client.score);
+  const score = typeof client.score === "number" ? client.score : 0;
+  const scoreCouleur = couleurScore(score);
+
+  const infosEntreprise = client.type === "entreprise"
+    ? [
+        client.siren     && { label: "SIREN", value: client.siren },
+        client.siret     && { label: "SIRET", value: client.siret },
+        client.tva_intra && { label: "TVA intracommunautaire", value: client.tva_intra },
+        client.site_web  && { label: "Site web", value: client.site_web, href: urlComplete(client.site_web) },
+      ].filter(Boolean)
+    : [];
 
   return (
     <>
@@ -152,7 +149,7 @@ export default function ClientDetail() {
                 <BadgeStatutClient statut={client.statut} />
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
-                <span>{TYPE_CLIENT[client.type]}</span>
+                <span>{TYPE_CLIENT[client.type] ?? client.type}</span>
                 {client.tags?.length > 0 && (
                   <>
                     <span aria-hidden="true">·</span>
@@ -198,9 +195,9 @@ export default function ClientDetail() {
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Coordonnee icon={Mail}   label="E-mail"   value={client.email} />
+          <Coordonnee icon={Mail}   label="E-mail"    value={client.email} />
           <Coordonnee icon={Phone}  label="Téléphone" value={client.telephone} />
-          <Coordonnee icon={MapPin} label="Adresse"  value={client.adresse} />
+          <Coordonnee icon={MapPin} label="Adresse"   value={client.adresse} />
 
           <div>
             <p className="mb-1 text-xs font-medium" style={{ color: C.textSecondary }}>Score client</p>
@@ -212,20 +209,20 @@ export default function ClientDetail() {
               >
                 <div
                   className="h-full rounded-full"
-                  style={{ width: `${client.score}%`, backgroundColor: scoreCouleur }}
+                  style={{ width: `${score}%`, backgroundColor: scoreCouleur }}
                 />
               </div>
               <span
                 className="text-sm font-semibold tabular-nums"
                 style={{ color: C.textPrimary }}
-                aria-label={`${libelleScore(client.score)} : ${client.score} sur 100`}
+                aria-label={`${libelleScore(score)} : ${score} sur 100`}
               >
-                {client.score}
+                {score}
                 <span className="text-xs font-normal" style={{ color: C.textSecondary }}> / 100</span>
               </span>
             </div>
             <p className="mt-1 text-xs font-medium" style={{ color: scoreCouleur }}>
-              {libelleScore(client.score)}
+              {libelleScore(score)}
             </p>
           </div>
         </div>
@@ -235,29 +232,7 @@ export default function ClientDetail() {
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Colonne principale */}
         <div className="space-y-5 lg:col-span-2">
-          <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
-            <h3
-              className="mb-4 text-base font-semibold"
-              style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
-            >
-              Historique des interactions
-            </h3>
-            {activity.interactions.length > 0 ? (
-              <ol className="relative">
-                {activity.interactions.map((it, idx) => (
-                  <InteractionItem
-                    key={it.id}
-                    interaction={it}
-                    dernier={idx === activity.interactions.length - 1}
-                  />
-                ))}
-              </ol>
-            ) : (
-              <p className="text-sm" style={{ color: C.textSecondary }}>
-                Aucune interaction enregistrée pour ce client.
-              </p>
-            )}
-          </div>
+          <CarteVide titre="Historique des interactions" message="Aucune interaction enregistrée." />
 
           <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
             <h3
@@ -283,61 +258,42 @@ export default function ClientDetail() {
 
         {/* Colonne latérale */}
         <div className="space-y-5">
-          <CarteListe
-            titre="Opportunités liées"
-            vide="Aucune opportunité ouverte."
-            items={activity.opportunites}
-            render={(op) => (
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>{op.nom}</p>
-                  <p className="text-xs font-semibold tabular-nums" style={{ color: C.textSecondary }}>
-                    {euro(op.montant)}
-                  </p>
-                </div>
-                <BadgeOpp statut={op.statut} />
-              </div>
-            )}
-          />
+          {infosEntreprise.length > 0 && (
+            <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+              <h3
+                className="mb-3 text-base font-semibold"
+                style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
+              >
+                Informations entreprise
+              </h3>
+              <dl className="space-y-3">
+                {infosEntreprise.map((info) => (
+                  <div key={info.label}>
+                    <dt className="text-xs font-medium" style={{ color: C.textSecondary }}>{info.label}</dt>
+                    <dd className="mt-0.5 truncate text-sm" style={{ color: C.textPrimary }}>
+                      {info.href ? (
+                        <a
+                          href={info.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded focus:outline-none focus-visible:ring-2"
+                          style={{ color: C.primary }}
+                        >
+                          {info.value}
+                        </a>
+                      ) : (
+                        <span className="tabular-nums">{info.value}</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
 
-          <CarteListe
-            titre="Factures liées"
-            vide="Aucune facture enregistrée."
-            items={activity.factures}
-            render={(f) => (
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium tabular-nums" style={{ color: C.textPrimary }}>{f.num}</p>
-                  <p className="text-xs" style={{ color: C.textSecondary }}>Échéance : {f.echeance}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-sm font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(f.montant)}</span>
-                  <BadgeFacture statut={f.statut} />
-                </div>
-              </div>
-            )}
-          />
-
-          <CarteListe
-            titre="Documents"
-            vide="Aucun document associé."
-            items={activity.documents}
-            render={(d) => (
-              <div className="flex items-center gap-3">
-                <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                  style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
-                  aria-hidden="true"
-                >
-                  <FileText size={16} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>{d.nom}</p>
-                  <p className="text-xs" style={{ color: C.textSecondary }}>{d.taille}</p>
-                </div>
-              </div>
-            )}
-          />
+          <CarteVide titre="Opportunités liées" message="Aucune opportunité liée." />
+          <CarteVide titre="Factures liées"     message="Aucune facture liée." />
+          <CarteVide titre="Documents"          message="Aucun document associé." />
         </div>
       </div>
     </>
@@ -356,44 +312,7 @@ function Coordonnee({ icon: Icon, label, value }) {
   );
 }
 
-function InteractionItem({ interaction, dernier }) {
-  const t = TYPE_INTERACTION[interaction.type] ?? TYPE_INTERACTION.note;
-  const Icon = t.icon;
-  return (
-    <li className="relative flex gap-3 pb-4 last:pb-0">
-      {!dernier && (
-        <span
-          className="absolute left-4 top-9 w-px"
-          style={{ backgroundColor: C.border, height: "calc(100% - 2.25rem)" }}
-          aria-hidden="true"
-        />
-      )}
-      <span
-        className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-        style={{ color: t.color, backgroundColor: `${t.color}22` }}
-        aria-hidden="true"
-      >
-        <Icon size={16} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            <span className="sr-only">{t.label} : </span>
-            {interaction.titre}
-          </p>
-          <span className="text-xs tabular-nums" style={{ color: C.textSecondary }}>
-            {formatDate(interaction.date)}
-          </span>
-        </div>
-        <p className="mt-1 text-sm leading-snug" style={{ color: C.textSecondary }}>
-          {interaction.description}
-        </p>
-      </div>
-    </li>
-  );
-}
-
-function CarteListe({ titre, vide, items, render }) {
+function CarteVide({ titre, message }) {
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
       <h3
@@ -402,59 +321,20 @@ function CarteListe({ titre, vide, items, render }) {
       >
         {titre}
       </h3>
-      {items.length > 0 ? (
-        <ul>
-          {items.map((item, i) => (
-            <li
-              key={item.id}
-              className="py-2.5 first:pt-0 last:pb-0"
-              style={{ borderTop: i === 0 ? "none" : `1px solid ${C.border}` }}
-            >
-              {render(item)}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm" style={{ color: C.textSecondary }}>{vide}</p>
-      )}
+      <p className="text-sm" style={{ color: C.textSecondary }}>{message}</p>
     </div>
   );
 }
 
 function BadgeStatutClient({ statut }) {
   const s = STATUT_CLIENT[statut];
+  if (!s) return null;
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
       style={{ color: s.color, backgroundColor: s.bg }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} aria-hidden="true" />
-      {s.label}
-    </span>
-  );
-}
-
-function BadgeFacture({ statut }) {
-  const s = STATUT_FACTURE[statut];
-  const Icon = s.icon;
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-      style={{ color: s.color, backgroundColor: s.bg }}
-    >
-      <Icon size={12} aria-hidden="true" />
-      {s.label}
-    </span>
-  );
-}
-
-function BadgeOpp({ statut }) {
-  const s = STATUT_OPP[statut];
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-      style={{ color: s.color, backgroundColor: s.bg }}
-    >
       {s.label}
     </span>
   );
