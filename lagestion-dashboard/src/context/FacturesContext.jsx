@@ -5,15 +5,38 @@ import { STATUTS } from "../data/factures";
 
 const FacturesContext = createContext(null);
 
-const CHAMPS_FACTURE = ["client_id", "numero", "date_emission", "date_echeance", "statut"];
-const CHAMPS_LIGNE = ["description", "quantite", "prix_unitaire", "taux_tva"];
+const CHAMPS_FACTURE = [
+  "client_id",
+  "numero",
+  "date_emission",
+  "date_echeance",
+  "statut",
+  "remise",
+  "conditions_paiement",
+  "mode_paiement",
+  "notes_internes",
+  "message_client",
+];
+const CHAMPS_LIGNE = [
+  "description",
+  "reference",
+  "unite",
+  "quantite",
+  "prix_unitaire",
+  "taux_tva",
+  "remise",
+];
+const CHAMPS_TEXTE_LIGNE = new Set(["description", "reference", "unite"]);
+const CHAMPS_PAIEMENT = ["date", "montant", "mode", "reference"];
 
 function preparerEnteteFacture(data) {
   const payload = {};
   CHAMPS_FACTURE.forEach((cle) => {
     if (data[cle] === undefined) return;
     const v = data[cle];
-    if (typeof v === "string") {
+    if (cle === "remise") {
+      payload[cle] = Number(v) || 0;
+    } else if (typeof v === "string") {
       payload[cle] = v.trim() === "" ? null : v.trim();
     } else {
       payload[cle] = v;
@@ -27,8 +50,16 @@ function preparerLignes(lignes, factureId) {
     const ligne = { facture_id: factureId, position: i };
     CHAMPS_LIGNE.forEach((cle) => {
       const v = l?.[cle];
-      if (cle === "description") {
-        ligne[cle] = typeof v === "string" ? v.trim() : (v ?? "");
+      if (CHAMPS_TEXTE_LIGNE.has(cle)) {
+        if (cle === "description") {
+          ligne[cle] = typeof v === "string" ? v.trim() : (v ?? "");
+        } else {
+          const t = typeof v === "string" ? v.trim() : v;
+          ligne[cle] = t ? t : null;
+        }
+      } else if (cle === "quantite") {
+        const n = Number(v);
+        ligne[cle] = Number.isFinite(n) && n > 0 ? n : 1;
       } else {
         ligne[cle] = Number(v) || 0;
       }
@@ -37,13 +68,33 @@ function preparerLignes(lignes, factureId) {
   });
 }
 
+function preparerPaiement(data) {
+  const payload = {};
+  CHAMPS_PAIEMENT.forEach((cle) => {
+    if (data[cle] === undefined) return;
+    const v = data[cle];
+    if (cle === "montant") {
+      payload[cle] = Number(v) || 0;
+    } else if (typeof v === "string") {
+      payload[cle] = v.trim() === "" ? null : v.trim();
+    } else {
+      payload[cle] = v;
+    }
+  });
+  return payload;
+}
+
 function normaliserFacture(row) {
   const lignesBrutes = row.lignes_facture ?? [];
   const lignes = lignesBrutes
     .slice()
     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-  const { lignes_facture: _omit, ...entete } = row;
-  return { ...entete, lignes };
+  const paiementsBruts = row.paiements ?? [];
+  const paiements = paiementsBruts
+    .slice()
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+  const { lignes_facture: _l, paiements: _p, ...entete } = row;
+  return { ...entete, lignes, paiements };
 }
 
 function prochainNumero(existants) {
@@ -69,7 +120,7 @@ export function FacturesProvider({ children }) {
     setErreur(null);
     const { data, error } = await supabase
       .from("factures")
-      .select("*, lignes_facture(*)")
+      .select("*, lignes_facture(*), paiements(*)")
       .is("deleted_at", null)
       .order("date_emission", { ascending: false });
     if (error) {
@@ -167,9 +218,90 @@ export function FacturesProvider({ children }) {
     return maj;
   }, []);
 
+  const ajouterPaiement = useCallback(
+    async (factureId, data) => {
+      const payload = { facture_id: factureId, ...preparerPaiement(data) };
+      const { data: cree, error } = await supabase
+        .from("paiements")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      await chargerFactures();
+      return cree;
+    },
+    [chargerFactures]
+  );
+
+  const supprimerPaiement = useCallback(
+    async (paiementId) => {
+      const { error } = await supabase.from("paiements").delete().eq("id", paiementId);
+      if (error) throw error;
+      await chargerFactures();
+      return true;
+    },
+    [chargerFactures]
+  );
+
+  const dupliquerFacture = useCallback(
+    async (id) => {
+      const source = factures.find((f) => f.id === id);
+      if (!source) throw new Error("Facture source introuvable.");
+      const payload = {
+        client_id: source.client_id,
+        numero: prochainNumero(factures),
+        date_emission: new Date().toISOString().slice(0, 10),
+        date_echeance: null,
+        statut: "brouillon",
+        remise: Number(source.remise) || 0,
+        conditions_paiement: source.conditions_paiement ?? null,
+        mode_paiement: source.mode_paiement ?? null,
+        notes_internes: source.notes_internes ?? null,
+        message_client: source.message_client ?? null,
+      };
+      const { data: cree, error } = await supabase
+        .from("factures")
+        .insert(preparerEnteteFacture(payload))
+        .select()
+        .single();
+      if (error) throw error;
+      const lignes = source.lignes ?? [];
+      if (lignes.length > 0) {
+        const rows = preparerLignes(lignes, cree.id);
+        const { error: e2 } = await supabase.from("lignes_facture").insert(rows);
+        if (e2) throw e2;
+      }
+      await chargerFactures();
+      return cree;
+    },
+    [factures, chargerFactures]
+  );
+
   const value = useMemo(
-    () => ({ factures, chargement, erreur, addFacture, updateFacture, deleteFacture, changerStatut }),
-    [factures, chargement, erreur, addFacture, updateFacture, deleteFacture, changerStatut]
+    () => ({
+      factures,
+      chargement,
+      erreur,
+      addFacture,
+      updateFacture,
+      deleteFacture,
+      changerStatut,
+      ajouterPaiement,
+      supprimerPaiement,
+      dupliquerFacture,
+    }),
+    [
+      factures,
+      chargement,
+      erreur,
+      addFacture,
+      updateFacture,
+      deleteFacture,
+      changerStatut,
+      ajouterPaiement,
+      supprimerPaiement,
+      dupliquerFacture,
+    ]
   );
 
   return <FacturesContext.Provider value={value}>{children}</FacturesContext.Provider>;

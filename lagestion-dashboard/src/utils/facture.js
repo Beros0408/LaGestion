@@ -1,7 +1,17 @@
 export function ligneHT(ligne) {
   const q = Number(ligne?.quantite) || 0;
   const p = Number(ligne?.prix_unitaire) || 0;
-  return q * p;
+  const r = Number(ligne?.remise) || 0;
+  return Math.max(0, q * p - r);
+}
+
+export function ligneTVA(ligne) {
+  const t = Number(ligne?.taux_tva) || 0;
+  return ligneHT(ligne) * (t / 100);
+}
+
+export function ligneTTC(ligne) {
+  return ligneHT(ligne) + ligneTVA(ligne);
 }
 
 export function totalHT(facture) {
@@ -28,6 +38,20 @@ export function totalTVA(facture) {
   return tvaParTaux(facture).reduce((s, d) => s + d.tva, 0);
 }
 
+export function remiseGlobale(facture) {
+  return Number(facture?.remise) || 0;
+}
+
 export function totalTTC(facture) {
-  return totalHT(facture) + totalTVA(facture);
+  const brut = totalHT(facture) + totalTVA(facture);
+  return Math.max(0, brut - remiseGlobale(facture));
+}
+
+export function totalPaye(facture) {
+  const paiements = facture?.paiements ?? [];
+  return paiements.reduce((s, p) => s + (Number(p?.montant) || 0), 0);
+}
+
+export function resteAPayer(facture) {
+  return Math.max(0, totalTTC(facture) - totalPaye(facture));
 }

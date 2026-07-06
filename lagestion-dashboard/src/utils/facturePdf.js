@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { ligneHT, totalHT, tvaParTaux, totalTTC } from "./facture";
+import { ligneHT, remiseGlobale, totalHT, tvaParTaux, totalTTC } from "./facture";
 import { LIBELLE_STATUT } from "../data/factures";
 
 const COLORS = {
@@ -24,12 +24,23 @@ function formatEuro(n) {
   const formatted = v
     .toFixed(2)
     .replace(".", ",")
-    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return `${formatted} €`;
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${formatted} €`;
 }
 
 function formatTaux(t) {
-  return `${String(t ?? 0).replace(".", ",")} %`;
+  return `${String(t ?? 0).replace(".", ",")} %`;
+}
+
+function formatQuantiteUnite(l) {
+  const q = String(l.quantite ?? "");
+  const u = (l.unite || "").trim();
+  return u ? `${q} ${u}` : q;
+}
+
+function descriptionAvecReference(l) {
+  const base = l.description || "—";
+  return l.reference ? `${base}\n(Réf. ${l.reference})` : base;
 }
 
 export function genererFacturePdf(facture, client, totaux) {
@@ -81,32 +92,41 @@ export function genererFacturePdf(facture, client, totaux) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.textSecondary);
+  if (client?.type === "entreprise" && client?.siren) {
+    y += 5;
+    doc.text(`SIREN ${client.siren}`, margin, y);
+  }
+  if (client?.type === "entreprise" && client?.tva_intra) {
+    y += 5;
+    doc.text(`TVA ${client.tva_intra}`, margin, y);
+  }
   if (client?.adresse) {
     y += 5;
     doc.text(client.adresse, margin, y);
-  }
-  if (client?.email) {
-    y += 5;
-    doc.text(client.email, margin, y);
   }
   if (client?.telephone) {
     y += 5;
     doc.text(client.telephone, margin, y);
   }
+  if (client?.email) {
+    y += 5;
+    doc.text(client.email, margin, y);
+  }
 
   const startY = y + 12;
   const lignes = facture.lignes ?? [];
   const rows = lignes.map((l) => [
-    l.description || "—",
-    String(l.quantite ?? ""),
+    descriptionAvecReference(l),
+    formatQuantiteUnite(l),
     formatEuro(l.prix_unitaire),
+    Number(l.remise) > 0 ? `- ${formatEuro(l.remise)}` : "",
     formatTaux(l.taux_tva),
     formatEuro(ligneHT(l)),
   ]);
 
   autoTable(doc, {
     startY,
-    head: [["Description", "Qté", "Prix U. HT", "TVA", "Total HT"]],
+    head: [["Description", "Qté", "Prix U. HT", "Remise", "TVA", "Total HT"]],
     body: rows,
     theme: "grid",
     styles: {
@@ -125,10 +145,11 @@ export function genererFacturePdf(facture, client, totaux) {
     },
     columnStyles: {
       0: { cellWidth: "auto" },
-      1: { halign: "right", cellWidth: 18 },
-      2: { halign: "right", cellWidth: 30 },
-      3: { halign: "right", cellWidth: 20 },
-      4: { halign: "right", cellWidth: 32 },
+      1: { halign: "right", cellWidth: 20 },
+      2: { halign: "right", cellWidth: 26 },
+      3: { halign: "right", cellWidth: 22 },
+      4: { halign: "right", cellWidth: 16 },
+      5: { halign: "right", cellWidth: 28 },
     },
     alternateRowStyles: { fillColor: COLORS.bgLight },
     margin: { left: margin, right: margin },
@@ -137,6 +158,7 @@ export function genererFacturePdf(facture, client, totaux) {
   const ht = totaux?.ht ?? totalHT(facture);
   const tvaDetail = totaux?.tvaDetail ?? tvaParTaux(facture);
   const ttc = totaux?.ttc ?? totalTTC(facture);
+  const remise = totaux?.remise ?? remiseGlobale(facture);
 
   let recapY = (doc.lastAutoTable?.finalY ?? startY) + 8;
   const recapRight = pageW - margin;
@@ -159,6 +181,15 @@ export function genererFacturePdf(facture, client, totaux) {
     doc.text(formatEuro(d.tva), recapRight, recapY, { align: "right" });
   });
 
+  if (remise > 0) {
+    recapY += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.textSecondary);
+    doc.text("Remise globale", recapLeft, recapY);
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.text(`- ${formatEuro(remise)}`, recapRight, recapY, { align: "right" });
+  }
+
   recapY += 3;
   doc.setDrawColor(...COLORS.border);
   doc.line(recapLeft, recapY, recapRight, recapY);
@@ -169,6 +200,20 @@ export function genererFacturePdf(facture, client, totaux) {
   doc.setTextColor(...COLORS.textPrimary);
   doc.text("Total TTC", recapLeft, recapY);
   doc.text(formatEuro(ttc), recapRight, recapY, { align: "right" });
+
+  if (facture.message_client) {
+    let messageY = recapY + 14;
+    const messageMaxWidth = pageW - margin * 2;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.textSecondary);
+    doc.text("MESSAGE", margin, messageY);
+    messageY += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.textPrimary);
+    const lignesMessage = doc.splitTextToSize(facture.message_client, messageMaxWidth);
+    doc.text(lignesMessage, margin, messageY);
+  }
 
   const footerY = pageH - 18;
   doc.setDrawColor(...COLORS.border);
