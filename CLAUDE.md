@@ -1,3 +1,58 @@
+# Règles de travail — LaGestion
+
+## Objectif
+Construire LaGestion, un SaaS CRM multi-entreprises pour TPE/PME françaises (2 à 50 personnes) :
+clients, prospects, pipeline, devis, factures, paiements, tableau de bord, puis IWa (agent IA) et module BTP.
+Référence fonctionnelle : docs/LaGestion_Cahier_des_charges_V2.md.
+
+## Contexte
+- Développeur solo, Windows (cmd), projet dans C:\Users\bkabe\Desktop\LaGestion_CRM-projet\lagestion-dashboard
+- Dépôt GitHub : Beros0408/LaGestion ; branche de travail v2-multitenant ; main reste stable
+- Stack : React 18 + Vite + Tailwind + React Router + Recharts + lucide-react + Supabase (Auth, Postgres, Storage)
+- Déploiement prévu : Vercel (frontend) + Supabase
+- Supabase : projet lagestion (réf. vzpuewzjlrbwqxwadsle), variables dans .env.local
+- Clé d'isolation : entreprise_id sur toute donnée métier ; RLS par appartenance (table memberships)
+- Schéma : supabase/schema.sql (base) + supabase/migrations/NNN_nom.sql (évolutions, numérotées)
+- Écritures centralisées dans src/context : ClientsContext.jsx, OpportunitesContext.jsx, FacturesContext.jsx
+- Suppression logique via deleted_at
+
+## Contraintes
+- Aucune nouvelle dépendance npm sans mon accord explicite. Si une librairie semble utile, propose-la et attends.
+- Pas de Framer Motion : animations en CSS uniquement. Graphiques : Recharts uniquement.
+- Respecte le design system décrit dans ce fichier ; aucune couleur codée en dur hors des tokens.
+- Jamais de clé service_role ou sb_secret_ côté navigateur. Seule la clé publishable est dans .env.local.
+- Toute requête de lecture ou d'écriture respecte entreprise_id ; ne jamais contourner la RLS.
+- Calculs financiers (HT, TVA, TTC, totaux) déterministes, arrondis au centime, jamais délégués à l'IA.
+- Textes d'interface en français correct (accents, espaces insécables avant : ; ! ?), prêts pour l'i18n.
+- Ne modifie jamais schema.sql pour une évolution : crée une migration numérotée.
+- N'exécute jamais npm audit fix --force.
+
+## Méthode
+- Une étape à la fois. Avant de coder : reformule l'objectif de l'étape, liste les fichiers touchés et le plan en 3 à 7 points, puis attends mon « go ».
+- Changements petits et ciblés. Pas de refactor hors périmètre.
+- Si une consigne est ambiguë ou contradictoire avec le cahier des charges, pose la question au lieu de deviner.
+- À la fin de chaque étape : propose un message de commit, puis arrête-toi.
+
+## Ton
+- Pas de flatterie, pas de « excellente question ». Va droit au but.
+- Sois franc : si mon idée est mauvaise, risquée ou trop coûteuse, dis-le et propose mieux.
+- Signale ce que tu n'as pas pu vérifier au lieu de l'affirmer.
+
+## Vérification avant de livrer (obligatoire, point par point)
+1. npm run build passe sans erreur ni avertissement nouveau.
+2. Relis ton diff fichier par fichier : rien d'inutile, aucun console.log oublié, aucun secret.
+3. Les imports et chemins existent ; aucune dépendance ajoutée.
+4. Pour du SQL : rejouable quand c'est possible, cohérent avec schema.sql, RLS active sur chaque nouvelle table.
+5. Donne-moi les étapes de test manuel précises (URL, clics, résultat attendu).
+6. Termine par un tableau « Vérifié / Non vérifié / À tester par Beros ».
+
+# Décisions V2
+- Frontend : React + Vite conservé (pas de Next.js pour l'instant).
+- Backend : Supabase Edge Functions avant FastAPI.
+- Clé d'isolation : entreprise_id (et non tenant_id).
+- Rôles : admin, manager, commercial, comptable, lecture.
+- Palette : à trancher entre #2D5B7F (actuel) et #489AF0 (V2) ; #2D5B7F reste en vigueur en attendant.
+
 # CLAUDE.md — Lagestion
 
 > Fichier de référence du projet. À lire en premier, à chaque session.
