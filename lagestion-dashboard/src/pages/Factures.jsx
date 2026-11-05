@@ -463,9 +463,9 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                     onDelete();
                   }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
-                  style={{ color: C.error }}
+                  style={{ color: C.errorText }}
                 >
-                  <Trash2 size={14} aria-hidden="true" />
+                  <Trash2 size={14} aria-hidden="true" style={{ color: C.error }} />
                   Supprimer
                 </button>
                 </>

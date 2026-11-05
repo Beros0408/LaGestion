@@ -8,15 +8,15 @@ import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { ETAPES } from "../data/opportunites";
 
 const ETAPE_STYLE = {
-  Qualification: { couleur: C.info,      bg: alpha(C.info, 0.12) },
-  Proposition:   { couleur: C.primary,   bg: alpha(C.primary, 0.10) },
-  "Négociation": { couleur: C.accent,    bg: alpha(C.accent, 0.15) },
-  Conclusion:    { couleur: C.success,   bg: alpha(C.success, 0.12) },
+  Qualification: { couleur: C.info,      texte: C.infoText,    bg: alpha(C.info, 0.12) },
+  Proposition:   { couleur: C.primary,   texte: C.primary,     bg: alpha(C.primary, 0.10) },
+  "Négociation": { couleur: C.accent,    texte: C.accentText,  bg: alpha(C.accent, 0.15) },
+  Conclusion:    { couleur: C.success,   texte: C.successText, bg: alpha(C.success, 0.12) },
 };
 
 function couleurProbabilite(p) {
-  if (p >= 75) return { couleur: C.success, bg: alpha(C.success, 0.12) };
-  if (p >= 50) return { couleur: C.warning, bg: alpha(C.warning, 0.12) };
+  if (p >= 75) return { couleur: C.successText, bg: alpha(C.success, 0.12) };
+  if (p >= 50) return { couleur: C.warningText, bg: alpha(C.warning, 0.12) };
   return { couleur: C.textSecondary, bg: alpha(C.textSecondary, 0.12) };
 }
 
@@ -181,7 +181,7 @@ export default function Opportunites() {
                   <div className="flex items-center gap-2">
                     <span
                       className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                      style={{ color: style.couleur, backgroundColor: style.bg }}
+                      style={{ color: style.texte, backgroundColor: style.bg }}
                     >
                       <span
                         className="h-1.5 w-1.5 rounded-full"
@@ -427,9 +427,9 @@ function CarteOpportunite({
                 role="menuitem"
                 onClick={onDelete}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
-                style={{ color: C.error }}
+                style={{ color: C.errorText }}
               >
-                <Trash2 size={14} aria-hidden="true" />
+                <Trash2 size={14} aria-hidden="true" style={{ color: C.error }} />
                 Supprimer
               </button>
               </>

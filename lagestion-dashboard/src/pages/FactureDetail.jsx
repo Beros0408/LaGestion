@@ -438,13 +438,13 @@ function CarteResume({ recap }) {
         </div>
         <div className="flex items-center justify-between">
           <dt style={{ color: C.textSecondary }}>Déjà payé</dt>
-          <dd className="tabular-nums" style={{ color: C.success }}>{euroCentimes(recap.paye)}</dd>
+          <dd className="tabular-nums" style={{ color: C.successText }}>{euroCentimes(recap.paye)}</dd>
         </div>
         <div className="flex items-center justify-between">
           <dt className="font-semibold" style={{ color: C.textPrimary }}>Reste à payer</dt>
           <dd
             className="text-base font-bold tabular-nums"
-            style={{ color: recap.reste > 0 ? C.errorText : C.success }}
+            style={{ color: recap.reste > 0 ? C.errorText : C.successText }}
           >
             {euroCentimes(recap.reste)}
           </dd>

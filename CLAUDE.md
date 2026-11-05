@@ -116,6 +116,9 @@ Tuiles du tableau de bord (début → fin) : bleu #244A68→#2D5B7F · vert #1B6
 
 Fonctionnelles : succès #27AE60 · avertissement #F39C12 · erreur #E74C3C · info #3498DB.
 Fonds fonctionnels : la couleur à 12 % d'opacité (ex. succès → rgba(39,174,96,0.12)).
+Textes fonctionnels (tout texte coloré, y compris dans les badges) : successText #186A3A · warningText #855407 · infoText #1A6191 · errorText #B03A2E · accentText #96480A (accent, ex. étape « Négociation »).
+≥ 4,6:1 sur carte, survol, fond de page et teinte de badge posée dessus (pire cas : teinte sur #DDE2E7). Les couleurs fonctionnelles brutes restent réservées aux icônes, points, bordures, fonds teintés et graphiques ; jamais au texte.
+Badge « En retard » : fond opaque (rouge à 10 % posé sur #ECEFF2) pour que errorText reste ≥ 4,5:1 sur tout support.
 
 Couleur de catégorie (KPI) : CA = primaire · Clients = secondaire · Factures impayées = erreur · Pipeline = primaire-700.
 

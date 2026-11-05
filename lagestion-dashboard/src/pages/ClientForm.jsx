@@ -519,7 +519,7 @@ function EncartCertains({ matches, modeEdition, soumission, onCreerQuandMeme }) 
               onClick={onCreerQuandMeme}
               disabled={soumission}
               className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
-              style={{ backgroundColor: C.error }}
+              style={{ backgroundColor: C.errorText }}
             >
               {modeEdition ? "Enregistrer quand même" : "Créer quand même"}
             </button>
@@ -546,7 +546,7 @@ function EncartPotentiels({ matches }) {
           style={{ color: C.warning }}
         />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold" style={{ color: C.warning }}>
+          <p className="text-sm font-semibold" style={{ color: C.warningText }}>
             Doublon potentiel
           </p>
           <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>

@@ -10,9 +10,9 @@ import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { exporterClientsExcel } from "../utils/excel";
 
 const STATUTS = {
-  actif:    { label: "Actif",    color: C.success,        bg: alpha(C.success, 0.12) },
-  prospect: { label: "Prospect", color: C.info,           bg: alpha(C.info, 0.12) },
-  inactif:  { label: "Inactif",  color: C.textSecondary,  bg: alpha(C.textSecondary, 0.12) },
+  actif:    { label: "Actif",    color: C.success,        texte: C.successText,   bg: alpha(C.success, 0.12) },
+  prospect: { label: "Prospect", color: C.info,           texte: C.infoText,      bg: alpha(C.info, 0.12) },
+  inactif:  { label: "Inactif",  color: C.textSecondary,  texte: C.textSecondary, bg: alpha(C.textSecondary, 0.12) },
 };
 
 const TYPES = {
@@ -494,7 +494,7 @@ function BadgeStatut({ statut }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-      style={{ color: s.color, backgroundColor: s.bg }}
+      style={{ color: s.texte, backgroundColor: s.bg }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} aria-hidden="true" />
       {s.label}

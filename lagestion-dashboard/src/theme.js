@@ -27,6 +27,11 @@ export const C = {
   error: "#E74C3C",
   errorText: "#B03A2E", // texte d'alerte sur carte (5,21:1 sur #ECEFF2, 4,61:1 sur #DDE2E7)
   info: "#3498DB",
+  // Textes fonctionnels : ≥ 4,6:1 sur carte, survol, fond de page et teinte de badge (12 %, 15 % pour l'accent) posée dessus
+  successText: "#186A3A",
+  warningText: "#855407",
+  infoText: "#1A6191",
+  accentText: "#96480A",
   // Graphiques : contraste ≥ 3:1 sur bgCard (#ECEFF2)
   chart1: "#2D5B7F",
   chart2: "#3E8479",

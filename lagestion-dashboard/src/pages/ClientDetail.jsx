@@ -41,9 +41,9 @@ function urlComplete(u) {
 }
 
 const STATUT_CLIENT = {
-  actif:    { label: "Actif",    color: C.success,        bg: alpha(C.success, 0.12) },
-  prospect: { label: "Prospect", color: C.info,           bg: alpha(C.info, 0.12) },
-  inactif:  { label: "Inactif",  color: C.textSecondary,  bg: alpha(C.textSecondary, 0.12) },
+  actif:    { label: "Actif",    color: C.success,        texte: C.successText,   bg: alpha(C.success, 0.12) },
+  prospect: { label: "Prospect", color: C.info,           texte: C.infoText,      bg: alpha(C.info, 0.12) },
+  inactif:  { label: "Inactif",  color: C.textSecondary,  texte: C.textSecondary, bg: alpha(C.textSecondary, 0.12) },
 };
 
 const TYPE_CLIENT = {
@@ -225,7 +225,7 @@ export default function ClientDetail() {
                 <span className="text-xs font-normal" style={{ color: C.textSecondary }}> / 100</span>
               </span>
             </div>
-            <p className="mt-1 text-xs font-medium" style={{ color: score < 50 ? C.errorText : scoreCouleur }}>
+            <p className="mt-1 text-xs font-medium" style={{ color: score >= 75 ? C.successText : score >= 50 ? C.warningText : C.errorText }}>
               {libelleScore(score)}
             </p>
           </div>
@@ -336,7 +336,7 @@ function BadgeStatutClient({ statut }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-      style={{ color: s.color, backgroundColor: s.bg }}
+      style={{ color: s.texte, backgroundColor: s.bg }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} aria-hidden="true" />
       {s.label}
