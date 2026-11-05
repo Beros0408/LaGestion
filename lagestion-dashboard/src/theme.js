@@ -25,6 +25,7 @@ export const C = {
   success: "#27AE60",
   warning: "#F39C12",
   error: "#E74C3C",
+  errorText: "#B03A2E", // texte d'alerte sur carte (5,21:1 sur #ECEFF2, 4,61:1 sur #DDE2E7)
   info: "#3498DB",
   // Graphiques : contraste ≥ 3:1 sur bgCard (#ECEFF2)
   chart1: "#2D5B7F",
@@ -46,6 +47,15 @@ export const TUILES = {
   violet: ["#4E3F7A", "#5B4B8A"],
   bleuNuit: ["#1C3950", "#244A68"],
 };
+
+// Bandes de l'entonnoir (dégradé gauche → droite), de Qualification à Conclusion ; texte blanc ≥ 4,5:1,
+// y compris au survol (voile blanc de 5 %).
+export const ENTONNOIR = [
+  ["#244A68", "#2D5B7F"],
+  ["#3B6688", "#45729A"],
+  ["#2F665D", "#37766C"],
+  ["#1B6E3E", "#1E7A45"],
+];
 
 // Couleur hexadécimale (#RRGGBB) avec opacité : fonds teintés des badges, encadrés, survols.
 export const alpha = (hex, opacite) => {

@@ -34,10 +34,44 @@ body,
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Opportunités prioritaires : tableau si la carte est large, liste sinon (requête de conteneur) */
+.lg-prioritaires { container-type: inline-size; }
+.lg-prioritaires-table { display: none; }
+@container (min-width: 620px) {
+  .lg-prioritaires-table { display: table; }
+  .lg-prioritaires-liste { display: none; }
+}
+
+/* Entonnoir du pipeline : bandes de haut en bas (fondu + élargissement depuis le centre), voile au survol */
+.lg-bande {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lgBande 400ms ease-out both;
+}
+.lg-bande-voile {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+.recharts-funnel-trapezoid:hover .lg-bande-voile { opacity: 0.05; }
+.lg-entonnoir .recharts-label-list { animation: lgFondu 300ms ease-out 320ms both; }
+.lg-entonnoir-valeur { animation: lgFondu 400ms ease-out both; }
+
+@keyframes lgBande {
+  from { opacity: 0; transform: scaleX(0.7); }
+  to   { opacity: 1; transform: scaleX(1); }
+}
+@keyframes lgFondu {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lg-card { transition: none; }
   .lg-card:hover { transform: none; }
   .lg-card-enter { opacity: 1; animation: none; }
+  .lg-bande, .lg-entonnoir .recharts-label-list, .lg-entonnoir-valeur { animation: none; }
+  .lg-bande-voile { transition: none; }
 }
 
 :root, *, *::before, *::after {

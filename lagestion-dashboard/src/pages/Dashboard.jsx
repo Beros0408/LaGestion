@@ -7,7 +7,9 @@ import TuileKpi from "../components/dashboard/TuileKpi.jsx";
 import Bloc, { SqueletteTuile, ChartFallback } from "../components/dashboard/Bloc.jsx";
 import ActionsSuggerees from "../components/dashboard/ActionsSuggerees.jsx";
 import ActivitesRecentes from "../components/dashboard/ActivitesRecentes.jsx";
-import { couleurSecteur, COULEURS_ETAPES, COULEURS_AGES } from "../components/dashboard/couleurs";
+import CarteEntonnoir from "../components/dashboard/CarteEntonnoir.jsx";
+import OpportunitesPrioritaires from "../components/dashboard/OpportunitesPrioritaires.jsx";
+import { couleurSecteur, COULEURS_AGES } from "../components/dashboard/couleurs";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
@@ -17,7 +19,6 @@ import { calculerTableauDeBord, aujourdhuiLocal, PERIODES } from "../utils/dashb
 const BarresMensuelles = lazy(() => import("../components/charts/BarresMensuelles"));
 const DonutSecteurs = lazy(() => import("../components/charts/DonutSecteurs"));
 const BarresHorizontales = lazy(() => import("../components/charts/BarresHorizontales"));
-const EntonnoirPipeline = lazy(() => import("../components/charts/EntonnoirPipeline"));
 const Jauge = lazy(() => import("../components/charts/Jauge"));
 
 const ONGLETS = [
@@ -220,16 +221,13 @@ export default function Dashboard() {
             )}
 
             {onglet === "pipeline" && (
-              <>
-                <Bloc titre="Entonnoir du pipeline" className="md:col-span-2" index={1} chargement={chargement}
-                  vide={t.vide.opportunites} messageVide="Aucune opportunité pour le moment.">
-                  <Graphique hauteur={240}><EntonnoirPipeline data={t.entonnoir} /></Graphique>
-                  <Legende elements={t.entonnoir.map((e, i) => ({ nom: e.etape, couleur: COULEURS_ETAPES[i], valeur: `${pluriel(e.nombre, "opportunité")} · ${euro(e.montant)}` }))} />
+              <div className="grid grid-cols-1 gap-5 md:col-span-2 xl:grid-cols-2 2xl:grid-cols-5">
+                <CarteEntonnoir index={1} className="2xl:col-span-2" chargement={chargement} vide={t.vide.opportunites}
+                  entonnoir={t.entonnoir} conclusion={t.jauges.conclusion} valeurMoyenne={t.pipeline.valeurMoyenne} />
+                <Bloc titre="Opportunités à conclure en priorité" index={2} className="min-w-0 2xl:col-span-3" chargement={chargement}>
+                  <OpportunitesPrioritaires opportunites={t.prioritaires} />
                 </Bloc>
-                <BlocJauge titre="Part en conclusion" index={2} chargement={chargement} jauge={t.jauges.conclusion} couleur={C.chart2}
-                  libelle="Part des opportunités en conclusion" messageVide="Aucune opportunité pour le moment."
-                  detail={`${t.jauges.conclusion.numerateur} sur ${pluriel(t.jauges.conclusion.denominateur, "opportunité")}`} />
-              </>
+              </div>
             )}
           </div>
         </div>

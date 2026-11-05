@@ -110,6 +110,8 @@ Barre latérale sombre : sidebarBg #1B2A38 · sidebarHover #223444 (survol, bloc
 Fonds teintés : alpha(couleur, opacité) ; ombres : OMBRE.xs/sm/md/lg ; classes Tailwind lg-* (ex. hover:bg-lg-hover) générées depuis theme.js.
 
 Graphiques (≥ 3:1 sur #ECEFF2) : chart1 #2D5B7F · chart2 #3E8479 · chart3 #C2651F · chart4 #5283A6 · chart5 #1E8A4C · chart6 #7A5BA8 · chart7 #A5571F · chart8 #717D89 (« Non renseigné »).
+Entonnoir du pipeline (dégradé gauche → droite, texte blanc ≥ 4,5:1, y compris au survol avec voile blanc de 5 %) : #244A68→#2D5B7F · #3B6688→#45729A · #2F665D→#37766C · #1B6E3E→#1E7A45.
+Texte d'alerte sur carte : errorText #B03A2E (5,21:1 sur #ECEFF2) ; le rouge #E74C3C (3,31:1) reste réservé aux icônes, bordures et fonds.
 Tuiles du tableau de bord (début → fin) : bleu #244A68→#2D5B7F · vert #1B6E3E→#1E7A45 · orange #974F1C→#A5571F · vert d'eau #27534C→#336C63 · violet #4E3F7A→#5B4B8A · bleu nuit #1C3950→#244A68.
 
 Fonctionnelles : succès #27AE60 · avertissement #F39C12 · erreur #E74C3C · info #3498DB.

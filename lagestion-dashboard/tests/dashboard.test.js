@@ -2,7 +2,7 @@
 // Attendus calculés à la main (voir commentaires), au centime.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calculerTableauDeBord, bornesPeriode, phraseActivite, variation } from "../src/utils/dashboard.js";
+import { calculerTableauDeBord, bornesPeriode, phraseActivite, variation, pourcentage } from "../src/utils/dashboard.js";
 
 const AUJOURDHUI = "2026-11-05";
 const ligne = (quantite, prix_unitaire, taux_tva) => ({ quantite, prix_unitaire, taux_tva, remise: 0 });
@@ -32,8 +32,8 @@ const factures = [
 ];
 
 const opportunites = [
-  { id: "o1", nom: "Projet A", client_id: "c1", etape: "Qualification", montant: 10000, probabilite: 20, updated_at: "2026-11-01T09:00:00Z" },
-  { id: "o2", nom: "Projet B", client_id: "c2", etape: "Négociation", montant: 5000, probabilite: 50, updated_at: "2026-09-01T09:00:00Z" },
+  { id: "o1", nom: "Projet A", client_id: "c1", etape: "Qualification", montant: 10000, probabilite: 20, updated_at: "2026-11-01T09:00:00Z", date_cloture: "2026-10-30" },
+  { id: "o2", nom: "Projet B", client_id: "c2", etape: "Négociation", montant: 5000, probabilite: 50, updated_at: "2026-09-01T09:00:00Z", date_cloture: "2026-12-15" },
   { id: "o3", nom: "Projet C", client_id: "c3", etape: "Conclusion", montant: 3000, probabilite: 90, updated_at: "2026-11-02T09:00:00Z" },
 ];
 
@@ -91,6 +91,39 @@ test("jauges, âge des créances, entonnoir", () => {
     [["0-30", 0, 0], ["31-60", 1000, 1], ["61-90", 0, 0], ["90+", 59.99, 1]]);         // F2 : 56 j ; F5 : 143 j
   assert.deepEqual(r.entonnoir.map((e) => [e.etape, e.nombre, e.montant]),
     [["Qualification", 1, 10000], ["Proposition", 0, 0], ["Négociation", 1, 5000], ["Conclusion", 1, 3000]]);
+});
+
+test("entonnoir : part de la 1re étape, passage depuis la précédente, valeur moyenne", () => {
+  const r = tdb("12m");
+  assert.deepEqual(r.entonnoir.map((e) => [e.rang, e.etape, e.partMontant, e.partNombre, e.passageMontant, e.passageNombre]), [
+    [1, "Qualification", 100, 100, null, null],
+    [2, "Proposition", 0, 0, 0, 0],        // étape vide
+    [3, "Négociation", 50, 100, null, null], // étape précédente vide : pas de taux de passage
+    [4, "Conclusion", 30, 100, 60, 100],    // 3 000 / 5 000
+  ]);
+  assert.deepEqual(r.pipeline, { valeurMoyenne: 6000 });                               // 18 000 / 3
+  assert.equal(pourcentage(59800, 73000), 81.9);
+  assert.equal(pourcentage(1, 0), null);
+  // Moyenne au centime : (100,00 + 100,00 + 100,01) / 3 = 100,0033… → 100,00
+  const opp = (m) => ({ id: m, nom: m, client_id: "c1", etape: "Qualification", montant: m, probabilite: 10 });
+  const m = calculerTableauDeBord({ opportunites: [opp(100), opp(100), opp(100.01)], aujourdhui: AUJOURDHUI });
+  assert.equal(m.pipeline.valeurMoyenne, 100);
+  assert.equal(calculerTableauDeBord({ aujourdhui: AUJOURDHUI }).pipeline.valeurMoyenne, null);
+});
+
+test("opportunités prioritaires : 5 ouvertes au plus fort montant pondéré", () => {
+  const r = tdb("12m");
+  assert.deepEqual(r.prioritaires.map((o) => [o.nom, o.pondere, o.dateCloture, o.depassee]), [
+    ["Projet B", 2500, "2026-12-15", false], // 5 000 × 50 %
+    ["Projet A", 2000, "2026-10-30", true],  // 10 000 × 20 %, clôture dépassée
+  ]);                                         // Projet C (Conclusion) exclu
+  const o = (nom, montant, probabilite, etape = "Proposition") => ({ id: nom, nom, client_id: "c1", etape, montant, probabilite });
+  const liste = [o("A", 1000, 10), o("B", 2000, 50), o("C", 4000, 25), o("D", 500, 100), o("E", 9000, 90, "Conclusion"),
+    o("F", 300, 100), o("G", 100, 10)];
+  const p = calculerTableauDeBord({ opportunites: liste, clients, aujourdhui: AUJOURDHUI }).prioritaires;
+  // B et C à 1 000 (égalité : montant le plus fort d'abord), puis D 500, F 300, A 100 ; G et E exclus
+  assert.deepEqual(p.map((x) => x.nom), ["C", "B", "D", "F", "A"]);
+  assert.deepEqual(calculerTableauDeBord({ aujourdhui: AUJOURDHUI }).prioritaires, []);
 });
 
 test("actions suggérées", () => {

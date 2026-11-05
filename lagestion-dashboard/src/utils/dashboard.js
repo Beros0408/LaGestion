@@ -16,6 +16,7 @@ const ETAPE_FINALE = "Conclusion";
 const JOURS_SANS_MOUVEMENT = 30;
 const MAX_PAR_ACTION = 5;
 const MAX_SECTEURS = 6;
+const MAX_PRIORITAIRES = 5;
 export const TRANCHES_AGE = [
   { cle: "0-30", libelle: "0-30 jours", max: 30 },
   { cle: "31-60", libelle: "31-60 jours", max: 60 },
@@ -95,6 +96,12 @@ const MOIS_LONG = ["janvier", "février", "mars", "avril", "mai", "juin", "juill
 
 export const centimes = (euros) => Math.round((Number(euros) || 0) * 100);
 export const euros = (c) => c / 100;
+
+// Part en % (une décimale) ; null si la base est nulle.
+export function pourcentage(valeur, base) {
+  if (!base) return null;
+  return Math.round((valeur / base) * 1000) / 10;
+}
 
 // Variation en % (une décimale) ; null si la période précédente est nulle (pas de base de comparaison).
 export function variation(courant, precedent) {
@@ -184,11 +191,47 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
     .slice(0, 5)
     .map(({ id, nom, montantC }) => ({ id, nom, montant: euros(montantC) }));
 
-  // Entonnoir (à date)
-  const entonnoir = ETAPES.map((etape) => {
+  // Entonnoir (à date) : part par rapport à la 1re étape et passage depuis l'étape précédente,
+  // en montant et en nombre (null quand la base est nulle).
+  const etapes = ETAPES.map((etape) => {
     const liste = opportunites.filter((o) => o.etape === etape);
-    return { etape, nombre: liste.length, montant: euros(somme(liste, (o) => centimes(o.montant))) };
+    return { etape, nombre: liste.length, montantC: somme(liste, (o) => centimes(o.montant)) };
   });
+  const entonnoir = etapes.map((e, i) => {
+    const premiere = etapes[0];
+    const prec = etapes[i - 1];
+    return {
+      rang: i + 1,
+      etape: e.etape,
+      nombre: e.nombre,
+      montant: euros(e.montantC),
+      partMontant: pourcentage(e.montantC, premiere.montantC),
+      partNombre: pourcentage(e.nombre, premiere.nombre),
+      passageMontant: prec ? pourcentage(e.montantC, prec.montantC) : null,
+      passageNombre: prec ? pourcentage(e.nombre, prec.nombre) : null,
+    };
+  });
+  const totalOppC = somme(etapes, (e) => e.montantC);
+  const pipeline = {
+    valeurMoyenne: opportunites.length ? euros(Math.round(totalOppC / opportunites.length)) : null,
+  };
+
+  // Opportunités à conclure en priorité : ouvertes, plus fort montant pondéré
+  const prioritaires = ouvertes
+    .map((o) => ({
+      id: o.id,
+      nom: o.nom,
+      client: nomClient(clientsParId, o.client_id),
+      etape: o.etape,
+      montant: euros(centimes(o.montant)),
+      probabilite: Number(o.probabilite) || 0,
+      pondereC: Math.round(centimes(o.montant) * (Number(o.probabilite) || 0) / 100),
+      dateCloture: o.date_cloture ?? null,
+      depassee: Boolean(o.date_cloture) && o.date_cloture < aujourdhui,
+    }))
+    .sort((x, y) => y.pondereC - x.pondereC || y.montant - x.montant || String(x.nom ?? "").localeCompare(String(y.nom ?? ""), "fr"))
+    .slice(0, MAX_PRIORITAIRES)
+    .map(({ pondereC, ...o }) => ({ ...o, pondere: euros(pondereC) }));
 
   // Jauges
   const enConclusion = opportunites.filter((o) => o.etape === ETAPE_FINALE).length;
@@ -278,6 +321,8 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
     secteurs,
     topClients,
     entonnoir,
+    pipeline,
+    prioritaires,
     jauges,
     ageCreances,
     actions,
