@@ -19,6 +19,8 @@
 --   TVA 10 % : travaux dans des logements ; TVA 20 % : locaux professionnels et fournitures.
 --   Aucune remise : la vue factures_totaux ne les prend pas en compte.
 -- Dates calculées depuis current_date : 12 factures, une par mois sur les 12 derniers mois.
+-- created_at / updated_at étalés sur 12 mois (âges fixes en jours) : chaque client est créé avant
+-- sa première facture ; 3 opportunités ouvertes sont sans mouvement depuis plus de 30 jours.
 
 begin;
 
@@ -94,41 +96,46 @@ begin
    where entreprise_id = v_ent and tags @> array['démo'];
 
   -- 4. Clients (15)
-  insert into public.clients (entreprise_id, type, nom, secteur, email, telephone, adresse, statut, tags, score)
-  select v_ent, v.type, v.nom, v.secteur, v.email, v.telephone, v.adresse, v.statut, array['démo'], v.score
+  insert into public.clients (entreprise_id, type, nom, secteur, email, telephone, adresse, statut, tags, score,
+                              created_at, updated_at)
+  select v_ent, v.type, v.nom, v.secteur, v.email, v.telephone, v.adresse, v.statut, array['démo'], v.score,
+         (current_date - v.age) + time '09:00', (current_date - v.age) + time '09:00'
   from (values
-    ('entreprise',  'Bâtiments Rénov''Est',                'BTP',          'contact@renov-est.example',          '03 88 41 27 65', '12 rue du Faubourg, 67000 Strasbourg',            'actif',    78),
-    ('entreprise',  'Le Comptoir des Halles',             'Restauration', 'reservation@comptoir-halles.example','04 78 62 19 40', '8 place des Halles, 69002 Lyon',                  'actif',    85),
-    ('entreprise',  'Cabinet dentaire Lemoine',           'Santé',        'accueil@dentaire-lemoine.example',   '02 40 35 18 72', '27 boulevard Guist''hau, 44000 Nantes',          'actif',    74),
-    ('entreprise',  'Morel Conseil & Stratégie',          'Conseil',      'direction@morel-conseil.example',    '01 45 22 80 13', '54 rue de Rivoli, 75004 Paris',                   'actif',    82),
-    ('entreprise',  'Boulangerie Fournier',               'Commerce',     'boulangerie@fournier.example',       '05 56 44 21 09', '3 cours Victor-Hugo, 33000 Bordeaux',             'actif',    69),
-    ('entreprise',  'Mécanique de précision Arnaud',      'Industrie',    'atelier@meca-arnaud.example',        '04 77 31 56 28', 'ZI du Clos, 42000 Saint-Étienne',                 'actif',    71),
-    ('entreprise',  'Agence immobilière Delmas',          'Immobilier',   'gestion@delmas-immo.example',        '04 67 58 33 90', '15 avenue de Toulouse, 34000 Montpellier',        'actif',    88),
-    ('entreprise',  'Transports Guérin',                  'Transport',    'exploitation@transports-guerin.example','02 35 07 64 11','ZA des Docks, 76600 Le Havre',                 'actif',    58),
-    ('entreprise',  'Hôtel des Remparts',                 'Hôtellerie',   'direction@hotel-remparts.example',   '02 99 40 12 57', '2 rue des Remparts, 35400 Saint-Malo',            'prospect', 63),
-    ('entreprise',  'Clinique vétérinaire des Tilleuls',  'Santé',        'contact@veto-tilleuls.example',      '03 80 66 21 48', '41 allée des Tilleuls, 21000 Dijon',              'prospect', 55),
-    ('entreprise',  'Menuiserie Chevalier',               'BTP',          'menuiserie@chevalier.example',       '02 47 20 85 36', '9 route de Vouvray, 37000 Tours',                 'prospect', 47),
-    ('entreprise',  'Librairie Les Mots Passants',        'Commerce',     'librairie@motspassants.example',     '03 20 54 72 18', '6 rue Esquermoise, 59000 Lille',                  'inactif',  36),
-    ('particulier', 'Claire Bonnet',                      null,           'claire.bonnet@mail.example',         '06 21 48 73 05', '18 rue des Lilas, 31000 Toulouse',                'actif',    66),
-    ('particulier', 'Thomas Girard',                      null,           'thomas.girard@mail.example',         '06 74 12 39 58', '5 impasse du Moulin, 13100 Aix-en-Provence',      'prospect', 52),
-    ('entreprise',  'Pharmacie du Marché',                'Santé',        'officine@pharmacie-marche.example',  '04 93 85 26 41', '1 place du Marché, 06000 Nice',                   'inactif',  40)
-  ) as v(type, nom, secteur, email, telephone, adresse, statut, score);
+    ('entreprise',  'Bâtiments Rénov''Est',                'BTP',          'contact@renov-est.example',          '03 88 41 27 65', '12 rue du Faubourg, 67000 Strasbourg',            'actif',    78,  55),
+    ('entreprise',  'Le Comptoir des Halles',             'Restauration', 'reservation@comptoir-halles.example','04 78 62 19 40', '8 place des Halles, 69002 Lyon',                  'actif',    85, 300),
+    ('entreprise',  'Cabinet dentaire Lemoine',           'Santé',        'accueil@dentaire-lemoine.example',   '02 40 35 18 72', '27 boulevard Guist''hau, 44000 Nantes',          'actif',    74, 240),
+    ('entreprise',  'Morel Conseil & Stratégie',          'Conseil',      'direction@morel-conseil.example',    '01 45 22 80 13', '54 rue de Rivoli, 75004 Paris',                   'actif',    82, 175),
+    ('entreprise',  'Boulangerie Fournier',               'Commerce',     'boulangerie@fournier.example',       '05 56 44 21 09', '3 cours Victor-Hugo, 33000 Bordeaux',             'actif',    69, 120),
+    ('entreprise',  'Mécanique de précision Arnaud',      'Industrie',    'atelier@meca-arnaud.example',        '04 77 31 56 28', 'ZI du Clos, 42000 Saint-Étienne',                 'actif',    71,  90),
+    ('entreprise',  'Agence immobilière Delmas',          'Immobilier',   'gestion@delmas-immo.example',        '04 67 58 33 90', '15 avenue de Toulouse, 34000 Montpellier',        'actif',    88, 330),
+    ('entreprise',  'Transports Guérin',                  'Transport',    'exploitation@transports-guerin.example','02 35 07 64 11','ZA des Docks, 76600 Le Havre',                 'actif',    58, 150),
+    ('entreprise',  'Hôtel des Remparts',                 'Hôtellerie',   'direction@hotel-remparts.example',   '02 99 40 12 57', '2 rue des Remparts, 35400 Saint-Malo',            'prospect', 63,  25),
+    ('entreprise',  'Clinique vétérinaire des Tilleuls',  'Santé',        'contact@veto-tilleuls.example',      '03 80 66 21 48', '41 allée des Tilleuls, 21000 Dijon',              'prospect', 55,  45),
+    ('entreprise',  'Menuiserie Chevalier',               'BTP',          'menuiserie@chevalier.example',       '02 47 20 85 36', '9 route de Vouvray, 37000 Tours',                 'prospect', 47,  12),
+    ('entreprise',  'Librairie Les Mots Passants',        'Commerce',     'librairie@motspassants.example',     '03 20 54 72 18', '6 rue Esquermoise, 59000 Lille',                  'inactif',  36, 360),
+    ('particulier', 'Claire Bonnet',                      null,           'claire.bonnet@mail.example',         '06 21 48 73 05', '18 rue des Lilas, 31000 Toulouse',                'actif',    66, 200),
+    ('particulier', 'Thomas Girard',                      null,           'thomas.girard@mail.example',         '06 74 12 39 58', '5 impasse du Moulin, 13100 Aix-en-Provence',      'prospect', 52,  20),
+    ('entreprise',  'Pharmacie du Marché',                'Santé',        'officine@pharmacie-marche.example',  '04 93 85 26 41', '1 place du Marché, 06000 Nice',                   'inactif',  40, 270)
+  ) as v(type, nom, secteur, email, telephone, adresse, statut, score, age);
 
   -- 5. Opportunités (10) : 3 Qualification, 3 Proposition, 2 Négociation, 2 Conclusion
-  insert into public.opportunites (entreprise_id, client_id, nom, montant, probabilite, etape, date_cloture)
-  select v_ent, c.id, v.nom, v.montant, v.probabilite, v.etape, current_date + v.jours
+  -- cree / modifie : âge en jours de created_at / updated_at (> 30 j sans mouvement : Tilleuls, Comptoir, Delmas)
+  insert into public.opportunites (entreprise_id, client_id, nom, montant, probabilite, etape, date_cloture,
+                                   created_at, updated_at)
+  select v_ent, c.id, v.nom, v.montant, v.probabilite, v.etape, current_date + v.jours,
+         (current_date - v.cree) + time '10:00', (current_date - v.modifie) + time '10:00'
   from (values
-    ('Hôtel des Remparts',                'Rénovation de 12 chambres',                 42000.00, 20, 'Qualification', 120),
-    ('Clinique vétérinaire des Tilleuls', 'Agrandissement de la salle d''attente',     18500.00, 40, 'Proposition',    75),
-    ('Bâtiments Rénov''Est',              'Second œuvre — chantier groupe scolaire',   26000.00, 60, 'Négociation',    45),
-    ('Thomas Girard',                     'Rénovation complète de la cuisine',          9800.00, 50, 'Proposition',    40),
-    ('Le Comptoir des Halles',            'Terrasse couverte et chauffée',             15600.00, 70, 'Négociation',    30),
-    ('Cabinet dentaire Lemoine',          'Aménagement d''une seconde salle de soins', 12400.00, 90, 'Conclusion',     15),
-    ('Morel Conseil & Stratégie',         'Contrat de maintenance annuel',              6000.00, 85, 'Conclusion',     10),
-    ('Menuiserie Chevalier',              'Mise aux normes accessibilité PMR',          7200.00, 15, 'Qualification',  90),
-    ('Agence immobilière Delmas',         'Rénovation de 3 logements locatifs',        31500.00, 45, 'Proposition',    60),
-    ('Mécanique de précision Arnaud',     'Isolation de la toiture de l''atelier',     23800.00, 25, 'Qualification', 150)
-  ) as v(client, nom, montant, probabilite, etape, jours)
+    ('Hôtel des Remparts',                'Rénovation de 12 chambres',                 42000.00, 20, 'Qualification', 120,  22,  5),
+    ('Clinique vétérinaire des Tilleuls', 'Agrandissement de la salle d''attente',     18500.00, 40, 'Proposition',    75,  40, 35),
+    ('Bâtiments Rénov''Est',              'Second œuvre — chantier groupe scolaire',   26000.00, 60, 'Négociation',    45,  50, 12),
+    ('Thomas Girard',                     'Rénovation complète de la cuisine',          9800.00, 50, 'Proposition',    40,  18,  3),
+    ('Le Comptoir des Halles',            'Terrasse couverte et chauffée',             15600.00, 70, 'Négociation',    30,  70, 45),
+    ('Cabinet dentaire Lemoine',          'Aménagement d''une seconde salle de soins', 12400.00, 90, 'Conclusion',     15,  90,  8),
+    ('Morel Conseil & Stratégie',         'Contrat de maintenance annuel',              6000.00, 85, 'Conclusion',     10, 120, 20),
+    ('Menuiserie Chevalier',              'Mise aux normes accessibilité PMR',          7200.00, 15, 'Qualification',  90,  10, 10),
+    ('Agence immobilière Delmas',         'Rénovation de 3 logements locatifs',        31500.00, 45, 'Proposition',    60, 100, 62),
+    ('Mécanique de précision Arnaud',     'Isolation de la toiture de l''atelier',     23800.00, 25, 'Qualification', 150,  80, 15)
+  ) as v(client, nom, montant, probabilite, etape, jours, cree, modifie)
   join public.clients c
     on c.entreprise_id = v_ent and c.nom = v.client and c.tags @> array['démo'];
 
@@ -259,6 +266,17 @@ begin
      and ((statut = 'en_retard' and date_echeance >= current_date)
        or (statut in ('envoyee', 'brouillon') and date_echeance < current_date));
   if n > 0 then raise exception 'Contrôle seed : % facture(s) au statut incohérent avec l''échéance', n; end if;
+
+  -- Chronologie : aucune facture ni opportunité antérieure à la création de son client
+  select count(*) into n from (
+    select 1 from public.factures f join public.clients c on c.id = f.client_id
+     where f.entreprise_id = v_ent and f.numero like 'DEMO-%' and f.date_emission < c.created_at::date
+    union all
+    select 1 from public.opportunites o join public.clients c on c.id = o.client_id
+     where o.entreprise_id = v_ent and c.tags @> array['démo']
+       and (o.created_at < c.created_at or o.updated_at < o.created_at)
+  ) s;
+  if n > 0 then raise exception 'Contrôle seed : % ligne(s) aux dates incohérentes avec la création du client', n; end if;
 
   -- Lignes et paiements rattachés à l'entreprise de leur facture
   select count(*) into n from (

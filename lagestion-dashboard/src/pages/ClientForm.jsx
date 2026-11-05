@@ -8,10 +8,12 @@ import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
 import Textarea from "../components/form/Textarea.jsx";
 import TagInput from "../components/form/TagInput.jsx";
+import { SECTEURS } from "../data/secteurs";
 
 const VIDE = {
   type: "particulier",
   nom: "",
+  secteur: "",
   email: "",
   telephone: "",
   adresse: "",
@@ -36,12 +38,18 @@ const STATUT_OPTIONS = [
   { value: "inactif", label: "Inactif" },
 ];
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SECTEUR_OPTIONS = [
+  { value: "", label: "Non renseigné" },
+  ...SECTEURS.map((s) => ({ value: s, label: s })),
+];
+
+const EMAIL_RE =/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normaliserExistant(existant) {
   return {
     type: existant.type ?? "particulier",
     nom: existant.nom ?? "",
+    secteur: existant.secteur ?? "",
     email: existant.email ?? "",
     telephone: existant.telephone ?? "",
     adresse: existant.adresse ?? "",
@@ -162,6 +170,7 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
     const commun = {
       type: form.type,
       nom: form.nom,
+      secteur: form.secteur,
       email: form.email,
       telephone: form.telephone,
       adresse: form.adresse,
@@ -355,6 +364,16 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
               onChange={(e) => definir("adresse")(e.target.value)}
               autoComplete="street-address"
               className="md:col-span-2"
+            />
+            <Select
+              label="Secteur"
+              value={form.secteur}
+              onChange={(e) => definir("secteur")(e.target.value)}
+              options={
+                form.secteur && !SECTEURS.includes(form.secteur)
+                  ? [...SECTEUR_OPTIONS, { value: form.secteur, label: form.secteur }]
+                  : SECTEUR_OPTIONS
+              }
             />
             <Select
               label="Statut"

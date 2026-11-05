@@ -26,6 +26,25 @@ export const C = {
   warning: "#F39C12",
   error: "#E74C3C",
   info: "#3498DB",
+  // Graphiques : contraste ≥ 3:1 sur bgCard (#ECEFF2)
+  chart1: "#2D5B7F",
+  chart2: "#3E8479",
+  chart3: "#C2651F",
+  chart4: "#5283A6",
+  chart5: "#1E8A4C",
+  chart6: "#7A5BA8",
+  chart7: "#A5571F",
+  chart8: "#717D89",
+};
+
+// Tuiles KPI du tableau de bord (dégradé début → fin), texte blanc ≥ 4,5:1 sur les deux teintes.
+export const TUILES = {
+  bleu: ["#244A68", "#2D5B7F"],
+  vert: ["#1B6E3E", "#1E7A45"],
+  orange: ["#974F1C", "#A5571F"],
+  vertEau: ["#27534C", "#336C63"],
+  violet: ["#4E3F7A", "#5B4B8A"],
+  bleuNuit: ["#1C3950", "#244A68"],
 };
 
 // Couleur hexadécimale (#RRGGBB) avec opacité : fonds teintés des badges, encadrés, survols.
@@ -49,3 +68,6 @@ export const euro = (n) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 export const num = (n) => new Intl.NumberFormat("fr-FR").format(n);
+
+export const euroCentimes = (n) =>
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);

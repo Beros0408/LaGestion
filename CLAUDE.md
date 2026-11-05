@@ -52,6 +52,7 @@ Référence fonctionnelle : docs/LaGestion_Cahier_des_charges_V2.md.
 - Clé d'isolation : entreprise_id (et non tenant_id).
 - Rôles : admin, manager, commercial, comptable, lecture.
 - Palette : à trancher entre #2D5B7F (actuel) et #489AF0 (V2) ; #2D5B7F reste en vigueur en attendant.
+- Tuiles KPI colorées autorisées sur le tableau de bord uniquement (exception à la section 1) : dégradé léger entre deux teintes soutenues (TUILES dans src/theme.js), texte blanc ≥ 4,5:1 sur les deux teintes, sans halo, lueur ni ombre colorée. Le reste de l'application garde le thème gris perle.
 
 # CLAUDE.md — Lagestion
 
@@ -107,6 +108,9 @@ Tokens (src/theme.js) : bgMain #E3E7EB · bgCard #ECEFF2 · bgHover #DDE2E7 · b
 Barre latérale sombre : sidebarBg #1B2A38 · sidebarHover #223444 (survol, bloc profil) · sidebarActiveBg #26394B · sidebarText #E4E8EC · sidebarTextMuted #9AA8B5 · sidebarAccent #A9C4DC (texte et liseré du lien actif) · sidebarBorder #2E4256 · sidebarFocus #7DA5C9 (anneau de focus).
 Échelle neutre de référence : 300 #CBD5DA · 400 #9AA5AD · 700 #4B545A · 800 #3A4146.
 Fonds teintés : alpha(couleur, opacité) ; ombres : OMBRE.xs/sm/md/lg ; classes Tailwind lg-* (ex. hover:bg-lg-hover) générées depuis theme.js.
+
+Graphiques (≥ 3:1 sur #ECEFF2) : chart1 #2D5B7F · chart2 #3E8479 · chart3 #C2651F · chart4 #5283A6 · chart5 #1E8A4C · chart6 #7A5BA8 · chart7 #A5571F · chart8 #717D89 (« Non renseigné »).
+Tuiles du tableau de bord (début → fin) : bleu #244A68→#2D5B7F · vert #1B6E3E→#1E7A45 · orange #974F1C→#A5571F · vert d'eau #27534C→#336C63 · violet #4E3F7A→#5B4B8A · bleu nuit #1C3950→#244A68.
 
 Fonctionnelles : succès #27AE60 · avertissement #F39C12 · erreur #E74C3C · info #3498DB.
 Fonds fonctionnels : la couleur à 12 % d'opacité (ex. succès → rgba(39,174,96,0.12)).

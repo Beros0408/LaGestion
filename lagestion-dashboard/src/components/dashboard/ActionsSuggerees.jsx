@@ -1,0 +1,59 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, AlertTriangle, FileEdit, Clock } from "lucide-react";
+import { C, alpha } from "../../theme";
+
+const ICONES = { relances: AlertTriangle, brouillons: FileEdit, inactives: Clock };
+const COULEURS = { relances: C.chart7, brouillons: C.chart4, inactives: C.chart6 };
+
+const jours = (n) => {
+  if (n === null || n === undefined) return "";
+  return n === 0 ? " · aujourd'hui" : ` · ${n} jour${n > 1 ? "s" : ""}`;
+};
+
+function ActionsSuggerees({ groupes }) {
+  if (groupes.every((g) => g.total === 0)) {
+    return <p className="text-sm" style={{ color: C.textSecondary }}>Aucune action en attente : tout est à jour.</p>;
+  }
+  return (
+    <div className="space-y-4">
+      {groupes.filter((g) => g.total > 0).map((g) => {
+        const Icone = ICONES[g.cle];
+        return (
+          <section key={g.cle} aria-labelledby={`actions-${g.cle}`}>
+            <h4 id={`actions-${g.cle}`} className="mb-2 flex items-center gap-2 text-sm font-semibold" style={{ color: C.textPrimary }}>
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ backgroundColor: alpha(COULEURS[g.cle], 0.14), color: COULEURS[g.cle] }}>
+                <Icone size={14} aria-hidden="true" />
+              </span>
+              {g.libelle}
+              <span className="tabular-nums" style={{ color: C.textSecondary }}>({g.total})</span>
+            </h4>
+            <ul className="space-y-1.5">
+              {g.elements.map((a) => (
+                <li key={a.id} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ backgroundColor: C.bgMain }}>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>{a.titre}</p>
+                    <p className="truncate text-xs" style={{ color: C.textSecondary }}>{a.detail}{jours(a.jours)}</p>
+                  </div>
+                  <Link
+                    to={a.lien}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2"
+                    style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+                    aria-label={`Ouvrir : ${a.titre}`}
+                  >
+                    Ouvrir <ArrowRight size={12} aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {g.total > g.elements.length && (
+              <p className="mt-1.5 text-xs" style={{ color: C.textSecondary }}>et {g.total - g.elements.length} autre{g.total - g.elements.length > 1 ? "s" : ""}</p>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+export default React.memo(ActionsSuggerees);

@@ -6,7 +6,7 @@ import { erreurFrancaise, messageErreur, MESSAGE_REFUS } from "../utils/erreurs"
 const ClientsContext = createContext(null);
 
 const CHAMPS = [
-  "type", "nom", "email", "telephone", "adresse", "statut", "tags", "notes", "score",
+  "type", "nom", "secteur", "email", "telephone", "adresse", "statut", "tags", "notes", "score",
   "siren", "siret", "tva_intra", "site_web", "date_naissance",
 ];
 
