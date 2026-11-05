@@ -130,7 +130,7 @@ function LayoutContenu() {
       <div className="flex items-center gap-2.5 px-4 py-4 md:justify-center md:px-2 xl:justify-start xl:px-4">
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}
+          style={{ background: `linear-gradient(135deg, ${C.primary}, ${AVATARS.vertEau})` }}
         >
           <span className="text-lg font-bold text-white" style={{ fontFamily: "Sora, sans-serif" }}>L</span>
         </div>
