@@ -112,7 +112,7 @@ export default function Onboarding() {
               className="rounded-xl p-3 text-sm"
               style={{
                 backgroundColor: alpha(C.error, 0.08),
-                color: C.error,
+                color: C.errorText,
                 border: `1px solid ${C.error}`,
               }}
             >

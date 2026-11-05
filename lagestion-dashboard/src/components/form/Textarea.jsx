@@ -27,7 +27,7 @@ export default function Textarea({
         >
           {label}
           {required && (
-            <span aria-hidden="true" style={{ color: C.error }}> *</span>
+            <span aria-hidden="true" style={{ color: C.errorText }}> *</span>
           )}
         </label>
       )}
@@ -56,7 +56,7 @@ export default function Textarea({
           id={errorId}
           role="alert"
           className="mt-1 text-xs font-medium"
-          style={{ color: C.error }}
+          style={{ color: C.errorText }}
         >
           {error}
         </p>

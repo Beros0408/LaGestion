@@ -582,8 +582,8 @@ function FormulairePaiement({ onAnnuler, onEnregistrer }) {
           role="alert"
           className="mb-3 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: alpha(C.error, 0.08),
-            color: C.error,
+            backgroundColor: alpha(C.error, 0.06),
+            color: C.errorText,
             border: `1px solid ${C.error}`,
           }}
         >
@@ -679,7 +679,7 @@ function LignePaiement({ paiement, onSupprimer }) {
       <td className="px-3 py-3 text-sm" style={{ color: C.textSecondary }}>
         {paiement.reference || "—"}
         {erreur && (
-          <span className="ml-2 text-xs" style={{ color: C.error }}>{erreur}</span>
+          <span className="ml-2 text-xs" style={{ color: C.errorText }}>{erreur}</span>
         )}
       </td>
       <td className="px-3 py-3 text-right">

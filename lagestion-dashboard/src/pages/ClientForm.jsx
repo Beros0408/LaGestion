@@ -253,8 +253,8 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: alpha(C.error, 0.08),
-            color: C.error,
+            backgroundColor: alpha(C.error, 0.06),
+            color: C.errorText,
             border: `1px solid ${C.error}`,
           }}
         >
@@ -490,7 +490,7 @@ function EncartCertains({ matches, modeEdition, soumission, onCreerQuandMeme }) 
           style={{ color: C.error }}
         />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold" style={{ color: C.error }}>
+          <p className="text-sm font-semibold" style={{ color: C.errorText }}>
             Doublon quasi certain détecté
           </p>
           <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>

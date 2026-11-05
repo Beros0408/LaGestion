@@ -26,7 +26,7 @@ export default function Input({
         >
           {label}
           {required && (
-            <span aria-hidden="true" style={{ color: C.error }}> *</span>
+            <span aria-hidden="true" style={{ color: C.errorText }}> *</span>
           )}
         </label>
       )}
@@ -54,7 +54,7 @@ export default function Input({
           id={errorId}
           role="alert"
           className="mt-1 text-xs font-medium"
-          style={{ color: C.error }}
+          style={{ color: C.errorText }}
         >
           {error}
         </p>

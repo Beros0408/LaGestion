@@ -296,8 +296,8 @@ export default function FactureForm() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: alpha(C.error, 0.08),
-            color: C.error,
+            backgroundColor: alpha(C.error, 0.06),
+            color: C.errorText,
             border: `1px solid ${C.error}`,
           }}
         >
@@ -366,7 +366,7 @@ export default function FactureForm() {
           </div>
 
           {errors.lignes && (
-            <p role="alert" className="mb-3 text-xs font-medium" style={{ color: C.error }}>
+            <p role="alert" className="mb-3 text-xs font-medium" style={{ color: C.errorText }}>
               {errors.lignes}
             </p>
           )}
