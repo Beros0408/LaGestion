@@ -17,7 +17,7 @@
 --
 -- Montants : vendeur = entreprise de rénovation et d'aménagement.
 --   TVA 10 % : travaux dans des logements ; TVA 20 % : locaux professionnels et fournitures.
---   Aucune remise : la vue factures_totaux ne les prend pas en compte.
+--   Aucune remise (règle de calcul : migrations/005_totaux_remises.sql).
 -- Dates calculées depuis current_date : 12 factures, une par mois sur les 12 derniers mois.
 -- created_at / updated_at étalés sur 12 mois (âges fixes en jours) : chaque client est créé avant
 -- sa première facture ; 3 opportunités ouvertes sont sans mouvement depuis plus de 30 jours.

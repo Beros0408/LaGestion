@@ -4,12 +4,12 @@ import {
   List, Pencil, Mail, Phone, MapPin, Download, Printer, Copy, CreditCard,
   ChevronDown, ExternalLink, Trash2, AlertCircle, Plus,
 } from "lucide-react";
-import { C, OMBRE, alpha, euro } from "../theme";
+import { C, OMBRE, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import {
-  ligneHT, ligneTTC, totalHT, tvaParTaux, totalTTC, totalPaye, resteAPayer,
+  ligneHT, totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTTC, totalPaye, resteAPayer,
 } from "../utils/facture";
 import { genererFacturePdf } from "../utils/facturePdf";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
@@ -66,10 +66,11 @@ export default function FactureDetail() {
   const recap = useMemo(() => {
     if (!facture) return null;
     return {
+      htBrut: totalHTBrut(facture),
+      remise: remiseGlobale(facture),
       ht: totalHT(facture),
       tvaDetail: tvaParTaux(facture),
       ttc: totalTTC(facture),
-      remise: Number(facture.remise) || 0,
       paye: totalPaye(facture),
       reste: resteAPayer(facture),
     };
@@ -371,7 +372,6 @@ function CarteLignes({ facture }) {
               <th scope="col" className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>Remise</th>
               <th scope="col" className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>TVA</th>
               <th scope="col" className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>Total HT</th>
-              <th scope="col" className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>Total TTC</th>
             </tr>
           </thead>
           <tbody>
@@ -381,13 +381,12 @@ function CarteLignes({ facture }) {
                 <td className="px-3 py-3 text-xs" style={{ color: C.textSecondary }}>{l.reference || "—"}</td>
                 <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{l.quantite}</td>
                 <td className="px-3 py-3 text-xs" style={{ color: C.textSecondary }}>{l.unite || "—"}</td>
-                <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{euro(l.prix_unitaire)}</td>
-                <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>
-                  {Number(l.remise) > 0 ? `− ${euro(l.remise)}` : "—"}
+                <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(l.prix_unitaire)}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>
+                  {Number(l.remise) > 0 ? `− ${euroCentimes(l.remise)}` : "—"}
                 </td>
-                <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{String(l.taux_tva).replace(".", ",")} %</td>
-                <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(ligneHT(l))}</td>
-                <td className="px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{euro(ligneTTC(l))}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{String(l.taux_tva).replace(".", ",")} %</td>
+                <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(ligneHT(l))}</td>
               </tr>
             ))}
           </tbody>
@@ -402,38 +401,44 @@ function CarteResume({ recap }) {
     <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Résumé financier</h3>
       <dl className="space-y-2 text-sm">
+        {recap.remise > 0 && (
+          <>
+            <div className="flex items-center justify-between">
+              <dt style={{ color: C.textSecondary }}>Total HT brut</dt>
+              <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.htBrut)}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt style={{ color: C.textSecondary }}>Remise globale</dt>
+              <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euroCentimes(recap.remise)}</dd>
+            </div>
+          </>
+        )}
         <div className="flex items-center justify-between">
-          <dt style={{ color: C.textSecondary }}>Total HT</dt>
-          <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(recap.ht)}</dd>
+          <dt style={{ color: C.textSecondary }}>{recap.remise > 0 ? "Total HT net" : "Total HT"}</dt>
+          <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.ht)}</dd>
         </div>
         {recap.tvaDetail.length === 0 ? (
           <div className="flex items-center justify-between">
             <dt style={{ color: C.textSecondary }}>TVA</dt>
-            <dd className="tabular-nums" style={{ color: C.textSecondary }}>{euro(0)}</dd>
+            <dd className="tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(0)}</dd>
           </div>
         ) : (
           recap.tvaDetail.map((d) => (
             <div key={d.taux} className="flex items-center justify-between">
               <dt style={{ color: C.textSecondary }}>
-                TVA {String(d.taux).replace(".", ",")} % <span>(base {euro(d.base)})</span>
+                TVA {String(d.taux).replace(".", ",")} % <span>(base {euroCentimes(d.base)})</span>
               </dt>
-              <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euro(d.tva)}</dd>
+              <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(d.tva)}</dd>
             </div>
           ))
         )}
-        {recap.remise > 0 && (
-          <div className="flex items-center justify-between">
-            <dt style={{ color: C.textSecondary }}>Remise globale</dt>
-            <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euro(recap.remise)}</dd>
-          </div>
-        )}
         <div className="flex items-center justify-between pt-2" style={{ borderTop: `1px solid ${C.border}` }}>
           <dt className="font-semibold" style={{ color: C.textPrimary }}>Total TTC</dt>
-          <dd className="text-lg font-bold tabular-nums" style={{ color: C.textPrimary }}>{euro(recap.ttc)}</dd>
+          <dd className="text-lg font-bold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.ttc)}</dd>
         </div>
         <div className="flex items-center justify-between">
           <dt style={{ color: C.textSecondary }}>Déjà payé</dt>
-          <dd className="tabular-nums" style={{ color: C.success }}>{euro(recap.paye)}</dd>
+          <dd className="tabular-nums" style={{ color: C.success }}>{euroCentimes(recap.paye)}</dd>
         </div>
         <div className="flex items-center justify-between">
           <dt className="font-semibold" style={{ color: C.textPrimary }}>Reste à payer</dt>
@@ -441,7 +446,7 @@ function CarteResume({ recap }) {
             className="text-base font-bold tabular-nums"
             style={{ color: recap.reste > 0 ? C.error : C.success }}
           >
-            {euro(recap.reste)}
+            {euroCentimes(recap.reste)}
           </dd>
         </div>
       </dl>
@@ -647,7 +652,7 @@ function LignePaiement({ paiement, onSupprimer }) {
 
   const handleSupprimer = async () => {
     const ok = window.confirm(
-      `Supprimer le paiement du ${formaterDateCourte(paiement.date)} (${euro(paiement.montant)}) ?`
+      `Supprimer le paiement du ${formaterDateCourte(paiement.date)} (${euroCentimes(paiement.montant)}) ?`
     );
     if (!ok) return;
     setErreur(null);
@@ -666,7 +671,7 @@ function LignePaiement({ paiement, onSupprimer }) {
         {formaterDateCourte(paiement.date)}
       </td>
       <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>
-        {euro(paiement.montant)}
+        {euroCentimes(paiement.montant)}
       </td>
       <td className="px-3 py-3 text-sm" style={{ color: C.textSecondary }}>
         {MODE_PAIEMENT_LIBELLES[paiement.mode] ?? "—"}

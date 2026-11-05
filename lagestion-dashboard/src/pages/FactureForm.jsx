@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, Trash2, AlertCircle } from "lucide-react";
-import { C, alpha, euro } from "../theme";
+import { C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { STATUTS, LIBELLE_STATUT, TAUX_TVA } from "../data/factures";
 import {
   ligneHT,
-  ligneTTC,
+  totalHTBrut,
+  remiseGlobale,
   totalHT,
   tvaParTaux,
   totalTVA,
@@ -133,13 +134,14 @@ export default function FactureForm() {
 
   const recap = useMemo(
     () => ({
+      htBrut: totalHTBrut(factureCalc),
+      remise: remiseGlobale(factureCalc),
       ht: totalHT(factureCalc),
       tvaDetail: tvaParTaux(factureCalc),
       tva: totalTVA(factureCalc),
-      remise: Number(form.remise) || 0,
       ttc: totalTTC(factureCalc),
     }),
-    [factureCalc, form.remise]
+    [factureCalc]
   );
 
   if (modeEdition && !chargement && !existant) {
@@ -220,6 +222,8 @@ export default function FactureForm() {
     const remiseGlobale = Number(data.remise);
     if (data.remise !== "" && (Number.isNaN(remiseGlobale) || remiseGlobale < 0)) {
       errs.remise = "La remise doit être ≥ 0.";
+    } else if (Math.round(remiseGlobale * 100) > Math.round(recap.htBrut * 100)) {
+      errs.remise = "La remise globale ne peut pas dépasser le total HT des lignes.";
     }
     return errs;
   };
@@ -370,7 +374,6 @@ export default function FactureForm() {
                 remise: Number(l.remise) || 0,
               };
               const ht = ligneHT(ligneCalc);
-              const ttc = ligneTTC(ligneCalc);
               return (
                 <div
                   key={i}
@@ -449,10 +452,7 @@ export default function FactureForm() {
                   <div className="col-span-6 md:col-span-3 flex flex-col justify-end pb-1">
                     <p className="text-[11px]" style={{ color: C.textSecondary }}>Total ligne</p>
                     <p className="text-sm font-semibold tabular-nums" style={{ color: C.textPrimary }}>
-                      {euro(ht)}<span className="text-xs font-normal" style={{ color: C.textSecondary }}> HT</span>
-                    </p>
-                    <p className="text-xs tabular-nums" style={{ color: C.textSecondary }}>
-                      {euro(ttc)} TTC
+                      {euroCentimes(ht)}<span className="text-xs font-normal" style={{ color: C.textSecondary }}> HT</span>
                     </p>
                   </div>
                   <div className="col-span-12 md:col-span-1 flex items-end justify-end">
@@ -487,41 +487,47 @@ export default function FactureForm() {
                 value={form.remise}
                 onChange={(e) => definir("remise")(e.target.value)}
                 error={errors.remise}
-                hint="Appliquée sur le total TTC"
+                hint="Appliquée sur le total HT, répartie entre les taux de TVA"
               />
             </div>
             <dl className="space-y-2 text-sm">
+              {recap.remise > 0 && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <dt style={{ color: C.textSecondary }}>Total HT brut</dt>
+                    <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.htBrut)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt style={{ color: C.textSecondary }}>Remise globale</dt>
+                    <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euroCentimes(recap.remise)}</dd>
+                  </div>
+                </>
+              )}
               <div className="flex items-center justify-between">
-                <dt style={{ color: C.textSecondary }}>Total HT</dt>
-                <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(recap.ht)}</dd>
+                <dt style={{ color: C.textSecondary }}>{recap.remise > 0 ? "Total HT net" : "Total HT"}</dt>
+                <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.ht)}</dd>
               </div>
               {recap.tvaDetail.length === 0 ? (
                 <div className="flex items-center justify-between">
                   <dt style={{ color: C.textSecondary }}>TVA</dt>
-                  <dd className="tabular-nums" style={{ color: C.textSecondary }}>{euro(0)}</dd>
+                  <dd className="tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(0)}</dd>
                 </div>
               ) : (
                 recap.tvaDetail.map((d) => (
                   <div key={d.taux} className="flex items-center justify-between">
                     <dt style={{ color: C.textSecondary }}>
-                      TVA {String(d.taux).replace(".", ",")} % <span style={{ color: C.textSecondary }}>(base {euro(d.base)})</span>
+                      TVA {String(d.taux).replace(".", ",")} % <span style={{ color: C.textSecondary }}>(base {euroCentimes(d.base)})</span>
                     </dt>
-                    <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euro(d.tva)}</dd>
+                    <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(d.tva)}</dd>
                   </div>
                 ))
-              )}
-              {recap.remise > 0 && (
-                <div className="flex items-center justify-between">
-                  <dt style={{ color: C.textSecondary }}>Remise globale</dt>
-                  <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euro(recap.remise)}</dd>
-                </div>
               )}
               <div
                 className="flex items-center justify-between pt-2"
                 style={{ borderTop: `1px solid ${C.border}` }}
               >
                 <dt className="font-semibold" style={{ color: C.textPrimary }}>Total TTC</dt>
-                <dd className="text-lg font-bold tabular-nums" style={{ color: C.textPrimary }}>{euro(recap.ttc)}</dd>
+                <dd className="text-lg font-bold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.ttc)}</dd>
               </div>
             </dl>
           </div>

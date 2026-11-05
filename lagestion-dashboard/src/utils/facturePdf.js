@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { ligneHT, remiseGlobale, totalHT, tvaParTaux, totalTTC } from "./facture";
+import { ligneHT, remiseGlobale, totalHTBrut, totalHT, tvaParTaux, totalTTC } from "./facture";
 import { LIBELLE_STATUT } from "../data/factures";
 
 const COLORS = {
@@ -155,6 +155,7 @@ export function genererFacturePdf(facture, client, totaux) {
     margin: { left: margin, right: margin },
   });
 
+  const htBrut = totaux?.htBrut ?? totalHTBrut(facture);
   const ht = totaux?.ht ?? totalHT(facture);
   const tvaDetail = totaux?.tvaDetail ?? tvaParTaux(facture);
   const ttc = totaux?.ttc ?? totalTTC(facture);
@@ -164,10 +165,25 @@ export function genererFacturePdf(facture, client, totaux) {
   const recapRight = pageW - margin;
   const recapLeft = pageW - margin - 70;
 
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
+  if (remise > 0) {
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.textSecondary);
+    doc.text("Total HT brut", recapLeft, recapY);
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.text(formatEuro(htBrut), recapRight, recapY, { align: "right" });
+
+    recapY += 5;
+    doc.setTextColor(...COLORS.textSecondary);
+    doc.text("Remise globale", recapLeft, recapY);
+    doc.setTextColor(...COLORS.textPrimary);
+    doc.text(`- ${formatEuro(remise)}`, recapRight, recapY, { align: "right" });
+    recapY += 5;
+  }
+
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(...COLORS.textSecondary);
-  doc.text("Total HT", recapLeft, recapY);
+  doc.text(remise > 0 ? "Total HT net" : "Total HT", recapLeft, recapY);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...COLORS.textPrimary);
   doc.text(formatEuro(ht), recapRight, recapY, { align: "right" });
@@ -176,19 +192,10 @@ export function genererFacturePdf(facture, client, totaux) {
     recapY += 5;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.textSecondary);
-    doc.text(`TVA ${formatTaux(d.taux)}`, recapLeft, recapY);
+    doc.text(`TVA ${formatTaux(d.taux)} (base ${formatEuro(d.base)})`, recapLeft, recapY);
     doc.setTextColor(...COLORS.textPrimary);
     doc.text(formatEuro(d.tva), recapRight, recapY, { align: "right" });
   });
-
-  if (remise > 0) {
-    recapY += 5;
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...COLORS.textSecondary);
-    doc.text("Remise globale", recapLeft, recapY);
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.text(`- ${formatEuro(remise)}`, recapRight, recapY, { align: "right" });
-  }
 
   recapY += 3;
   doc.setDrawColor(...COLORS.border);

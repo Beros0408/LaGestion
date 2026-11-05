@@ -1,0 +1,84 @@
+[
+  {
+    "nom": "1. facture sans ligne",
+    "facture": { "remise": 0, "lignes": [] },
+    "attendu": { "htBrutC": 0, "remiseC": 0, "htC": 0, "tva": [], "tvaC": 0, "ttcC": 0 }
+  },
+  {
+    "nom": "2. une ligne à 20 %, sans remise",
+    "facture": { "remise": 0, "lignes": [{ "quantite": 2, "prix_unitaire": 100, "taux_tva": 20, "remise": 0 }] },
+    "attendu": { "htBrutC": 20000, "remiseC": 0, "htC": 20000, "tva": [{ "taux": 20, "baseC": 20000, "tvaC": 4000 }], "tvaC": 4000, "ttcC": 24000 }
+  },
+  {
+    "nom": "3. remise de ligne supérieure à quantité × prix : HT de ligne à 0",
+    "facture": { "remise": 0, "lignes": [
+      { "quantite": 1, "prix_unitaire": 50, "taux_tva": 20, "remise": 80 },
+      { "quantite": 1, "prix_unitaire": 100, "taux_tva": 20, "remise": 0 }
+    ] },
+    "attendu": { "htBrutC": 10000, "remiseC": 0, "htC": 10000, "tva": [{ "taux": 20, "baseC": 10000, "tvaC": 2000 }], "tvaC": 2000, "ttcC": 12000 }
+  },
+  {
+    "nom": "4. arrondi par ligne : 1,5 × 0,33 = 0,495 → 0,50, deux fois (1,00 et non 0,99)",
+    "facture": { "remise": 0, "lignes": [
+      { "quantite": 1.5, "prix_unitaire": 0.33, "taux_tva": 20, "remise": 0 },
+      { "quantite": 1.5, "prix_unitaire": 0.33, "taux_tva": 20, "remise": 0 }
+    ] },
+    "attendu": { "htBrutC": 100, "remiseC": 0, "htC": 100, "tva": [{ "taux": 20, "baseC": 100, "tvaC": 20 }], "tvaC": 20, "ttcC": 120 }
+  },
+  {
+    "nom": "5. remise globale sur un seul taux (avant TVA)",
+    "facture": { "remise": 100, "lignes": [{ "quantite": 1, "prix_unitaire": 1000, "taux_tva": 20, "remise": 0 }] },
+    "attendu": { "htBrutC": 100000, "remiseC": 10000, "htC": 90000, "tva": [{ "taux": 20, "baseC": 90000, "tvaC": 18000 }], "tvaC": 18000, "ttcC": 108000 }
+  },
+  {
+    "nom": "6. 0,10 € sur trois bases égales : 0,04 / 0,03 / 0,03 (égalité → taux le plus élevé)",
+    "facture": { "remise": 0.1, "lignes": [
+      { "quantite": 1, "prix_unitaire": 1, "taux_tva": 20, "remise": 0 },
+      { "quantite": 1, "prix_unitaire": 1, "taux_tva": 10, "remise": 0 },
+      { "quantite": 1, "prix_unitaire": 1, "taux_tva": 5.5, "remise": 0 }
+    ] },
+    "attendu": { "htBrutC": 300, "remiseC": 10, "htC": 290, "tva": [
+      { "taux": 20, "baseC": 96, "tvaC": 19 },
+      { "taux": 10, "baseC": 97, "tvaC": 10 },
+      { "taux": 5.5, "baseC": 97, "tvaC": 5 }
+    ], "tvaC": 34, "ttcC": 324 }
+  },
+  {
+    "nom": "7. remise globale supérieure au HT : plafonnée, TTC à 0",
+    "facture": { "remise": 80, "lignes": [{ "quantite": 1, "prix_unitaire": 50, "taux_tva": 20, "remise": 0 }] },
+    "attendu": { "htBrutC": 5000, "remiseC": 5000, "htC": 0, "tva": [{ "taux": 20, "baseC": 0, "tvaC": 0 }], "tvaC": 0, "ttcC": 0 }
+  },
+  {
+    "nom": "8. taux 2,1 % et 0 %, TVA juste à la moitié : 5,00 × 2,1 % = 0,105 → 0,11",
+    "facture": { "remise": 0, "lignes": [
+      { "quantite": 1, "prix_unitaire": 5, "taux_tva": 2.1, "remise": 0 },
+      { "quantite": 1, "prix_unitaire": 20, "taux_tva": 0, "remise": 0 }
+    ] },
+    "attendu": { "htBrutC": 2500, "remiseC": 0, "htC": 2500, "tva": [
+      { "taux": 2.1, "baseC": 500, "tvaC": 11 },
+      { "taux": 0, "baseC": 2000, "tvaC": 0 }
+    ], "tvaC": 11, "ttcC": 2511 }
+  },
+  {
+    "nom": "9. remise globale sur deux taux, restes inégaux : le centime va au plus fort reste",
+    "facture": { "remise": 10, "lignes": [
+      { "quantite": 1, "prix_unitaire": 100, "taux_tva": 20, "remise": 0 },
+      { "quantite": 1, "prix_unitaire": 50, "taux_tva": 10, "remise": 0 }
+    ] },
+    "attendu": { "htBrutC": 15000, "remiseC": 1000, "htC": 14000, "tva": [
+      { "taux": 20, "baseC": 9333, "tvaC": 1867 },
+      { "taux": 10, "baseC": 4667, "tvaC": 467 }
+    ], "tvaC": 2334, "ttcC": 16334 }
+  },
+  {
+    "nom": "10. égalité de reste visible dans les totaux : le centime va au 20 %, pas au 0 %",
+    "facture": { "remise": 0.01, "lignes": [
+      { "quantite": 1, "prix_unitaire": 1.03, "taux_tva": 20, "remise": 0 },
+      { "quantite": 1, "prix_unitaire": 1.03, "taux_tva": 0, "remise": 0 }
+    ] },
+    "attendu": { "htBrutC": 206, "remiseC": 1, "htC": 205, "tva": [
+      { "taux": 20, "baseC": 102, "tvaC": 20 },
+      { "taux": 0, "baseC": 103, "tvaC": 0 }
+    ], "tvaC": 20, "ttcC": 225 }
+  }
+]
