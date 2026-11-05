@@ -222,8 +222,8 @@ export default function Clients() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: alpha(C.error, 0.08),
-            color: C.error,
+            backgroundColor: alpha(C.error, 0.06),
+            color: C.errorText,
             border: `1px solid ${C.error}`,
           }}
         >

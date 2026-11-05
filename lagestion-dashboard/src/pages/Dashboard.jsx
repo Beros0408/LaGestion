@@ -117,7 +117,7 @@ export default function Dashboard() {
       </div>
 
       {erreur && (
-        <p role="alert" className="mb-4 rounded-xl p-3 text-sm" style={{ color: C.error, border: `1px solid ${C.error}` }}>{erreur}</p>
+        <p role="alert" className="mb-4 rounded-xl p-3 text-sm" style={{ color: C.errorText, border: `1px solid ${C.error}` }}>{erreur}</p>
       )}
 
       {/* Tuiles KPI */}

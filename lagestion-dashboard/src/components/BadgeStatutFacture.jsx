@@ -9,7 +9,8 @@ const META = {
   envoyee:             { color: C.primary,       bg: alpha(C.primary, 0.10),   Icon: Send },
   payee:               { color: C.success,       bg: alpha(C.success, 0.12),   Icon: CheckCircle2 },
   partiellement_payee: { color: C.warning,       bg: alpha(C.warning, 0.12),  Icon: CircleDollarSign },
-  en_retard:           { color: C.error,         bg: alpha(C.error, 0.12),   Icon: AlertTriangle },
+  // Fond opaque (teinte 10 % posée sur la carte) : texte errorText à 4,64:1 quel que soit le support.
+  en_retard:           { color: C.errorText,     bg: `linear-gradient(${alpha(C.error, 0.1)}, ${alpha(C.error, 0.1)}), ${C.bgCard}`, Icon: AlertTriangle },
   annulee:             { color: C.textSecondary, bg: alpha(C.textSecondary, 0.12),  Icon: Ban },
 };
 
@@ -20,7 +21,7 @@ const BadgeStatutFacture = React.memo(function BadgeStatutFacture({ statut }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-      style={{ color: m.color, backgroundColor: m.bg }}
+      style={{ color: m.color, background: m.bg }}
     >
       <Icon size={13} aria-hidden="true" />
       {libelle}

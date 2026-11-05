@@ -33,7 +33,7 @@ function ActivitesRecentes({ entrepriseId, estAdmin, factures }) {
   const facturesParId = useMemo(() => new Map(factures.map((f) => [f.id, f])), [factures]);
 
   if (!estAdmin) return <p className="text-sm" style={{ color: C.textSecondary }}>Réservé aux administrateurs.</p>;
-  if (erreur) return <p role="alert" className="text-sm" style={{ color: C.error }}>{erreur}</p>;
+  if (erreur) return <p role="alert" className="text-sm" style={{ color: C.errorText }}>{erreur}</p>;
   if (evenements === null) return <div role="status" aria-label="Chargement" style={{ height: 160, backgroundColor: C.bgHover, borderRadius: 12 }} />;
   if (evenements.length === 0) return <p className="text-sm" style={{ color: C.textSecondary }}>Aucune activité enregistrée.</p>;
 

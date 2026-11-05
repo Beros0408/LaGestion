@@ -225,7 +225,7 @@ export default function ClientDetail() {
                 <span className="text-xs font-normal" style={{ color: C.textSecondary }}> / 100</span>
               </span>
             </div>
-            <p className="mt-1 text-xs font-medium" style={{ color: scoreCouleur }}>
+            <p className="mt-1 text-xs font-medium" style={{ color: score < 50 ? C.errorText : scoreCouleur }}>
               {libelleScore(score)}
             </p>
           </div>

@@ -147,8 +147,8 @@ export default function FactureDetail() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: alpha(C.error, 0.08),
-            color: C.error,
+            backgroundColor: alpha(C.error, 0.06),
+            color: C.errorText,
             border: `1px solid ${C.error}`,
           }}
         >
@@ -444,7 +444,7 @@ function CarteResume({ recap }) {
           <dt className="font-semibold" style={{ color: C.textPrimary }}>Reste à payer</dt>
           <dd
             className="text-base font-bold tabular-nums"
-            style={{ color: recap.reste > 0 ? C.error : C.success }}
+            style={{ color: recap.reste > 0 ? C.errorText : C.success }}
           >
             {euroCentimes(recap.reste)}
           </dd>

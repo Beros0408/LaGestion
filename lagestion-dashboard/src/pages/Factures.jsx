@@ -144,7 +144,7 @@ export default function Factures() {
                 <span className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(recap.totalTotal)}</span>
                 <span className="mx-1">·</span>
                 Impayé{" "}
-                <span className="font-semibold tabular-nums" style={{ color: recap.impaye > 0 ? C.error : C.textPrimary }}>
+                <span className="font-semibold tabular-nums" style={{ color: recap.impaye > 0 ? C.errorText : C.textPrimary }}>
                   {euro(recap.impaye)}
                 </span>
               </>
@@ -180,8 +180,8 @@ export default function Factures() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: alpha(C.error, 0.08),
-            color: C.error,
+            backgroundColor: alpha(C.error, 0.06),
+            color: C.errorText,
             border: `1px solid ${C.error}`,
           }}
         >
