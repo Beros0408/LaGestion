@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { C } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useEntreprise } from "../context/EntrepriseContext.jsx";
 
 const navItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, to: "/dashboard" },
@@ -42,6 +43,8 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { nomAffiche, prenomAffiche, initiales, entreprise, libelleRole, peutEcrire } = useEntreprise();
+  const sousTitreProfil = [entreprise?.nom, libelleRole].filter(Boolean).join(" · ");
   const breadcrumb = breadcrumbLabels[location.pathname] || "Tableau de bord";
   const closeMobile = () => setMenuMobile(false);
 
@@ -149,14 +152,14 @@ export default function Layout() {
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
             style={{ backgroundColor: C.secondary }}
-            aria-label="Profil de Camille Lambert"
-            title="Camille Lambert — Plan Pro · Commercial"
+            aria-label={`Profil de ${nomAffiche}`}
+            title={`${nomAffiche} — ${sousTitreProfil}`}
           >
-            CL
+            {initiales}
           </div>
           <div className="min-w-0 flex-1 md:hidden xl:block">
-            <p className="truncate text-[15px] font-semibold" style={{ color: C.textPrimary }}>Camille Lambert</p>
-            <p className="truncate text-xs" style={{ color: C.textSecondary }}>Plan Pro · Commercial</p>
+            <p className="truncate text-[15px] font-semibold" style={{ color: C.textPrimary }}>{nomAffiche}</p>
+            <p className="truncate text-xs" style={{ color: C.textSecondary }}>{sousTitreProfil}</p>
           </div>
         </div>
       </div>
@@ -223,7 +226,7 @@ export default function Layout() {
               className="truncate text-lg font-bold sm:text-xl"
               style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
             >
-              Bonjour Camille 👋
+              Bonjour {prenomAffiche} 👋
             </h1>
           </div>
 
@@ -252,13 +255,15 @@ export default function Layout() {
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full" style={{ backgroundColor: C.error }} />
           </button>
 
-          <button
-            className="hidden items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 sm:flex"
-            style={{ backgroundColor: C.primary }}
-          >
-            <Plus size={16} aria-hidden="true" />
-            Nouvelle facture
-          </button>
+          {peutEcrire && (
+            <button
+              className="hidden items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 sm:flex"
+              style={{ backgroundColor: C.primary }}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Nouvelle facture
+            </button>
+          )}
         </header>
 
         <main className="flex-1 overflow-auto p-4 sm:p-6">

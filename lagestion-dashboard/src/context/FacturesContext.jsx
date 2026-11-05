@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "./AuthContext.jsx";
+import { useEntreprise } from "./EntrepriseContext.jsx";
+import { erreurFrancaise, messageErreur, MESSAGE_REFUS } from "../utils/erreurs";
 import { STATUTS } from "../data/factures";
 
 const FacturesContext = createContext(null);
@@ -45,9 +46,9 @@ function preparerEnteteFacture(data) {
   return payload;
 }
 
-function preparerLignes(lignes, factureId) {
+function preparerLignes(lignes, factureId, entrepriseId) {
   return lignes.map((l, i) => {
-    const ligne = { facture_id: factureId, position: i };
+    const ligne = { entreprise_id: entrepriseId, facture_id: factureId, position: i };
     CHAMPS_LIGNE.forEach((cle) => {
       const v = l?.[cle];
       if (CHAMPS_TEXTE_LIGNE.has(cle)) {
@@ -110,7 +111,7 @@ function prochainNumero(existants) {
 }
 
 export function FacturesProvider({ children }) {
-  const { user, chargement: chargementAuth } = useAuth();
+  const { entrepriseId } = useEntreprise();
   const [factures, setFactures] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState(null);
@@ -121,48 +122,48 @@ export function FacturesProvider({ children }) {
     const { data, error } = await supabase
       .from("factures")
       .select("*, lignes_facture(*), paiements(*)")
+      .eq("entreprise_id", entrepriseId)
       .is("deleted_at", null)
       .order("date_emission", { ascending: false });
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreur(error));
       setFactures([]);
     } else {
       setFactures((data ?? []).map(normaliserFacture));
     }
     setChargement(false);
-  }, []);
+  }, [entrepriseId]);
 
   useEffect(() => {
-    if (chargementAuth) return;
-    if (!user) {
+    if (!entrepriseId) {
       setFactures([]);
       setErreur(null);
       setChargement(false);
       return;
     }
     chargerFactures();
-  }, [user, chargementAuth, chargerFactures]);
+  }, [entrepriseId, chargerFactures]);
 
   const addFacture = useCallback(
     async (data) => {
       const { lignes = [], ...entete } = data;
       const numero = entete.numero || prochainNumero(factures);
-      const payload = preparerEnteteFacture({ ...entete, numero });
+      const payload = { ...preparerEnteteFacture({ ...entete, numero }), entreprise_id: entrepriseId };
       const { data: cree, error } = await supabase
         .from("factures")
         .insert(payload)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw erreurFrancaise(error);
       if (lignes.length > 0) {
-        const rows = preparerLignes(lignes, cree.id);
+        const rows = preparerLignes(lignes, cree.id, entrepriseId);
         const { error: e2 } = await supabase.from("lignes_facture").insert(rows);
-        if (e2) throw e2;
+        if (e2) throw erreurFrancaise(e2);
       }
       await chargerFactures();
       return cree;
     },
-    [factures, chargerFactures]
+    [entrepriseId, factures, chargerFactures]
   );
 
   const updateFacture = useCallback(
@@ -170,31 +171,33 @@ export function FacturesProvider({ children }) {
       const { lignes, ...entete } = patch;
       const payload = preparerEnteteFacture(entete);
       if (Object.keys(payload).length > 0) {
-        const { error } = await supabase.from("factures").update(payload).eq("id", id);
-        if (error) throw error;
+        const { data, error } = await supabase.from("factures").update(payload).eq("id", id).select("id");
+        if (error) throw erreurFrancaise(error);
+        if (data.length === 0) throw new Error(MESSAGE_REFUS);
       }
       if (Array.isArray(lignes)) {
         const { error: e1 } = await supabase.from("lignes_facture").delete().eq("facture_id", id);
-        if (e1) throw e1;
+        if (e1) throw erreurFrancaise(e1);
         if (lignes.length > 0) {
-          const rows = preparerLignes(lignes, id);
+          const rows = preparerLignes(lignes, id, entrepriseId);
           const { error: e2 } = await supabase.from("lignes_facture").insert(rows);
-          if (e2) throw e2;
+          if (e2) throw erreurFrancaise(e2);
         }
       }
       await chargerFactures();
     },
-    [chargerFactures]
+    [entrepriseId, chargerFactures]
   );
 
   const deleteFacture = useCallback(async (id) => {
     setErreur(null);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("factures")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) {
-      setErreur(error.message);
+      .eq("id", id)
+      .select("id");
+    if (error || data.length === 0) {
+      setErreur(error ? messageErreur(error) : MESSAGE_REFUS);
       return false;
     }
     setFactures((prev) => prev.filter((f) => f.id !== id));
@@ -211,7 +214,7 @@ export function FacturesProvider({ children }) {
       .select()
       .single();
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreur(error));
       return null;
     }
     setFactures((prev) => prev.map((f) => (f.id === id ? { ...f, statut: maj.statut } : f)));
@@ -220,23 +223,24 @@ export function FacturesProvider({ children }) {
 
   const ajouterPaiement = useCallback(
     async (factureId, data) => {
-      const payload = { facture_id: factureId, ...preparerPaiement(data) };
+      const payload = { entreprise_id: entrepriseId, facture_id: factureId, ...preparerPaiement(data) };
       const { data: cree, error } = await supabase
         .from("paiements")
         .insert(payload)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw erreurFrancaise(error);
       await chargerFactures();
       return cree;
     },
-    [chargerFactures]
+    [entrepriseId, chargerFactures]
   );
 
   const supprimerPaiement = useCallback(
     async (paiementId) => {
-      const { error } = await supabase.from("paiements").delete().eq("id", paiementId);
-      if (error) throw error;
+      const { data, error } = await supabase.from("paiements").delete().eq("id", paiementId).select("id");
+      if (error) throw erreurFrancaise(error);
+      if (data.length === 0) throw new Error(MESSAGE_REFUS);
       await chargerFactures();
       return true;
     },
@@ -261,20 +265,20 @@ export function FacturesProvider({ children }) {
       };
       const { data: cree, error } = await supabase
         .from("factures")
-        .insert(preparerEnteteFacture(payload))
+        .insert({ ...preparerEnteteFacture(payload), entreprise_id: entrepriseId })
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw erreurFrancaise(error);
       const lignes = source.lignes ?? [];
       if (lignes.length > 0) {
-        const rows = preparerLignes(lignes, cree.id);
+        const rows = preparerLignes(lignes, cree.id, entrepriseId);
         const { error: e2 } = await supabase.from("lignes_facture").insert(rows);
-        if (e2) throw e2;
+        if (e2) throw erreurFrancaise(e2);
       }
       await chargerFactures();
       return cree;
     },
-    [factures, chargerFactures]
+    [entrepriseId, factures, chargerFactures]
   );
 
   const value = useMemo(

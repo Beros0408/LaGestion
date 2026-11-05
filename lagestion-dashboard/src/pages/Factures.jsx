@@ -7,6 +7,7 @@ import {
 import { C, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
+import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { STATUTS, LIBELLE_STATUT, STATUTS_IMPAYES } from "../data/factures";
 import { totalTTC } from "../utils/facture";
 import { exporterFacturesExcel } from "../utils/excel";
@@ -46,6 +47,7 @@ function formaterDate(iso) {
 export default function Factures() {
   const navigate = useNavigate();
   const { factures, deleteFacture, changerStatut, chargement, erreur } = useFactures();
+  const { peutEcrire, peutSupprimer } = useEntreprise();
   const { clients } = useClients();
 
   const [requete, setRequete] = useState("");
@@ -160,14 +162,16 @@ export default function Factures() {
             <Download size={16} aria-hidden="true" />
             Exporter en Excel
           </button>
-          <Link
-            to="/factures/nouvelle"
-            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-            style={{ backgroundColor: C.primary }}
-          >
-            <Plus size={16} aria-hidden="true" />
-            Nouvelle facture
-          </Link>
+          {peutEcrire && (
+            <Link
+              to="/factures/nouvelle"
+              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+              style={{ backgroundColor: C.primary }}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Nouvelle facture
+            </Link>
+          )}
         </div>
       </div>
 
@@ -182,7 +186,7 @@ export default function Factures() {
           }}
         >
           <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-          <span><strong className="font-semibold">Impossible de charger les factures :</strong> {erreur}</span>
+          <span><strong className="font-semibold">Erreur :</strong> {erreur}</span>
         </div>
       )}
 
@@ -268,9 +272,9 @@ export default function Factures() {
                     key={f.id}
                     facture={f}
                     onView={() => handleView(f)}
-                    onEdit={() => handleEdit(f)}
-                    onDelete={() => handleDelete(f)}
-                    onChangerStatut={(s) => changerStatut(f.id, s)}
+                    onEdit={peutEcrire ? () => handleEdit(f) : null}
+                    onDelete={peutSupprimer ? () => handleDelete(f) : null}
+                    onChangerStatut={peutEcrire ? (s) => changerStatut(f.id, s) : null}
                   />
                 ))}
               </tbody>
@@ -360,8 +364,9 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <BoutonAction label={`Voir ${facture.numero}`} icon={Eye} onClick={onView} />
-          <BoutonAction label={`Modifier ${facture.numero}`} icon={Pencil} onClick={onEdit} />
+          {onEdit && <BoutonAction label={`Modifier ${facture.numero}`} icon={Pencil} onClick={onEdit} />}
 
+          {(onChangerStatut || onDelete) && (
           <div ref={conteneurRef} className="relative">
             <button
               ref={boutonRef}
@@ -390,6 +395,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                   boxShadow: "0 12px 28px rgba(45,52,54,0.10)",
                 }}
               >
+                {onChangerStatut && (
                 <div className="relative" onMouseEnter={() => setSousMenuOuvert(true)}>
                   <button
                     type="button"
@@ -442,7 +448,10 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                     </div>
                   )}
                 </div>
+                )}
 
+                {onDelete && (
+                <>
                 <div style={{ borderTop: `1px solid ${C.border}` }} />
 
                 <button
@@ -459,9 +468,12 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                   <Trash2 size={14} aria-hidden="true" />
                   Supprimer
                 </button>
+                </>
+                )}
               </div>
             )}
           </div>
+          )}
         </div>
       </td>
     </tr>

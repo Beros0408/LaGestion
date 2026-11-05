@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "./AuthContext.jsx";
+import { useEntreprise } from "./EntrepriseContext.jsx";
+import { erreurFrancaise, messageErreur, MESSAGE_REFUS } from "../utils/erreurs";
 
 const ClientsContext = createContext(null);
 
@@ -26,7 +27,7 @@ function preparerPayload(data) {
 }
 
 export function ClientsProvider({ children }) {
-  const { user, chargement: chargementAuth } = useAuth();
+  const { entrepriseId } = useEntreprise();
   const [clients, setClients] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState(null);
@@ -37,41 +38,41 @@ export function ClientsProvider({ children }) {
     const { data, error } = await supabase
       .from("clients")
       .select("*")
+      .eq("entreprise_id", entrepriseId)
       .is("deleted_at", null)
       .order("id", { ascending: true });
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreur(error));
       setClients([]);
     } else {
       setClients(data ?? []);
     }
     setChargement(false);
-  }, []);
+  }, [entrepriseId]);
 
   useEffect(() => {
-    if (chargementAuth) return;
-    if (!user) {
+    if (!entrepriseId) {
       setClients([]);
       setErreur(null);
       setChargement(false);
       return;
     }
     chargerClients();
-  }, [user, chargementAuth, chargerClients]);
+  }, [entrepriseId, chargerClients]);
 
   const addClient = useCallback(
     async (data) => {
-      const payload = preparerPayload(data);
+      const payload = { ...preparerPayload(data), entreprise_id: entrepriseId };
       const { data: cree, error } = await supabase
         .from("clients")
         .insert(payload)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw erreurFrancaise(error);
       await chargerClients();
       return cree;
     },
-    [chargerClients]
+    [entrepriseId, chargerClients]
   );
 
   const updateClient = useCallback(async (id, patch) => {
@@ -82,19 +83,20 @@ export function ClientsProvider({ children }) {
       .eq("id", id)
       .select()
       .single();
-    if (error) throw error;
+    if (error) throw erreurFrancaise(error);
     setClients((prev) => prev.map((c) => (c.id === id ? maj : c)));
     return maj;
   }, []);
 
   const deleteClient = useCallback(async (id) => {
     setErreur(null);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("clients")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) {
-      setErreur(error.message);
+      .eq("id", id)
+      .select("id");
+    if (error || data.length === 0) {
+      setErreur(error ? messageErreur(error) : MESSAGE_REFUS);
       return false;
     }
     setClients((prev) => prev.filter((c) => c.id !== id));

@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "./AuthContext.jsx";
+import { useEntreprise } from "./EntrepriseContext.jsx";
+import { erreurFrancaise, messageErreur, MESSAGE_REFUS } from "../utils/erreurs";
 import { ETAPES } from "../data/opportunites";
 
 const OpportunitesContext = createContext(null);
@@ -22,7 +23,7 @@ function preparerPayload(data) {
 }
 
 export function OpportunitesProvider({ children }) {
-  const { user, chargement: chargementAuth } = useAuth();
+  const { entrepriseId } = useEntreprise();
   const [opportunites, setOpportunites] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState(null);
@@ -33,41 +34,41 @@ export function OpportunitesProvider({ children }) {
     const { data, error } = await supabase
       .from("opportunites")
       .select("*")
+      .eq("entreprise_id", entrepriseId)
       .is("deleted_at", null)
       .order("date_cloture", { ascending: true });
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreur(error));
       setOpportunites([]);
     } else {
       setOpportunites(data ?? []);
     }
     setChargement(false);
-  }, []);
+  }, [entrepriseId]);
 
   useEffect(() => {
-    if (chargementAuth) return;
-    if (!user) {
+    if (!entrepriseId) {
       setOpportunites([]);
       setErreur(null);
       setChargement(false);
       return;
     }
     chargerOpportunites();
-  }, [user, chargementAuth, chargerOpportunites]);
+  }, [entrepriseId, chargerOpportunites]);
 
   const addOpportunite = useCallback(
     async (data) => {
-      const payload = preparerPayload(data);
+      const payload = { ...preparerPayload(data), entreprise_id: entrepriseId };
       const { data: cree, error } = await supabase
         .from("opportunites")
         .insert(payload)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw erreurFrancaise(error);
       await chargerOpportunites();
       return cree;
     },
-    [chargerOpportunites]
+    [entrepriseId, chargerOpportunites]
   );
 
   const updateOpportunite = useCallback(async (id, patch) => {
@@ -78,19 +79,20 @@ export function OpportunitesProvider({ children }) {
       .eq("id", id)
       .select()
       .single();
-    if (error) throw error;
+    if (error) throw erreurFrancaise(error);
     setOpportunites((prev) => prev.map((o) => (o.id === id ? maj : o)));
     return maj;
   }, []);
 
   const deleteOpportunite = useCallback(async (id) => {
     setErreur(null);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("opportunites")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) {
-      setErreur(error.message);
+      .eq("id", id)
+      .select("id");
+    if (error || data.length === 0) {
+      setErreur(error ? messageErreur(error) : MESSAGE_REFUS);
       return false;
     }
     setOpportunites((prev) => prev.filter((o) => o.id !== id));
@@ -107,7 +109,7 @@ export function OpportunitesProvider({ children }) {
       .select()
       .single();
     if (error) {
-      setErreur(error.message);
+      setErreur(messageErreur(error));
       return null;
     }
     setOpportunites((prev) => prev.map((o) => (o.id === id ? maj : o)));

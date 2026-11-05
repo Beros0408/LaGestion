@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { C } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
+import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { exporterClientsExcel } from "../utils/excel";
 
 const STATUTS = {
@@ -85,6 +86,7 @@ function libelleScore(score) {
 export default function Clients() {
   const navigate = useNavigate();
   const { clients: tousClients, deleteClient, chargement, erreur } = useClients();
+  const { peutEcrire, peutSupprimer } = useEntreprise();
 
   const [requete, setRequete] = useState("");
   const requeteDeb = useDebouncedValue(requete, 250);
@@ -202,14 +204,16 @@ export default function Clients() {
             <Download size={16} aria-hidden="true" />
             Exporter en Excel
           </button>
-          <Link
-            to="/clients/nouveau"
-            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-            style={{ backgroundColor: C.primary }}
-          >
-            <Plus size={16} aria-hidden="true" />
-            Nouveau client
-          </Link>
+          {peutEcrire && (
+            <Link
+              to="/clients/nouveau"
+              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+              style={{ backgroundColor: C.primary }}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Nouveau client
+            </Link>
+          )}
         </div>
       </div>
 
@@ -224,7 +228,7 @@ export default function Clients() {
           }}
         >
           <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-          <span><strong className="font-semibold">Impossible de charger les clients :</strong> {erreur}</span>
+          <span><strong className="font-semibold">Erreur :</strong> {erreur}</span>
         </div>
       )}
 
@@ -338,8 +342,8 @@ export default function Clients() {
                       selected={selection.has(c.id)}
                       onToggle={() => toggleSelection(c.id)}
                       onView={() => handleView(c)}
-                      onEdit={() => handleEdit(c)}
-                      onDelete={() => handleDelete(c)}
+                      onEdit={peutEcrire ? () => handleEdit(c) : null}
+                      onDelete={peutSupprimer ? () => handleDelete(c) : null}
                     />
                   ))}
                 </tbody>
@@ -475,8 +479,10 @@ function LigneClient({ client, selected, onToggle, onView, onEdit, onDelete }) {
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1">
           <BoutonAction label={`Voir ${client.nom}`} icon={Eye} onClick={onView} />
-          <BoutonAction label={`Modifier ${client.nom}`} icon={Pencil} onClick={onEdit} />
-          <BoutonAction label={`Supprimer ${client.nom}`} icon={Trash2} couleur={C.error} onClick={onDelete} />
+          {onEdit && <BoutonAction label={`Modifier ${client.nom}`} icon={Pencil} onClick={onEdit} />}
+          {onDelete && (
+            <BoutonAction label={`Supprimer ${client.nom}`} icon={Trash2} couleur={C.error} onClick={onDelete} />
+          )}
         </div>
       </td>
     </tr>

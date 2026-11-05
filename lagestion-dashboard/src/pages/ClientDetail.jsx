@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Pencil, Phone, Mail, MapPin } from "lucide-react";
 import { C } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
+import { useEntreprise } from "../context/EntrepriseContext.jsx";
 
 const AVATAR_PALETTE = [C.primary, C.secondary, C.accent, C.info];
 
@@ -53,6 +54,7 @@ const TYPE_CLIENT = {
 export default function ClientDetail() {
   const { id } = useParams();
   const { clients, chargement } = useClients();
+  const { peutEcrire } = useEntreprise();
 
   const client = useMemo(
     () => clients.find((c) => String(c.id) === String(id)),
@@ -183,14 +185,16 @@ export default function ClientDetail() {
               <ArrowLeft size={16} aria-hidden="true" />
               Retour à la liste
             </Link>
-            <Link
-              to={`/clients/${client.id}/modifier`}
-              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-              style={{ backgroundColor: C.primary }}
-            >
-              <Pencil size={16} aria-hidden="true" />
-              Modifier
-            </Link>
+            {peutEcrire && (
+              <Link
+                to={`/clients/${client.id}/modifier`}
+                className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+                style={{ backgroundColor: C.primary }}
+              >
+                <Pencil size={16} aria-hidden="true" />
+                Modifier
+              </Link>
+            )}
           </div>
         </div>
 

@@ -7,6 +7,7 @@ import {
 import { C, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
+import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import {
   ligneHT, ligneTTC, totalHT, tvaParTaux, totalTTC, totalPaye, resteAPayer,
 } from "../utils/facture";
@@ -54,6 +55,7 @@ export default function FactureDetail() {
     factures, chargement, changerStatut, ajouterPaiement, supprimerPaiement, dupliquerFacture,
   } = useFactures();
   const { clients, chargement: chargementClients } = useClients();
+  const { peutEcrire, peutSupprimer } = useEntreprise();
 
   const facture = useMemo(() => factures.find((f) => f.id === id), [factures, id]);
   const client = useMemo(
@@ -169,7 +171,7 @@ export default function FactureDetail() {
               onOuvrir={() => setStatutMenuOuvert((v) => !v)}
               onFermer={() => setStatutMenuOuvert(false)}
               onSelectionner={handleChangerStatut}
-              disabled={actionEnCours}
+              disabled={actionEnCours || !peutEcrire}
             />
           </div>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
@@ -199,29 +201,33 @@ export default function FactureDetail() {
           >
             Imprimer
           </BoutonSecondaire>
-          <BoutonSecondaire
-            onClick={handleDupliquer}
-            ariaLabel={`Dupliquer la facture ${facture.numero}`}
-            icon={Copy}
-            disabled={actionEnCours}
-          >
-            Dupliquer
-          </BoutonSecondaire>
-          <BoutonSecondaire
-            onClick={() => setPaiementFormOuvert(true)}
-            ariaLabel="Enregistrer un paiement"
-            icon={CreditCard}
-          >
-            Enregistrer un paiement
-          </BoutonSecondaire>
-          <Link
-            to={`/factures/${facture.id}/modifier`}
-            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-            style={{ backgroundColor: C.primary }}
-          >
-            <Pencil size={16} aria-hidden="true" />
-            Modifier
-          </Link>
+          {peutEcrire && (
+            <>
+              <BoutonSecondaire
+                onClick={handleDupliquer}
+                ariaLabel={`Dupliquer la facture ${facture.numero}`}
+                icon={Copy}
+                disabled={actionEnCours}
+              >
+                Dupliquer
+              </BoutonSecondaire>
+              <BoutonSecondaire
+                onClick={() => setPaiementFormOuvert(true)}
+                ariaLabel="Enregistrer un paiement"
+                icon={CreditCard}
+              >
+                Enregistrer un paiement
+              </BoutonSecondaire>
+              <Link
+                to={`/factures/${facture.id}/modifier`}
+                className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+                style={{ backgroundColor: C.primary }}
+              >
+                <Pencil size={16} aria-hidden="true" />
+                Modifier
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -236,6 +242,8 @@ export default function FactureDetail() {
             onFermerForm={() => setPaiementFormOuvert(false)}
             ajouterPaiement={ajouterPaiement}
             supprimerPaiement={supprimerPaiement}
+            peutEcrire={peutEcrire}
+            peutSupprimer={peutSupprimer}
           />
         </div>
 
@@ -443,13 +451,14 @@ function CarteResume({ recap }) {
 
 function CartePaiements({
   facture, paiementFormOuvert, onOuvrirForm, onFermerForm, ajouterPaiement, supprimerPaiement,
+  peutEcrire, peutSupprimer,
 }) {
   const paiements = facture.paiements ?? [];
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
       <div className="mb-3 flex items-center justify-between">
         <h3 style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Paiements</h3>
-        {!paiementFormOuvert && (
+        {peutEcrire && !paiementFormOuvert && (
           <button
             type="button"
             onClick={onOuvrirForm}
@@ -494,7 +503,11 @@ function CartePaiements({
             </thead>
             <tbody>
               {paiements.map((p) => (
-                <LignePaiement key={p.id} paiement={p} onSupprimer={() => supprimerPaiement(p.id)} />
+                <LignePaiement
+                  key={p.id}
+                  paiement={p}
+                  onSupprimer={peutSupprimer ? () => supprimerPaiement(p.id) : null}
+                />
               ))}
             </tbody>
           </table>
@@ -665,16 +678,18 @@ function LignePaiement({ paiement, onSupprimer }) {
         )}
       </td>
       <td className="px-3 py-3 text-right">
-        <button
-          type="button"
-          onClick={handleSupprimer}
-          disabled={suppression}
-          aria-label={`Supprimer le paiement du ${formaterDateCourte(paiement.date)}`}
-          className="rounded-lg p-1.5 transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ color: C.error }}
-        >
-          <Trash2 size={16} aria-hidden="true" />
-        </button>
+        {onSupprimer && (
+          <button
+            type="button"
+            onClick={handleSupprimer}
+            disabled={suppression}
+            aria-label={`Supprimer le paiement du ${formaterDateCourte(paiement.date)}`}
+            className="rounded-lg p-1.5 transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ color: C.error }}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+          </button>
+        )}
       </td>
     </tr>
   );

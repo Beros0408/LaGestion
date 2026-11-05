@@ -4,6 +4,7 @@ import { Plus, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Calendar, User, A
 import { C, euro } from "../theme";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
+import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { ETAPES } from "../data/opportunites";
 
 const ETAPE_STYLE = {
@@ -29,6 +30,7 @@ function formaterDate(iso) {
 export default function Opportunites() {
   const navigate = useNavigate();
   const { opportunites, deleteOpportunite, moveOpportunite, chargement, erreur } = useOpportunites();
+  const { peutEcrire, peutSupprimer } = useEntreprise();
   const { clients } = useClients();
 
   const clientsParId = useMemo(() => {
@@ -98,14 +100,16 @@ export default function Opportunites() {
             )}
           </p>
         </div>
-        <Link
-          to="/opportunites/nouvelle"
-          className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-          style={{ backgroundColor: C.primary }}
-        >
-          <Plus size={16} aria-hidden="true" />
-          Nouvelle opportunité
-        </Link>
+        {peutEcrire && (
+          <Link
+            to="/opportunites/nouvelle"
+            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+            style={{ backgroundColor: C.primary }}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Nouvelle opportunité
+          </Link>
+        )}
       </div>
 
       {erreur && (
@@ -119,7 +123,7 @@ export default function Opportunites() {
           }}
         >
           <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-          <span><strong className="font-semibold">Impossible de charger les opportunités :</strong> {erreur}</span>
+          <span><strong className="font-semibold">Erreur :</strong> {erreur}</span>
         </div>
       )}
 
@@ -227,12 +231,12 @@ export default function Opportunites() {
                       }}
                       onFermerMenu={fermerMenu}
                       onOuvrirSousMenu={() => setSousMenuOuvert(true)}
-                      onEdit={() => navigate(`/opportunites/${op.id}/modifier`)}
-                      onDelete={() => handleDelete(op)}
-                      onMove={(nouvelleEtape) => {
+                      onEdit={peutEcrire ? () => navigate(`/opportunites/${op.id}/modifier`) : null}
+                      onDelete={peutSupprimer ? () => handleDelete(op) : null}
+                      onMove={peutEcrire ? (nouvelleEtape) => {
                         moveOpportunite(op.id, nouvelleEtape);
                         fermerMenu();
-                      }}
+                      } : null}
                     />
                   ))
                 )}
@@ -287,7 +291,7 @@ function CarteOpportunite({
 
   return (
     <article
-      draggable
+      draggable={Boolean(onMove)}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", String(op.id));
@@ -297,7 +301,7 @@ function CarteOpportunite({
         backgroundColor: C.bgCard,
         border: `1px solid ${C.border}`,
         boxShadow: "0 1px 2px rgba(45,52,54,0.04)",
-        cursor: "grab",
+        cursor: onMove ? "grab" : "default",
       }}
       aria-label={`Opportunité ${op.nom}`}
     >
@@ -315,6 +319,7 @@ function CarteOpportunite({
           </p>
         </div>
 
+        {(onEdit || onDelete) && (
         <div ref={conteneurMenuRef} className="relative shrink-0">
           <button
             ref={boutonMenuRef}
@@ -345,6 +350,8 @@ function CarteOpportunite({
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {onEdit && (
+              <>
               <button
                 type="button"
                 role="menuitem"
@@ -408,7 +415,11 @@ function CarteOpportunite({
                   </div>
                 )}
               </div>
+              </>
+              )}
 
+              {onDelete && (
+              <>
               <div style={{ borderTop: `1px solid ${C.border}` }} />
 
               <button
@@ -421,9 +432,12 @@ function CarteOpportunite({
                 <Trash2 size={14} aria-hidden="true" />
                 Supprimer
               </button>
+              </>
+              )}
             </div>
           )}
         </div>
+        )}
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">
