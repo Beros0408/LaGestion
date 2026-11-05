@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Briefcase, FileText, Package, Mail, BarChart3, Bot,
-  FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut,
+  FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut, ArrowLeft,
 } from "lucide-react";
 import { C, VOILE, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
+import { GardeModificationsProvider, useQuitter } from "../context/GardeModificationsContext.jsx";
+import { pageParente, libellePage } from "../utils/navigation";
 
 const navItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, to: "/dashboard" },
@@ -25,13 +27,6 @@ const navSecondaires = [
   { id: "aide", label: "Aide & Tutoriels", icon: HelpCircle },
 ];
 
-const breadcrumbLabels = {
-  "/dashboard": "Tableau de bord",
-  "/clients": "Clients",
-  "/opportunites": "Opportunités",
-  "/factures": "Factures",
-};
-
 const itemClass =
   "flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-[15px] font-medium transition-colors duration-150 hover:bg-lg-sidebar-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-lg-sidebar-focus focus-visible:ring-offset-lg-sidebar-bg md:justify-center md:gap-0 md:px-0 xl:justify-start xl:gap-3 xl:px-2.5";
 
@@ -45,13 +40,30 @@ const inactiveStyle = { color: C.sidebarText };
 const bientotStyle = { color: C.sidebarTextMuted };
 
 export default function Layout() {
+  return (
+    <GardeModificationsProvider>
+      <LayoutContenu />
+    </GardeModificationsProvider>
+  );
+}
+
+function LayoutContenu() {
   const [menuMobile, setMenuMobile] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const quitter = useQuitter();
   const { signOut } = useAuth();
   const { nomAffiche, prenomAffiche, initiales, entreprise, libelleRole, peutEcrire } = useEntreprise();
   const sousTitreProfil = [entreprise?.nom, libelleRole].filter(Boolean).join(" · ");
-  const breadcrumb = breadcrumbLabels[location.pathname] || "Tableau de bord";
+  const breadcrumb = libellePage(location.pathname);
+  const parente = pageParente(location.pathname);
+
+  // Retour : historique de l'application s'il existe ; sinon (lien ouvert directement) page parente.
+  const revenir = () =>
+    quitter(() => {
+      if (location.key !== "default") navigate(-1);
+      else navigate(parente, { replace: true });
+    });
   const closeMobile = () => setMenuMobile(false);
 
   const handleSignOut = async () => {
@@ -218,6 +230,19 @@ export default function Layout() {
             <Menu size={20} />
           </button>
 
+          {parente !== null && (
+            <button
+              type="button"
+              onClick={revenir}
+              aria-label="Revenir à la page précédente"
+              className="inline-flex min-h-[40px] min-w-[40px] shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
+              style={{ color: C.primary, border: `1px solid ${C.borderInput}` }}
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              Retour
+            </button>
+          )}
+
           <div className="min-w-0 flex-1">
             <nav
               className="flex items-center gap-1.5 text-xs"
@@ -236,7 +261,7 @@ export default function Layout() {
             </h1>
           </div>
 
-          <div className="relative hidden md:block">
+          <div className="relative hidden lg:block">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2"

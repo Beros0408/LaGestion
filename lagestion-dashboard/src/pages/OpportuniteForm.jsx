@@ -7,6 +7,7 @@ import { useClients } from "../context/ClientsContext.jsx";
 import { ETAPES } from "../data/opportunites";
 import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
+import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 
 const VIDE = {
   nom: "",
@@ -49,6 +50,9 @@ export default function OpportuniteForm() {
   const [errors, setErrors] = useState({});
   const [erreurSoumission, setErreurSoumission] = useState(null);
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
+  const quitter = useQuitter();
+  const etatInitial = useMemo(() => (existant ? normaliser(existant) : VIDE), [existant]);
+  useGardeModifications(JSON.stringify(form) !== JSON.stringify(etatInitial));
 
   useEffect(() => {
     if (modeEdition && existant) {
@@ -141,7 +145,7 @@ export default function OpportuniteForm() {
       } else {
         await addOpportunite(payload);
       }
-      navigate("/opportunites");
+      navigate("/opportunites", { replace: true });
     } catch (err) {
       setErreurSoumission(err?.message ?? "Une erreur est survenue.");
     } finally {
@@ -252,7 +256,7 @@ export default function OpportuniteForm() {
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"
-            onClick={() => navigate("/opportunites")}
+            onClick={() => quitter(() => navigate("/opportunites"))}
             className="rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
             style={{
               color: C.textSecondary,

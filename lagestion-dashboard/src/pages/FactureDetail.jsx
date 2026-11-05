@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Pencil, Mail, Phone, MapPin, Download, Printer, Copy, CreditCard,
+  List, Pencil, Mail, Phone, MapPin, Download, Printer, Copy, CreditCard,
   ChevronDown, ExternalLink, Trash2, AlertCircle, Plus,
 } from "lucide-react";
 import { C, OMBRE, alpha, euro } from "../theme";
@@ -184,8 +184,8 @@ export default function FactureDetail() {
             className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
             style={{ color: C.textSecondary, backgroundColor: "transparent", border: `1px solid ${C.border}` }}
           >
-            <ArrowLeft size={16} aria-hidden="true" />
-            Retour à la liste
+            <List size={16} aria-hidden="true" />
+            Toutes les factures
           </Link>
           <BoutonSecondaire
             onClick={() => genererFacturePdf(facture, client, recap)}

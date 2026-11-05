@@ -9,6 +9,7 @@ import Select from "../components/form/Select.jsx";
 import Textarea from "../components/form/Textarea.jsx";
 import TagInput from "../components/form/TagInput.jsx";
 import { SECTEURS } from "../data/secteurs";
+import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 
 const VIDE = {
   type: "particulier",
@@ -137,6 +138,9 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
   const [errors, setErrors] = useState({});
   const [dbError, setDbError] = useState("");
   const [soumission, setSoumission] = useState(false);
+  const quitter = useQuitter();
+  const etatInitial = useMemo(() => (existant ? normaliserExistant(existant) : VIDE), [existant]);
+  useGardeModifications(JSON.stringify(form) !== JSON.stringify(etatInitial));
 
   const doublons = useMemo(
     () => detecterDoublons(form, clients, idClient),
@@ -211,7 +215,7 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
       } else {
         await addClient({ ...payload, score: 50 });
       }
-      navigate("/clients");
+      navigate("/clients", { replace: true });
     } catch (err) {
       setDbError(traduireErreurBase(err));
     } finally {
@@ -402,7 +406,7 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"
-            onClick={() => navigate("/clients")}
+            onClick={() => quitter(() => navigate("/clients"))}
             className="rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
             style={{
               color: C.textSecondary,

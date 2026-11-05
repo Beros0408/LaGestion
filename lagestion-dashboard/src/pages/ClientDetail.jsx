@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Pencil, Phone, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, List, Pencil, Phone, Mail, MapPin } from "lucide-react";
 import { C, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -182,8 +182,8 @@ export default function ClientDetail() {
                 border: `1px solid ${C.border}`,
               }}
             >
-              <ArrowLeft size={16} aria-hidden="true" />
-              Retour à la liste
+              <List size={16} aria-hidden="true" />
+              Liste des clients
             </Link>
             {peutEcrire && (
               <Link

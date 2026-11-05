@@ -34,6 +34,14 @@ body,
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Fenêtre de confirmation : fondu du voile, apparition légère de la fenêtre */
+.lg-dialog-voile { animation: lgFondu 150ms ease-out both; }
+.lg-dialog { animation: lgDialog 180ms ease-out both; }
+@keyframes lgDialog {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Opportunités prioritaires : tableau si la carte est large, liste sinon (requête de conteneur) */
 .lg-prioritaires { container-type: inline-size; }
 .lg-prioritaires-table { display: none; }
@@ -71,6 +79,7 @@ body,
   .lg-card:hover { transform: none; }
   .lg-card-enter { opacity: 1; animation: none; }
   .lg-bande, .lg-entonnoir .recharts-label-list, .lg-entonnoir-valeur { animation: none; }
+  .lg-dialog, .lg-dialog-voile { animation: none; }
   .lg-bande-voile { transition: none; }
 }
 
