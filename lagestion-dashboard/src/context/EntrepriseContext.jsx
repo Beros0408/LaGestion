@@ -123,11 +123,20 @@ export function EntrepriseProvider({ children }) {
     [charger]
   );
 
+  // Nom de l'utilisateur courant (RLS : chacun ne modifie que son profil).
+  const enregistrerNom = useCallback(
+    async (nom) => {
+      const { error } = await supabase.from("profiles").update({ nom }).eq("id", userId);
+      if (error) throw erreurFrancaise(error);
+      setProfil((p) => (p ? { ...p, nom } : p));
+    },
+    [userId]
+  );
+
   const value = useMemo(() => {
     const courante = appartenances.find((a) => a.entrepriseId === entrepriseId) ?? null;
     const role = courante?.role ?? null;
-    // Jamais l'e-mail dans le profil : nom saisi, sinon libellé neutre.
-    const nomAffiche = profil?.nom?.trim() || "Utilisateur";
+    const nomAffiche = profil?.nom?.trim() || (user?.email ?? "").split("@")[0] || "Utilisateur";
     return {
       chargement,
       erreur,
@@ -142,9 +151,10 @@ export function EntrepriseProvider({ children }) {
       prenomAffiche: nomAffiche.split(/\s+/)[0],
       initiales: initialesDe(nomAffiche),
       creerEntreprise,
+      enregistrerNom,
       recharger: charger,
     };
-  }, [chargement, erreur, appartenances, entrepriseId, profil, creerEntreprise, charger]);
+  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, enregistrerNom, charger]);
 
   return <EntrepriseContext.Provider value={value}>{children}</EntrepriseContext.Provider>;
 }

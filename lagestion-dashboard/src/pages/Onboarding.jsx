@@ -14,9 +14,10 @@ function valider(nom, siret) {
 }
 
 export default function Onboarding() {
-  const { entrepriseId, creerEntreprise } = useEntreprise();
+  const { entrepriseId, creerEntreprise, enregistrerNom } = useEntreprise();
   const navigate = useNavigate();
 
+  const [nomPersonne, setNomPersonne] = useState("");
   const [nom, setNom] = useState("");
   const [siret, setSiret] = useState("");
   const [erreurs, setErreurs] = useState({});
@@ -33,6 +34,7 @@ export default function Onboarding() {
     setErreurEnvoi("");
     setEnCours(true);
     try {
+      if (nomPersonne.trim()) await enregistrerNom(nomPersonne.trim());
       await creerEntreprise(nom.trim(), siret.replace(/\s/g, ""));
       navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -80,6 +82,13 @@ export default function Onboarding() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          <Input
+            label="Votre nom (facultatif)"
+            autoComplete="name"
+            value={nomPersonne}
+            onChange={(e) => setNomPersonne(e.target.value)}
+            hint="Affiché dans le menu et les salutations"
+          />
           <Input
             label="Nom de l'entreprise"
             required
