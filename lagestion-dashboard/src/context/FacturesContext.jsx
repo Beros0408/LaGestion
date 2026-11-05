@@ -26,6 +26,7 @@ const CHAMPS_LIGNE = [
   "prix_unitaire",
   "taux_tva",
   "remise",
+  "produit_id",
 ];
 const CHAMPS_TEXTE_LIGNE = new Set(["description", "reference", "unite"]);
 const CHAMPS_PAIEMENT = ["date", "montant", "mode", "reference"];
@@ -61,6 +62,8 @@ function preparerLignes(lignes, factureId, entrepriseId) {
       } else if (cle === "quantite") {
         const n = Number(v);
         ligne[cle] = Number.isFinite(n) && n > 0 ? n : 1;
+      } else if (cle === "produit_id") {
+        ligne[cle] = v || null;
       } else {
         ligne[cle] = Number(v) || 0;
       }

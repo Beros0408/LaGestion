@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Briefcase, FileText, Package, Mail, BarChart3, Bot,
-  FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut, ArrowLeft,
+  FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut, ArrowLeft, Boxes,
 } from "lucide-react";
 import { C, AVATARS, VOILE, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -15,6 +15,7 @@ const navItems = [
   { id: "clients", label: "Clients", icon: Users, to: "/clients" },
   { id: "opportunites", label: "Opportunités", icon: Briefcase, to: "/opportunites" },
   { id: "factures", label: "Factures", icon: FileText, to: "/factures" },
+  { id: "catalogue", label: "Catalogue", icon: Boxes, to: "/catalogue" },
   { id: "stock", label: "Stock", icon: Package, soon: true },
   { id: "campagnes", label: "Campagnes", icon: Mail, soon: true },
   { id: "rapports", label: "Rapports", icon: BarChart3 },

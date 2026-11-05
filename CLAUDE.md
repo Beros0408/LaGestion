@@ -13,7 +13,7 @@ Référence fonctionnelle : docs/LaGestion_Cahier_des_charges_V2.md.
 - Supabase : projet lagestion (réf. vzpuewzjlrbwqxwadsle), variables dans .env.local
 - Clé d'isolation : entreprise_id sur toute donnée métier ; RLS par appartenance (table memberships)
 - Schéma : supabase/schema.sql (base) + supabase/migrations/NNN_nom.sql (évolutions, numérotées)
-- Écritures centralisées dans src/context : ClientsContext.jsx, OpportunitesContext.jsx, FacturesContext.jsx
+- Écritures centralisées dans src/context : ClientsContext.jsx, OpportunitesContext.jsx, FacturesContext.jsx, ProduitsContext.jsx (catalogue)
 - Suppression logique via deleted_at
 
 ## Contraintes
@@ -80,9 +80,10 @@ Ne pas ajouter de fonctionnalité hors de ce périmètre sans décision explicit
 - Composants fonctionnels, un export par défaut par écran.
 - Application dans le sous-dossier lagestion-dashboard/. Structure :
   - `src/App.jsx` + `src/main.jsx` : entrée + routeur React Router.
-  - `src/pages/` : un écran par fichier — `Dashboard.jsx`, `Clients.jsx`, `ClientForm.jsx`, `ClientDetail.jsx`.
-  - `src/components/` : briques partagées (`Layout.jsx`, `Card.jsx`, `form/*`, `charts/*`).
-  - `src/context/` : état applicatif partagé (`ClientsContext.jsx`).
+  - `src/pages/` : un écran par fichier — `Dashboard.jsx`, `Clients.jsx`, `ClientForm.jsx`, `ClientDetail.jsx`, `Catalogue.jsx`, `ProduitForm.jsx`…
+  - `src/components/` : briques partagées (`Layout.jsx`, `Card.jsx`, `ConfirmDialog.jsx`, `ChoixCatalogue.jsx`, `form/*`, `charts/*`).
+  - `src/context/` : état applicatif partagé (`ClientsContext.jsx`, `ProduitsContext.jsx`…).
+  - `src/hooks/` : hooks partagés (`usePiegeFocus.js` : focus piégé des fenêtres modales).
   - `src/data/` : jeux de données statiques du MVP.
   - `src/theme.js` : tokens couleurs + formatters `euro` / `num`.
   - `src/index.css` : Tailwind + utilitaires globaux (`.lg-card`, focus ring).

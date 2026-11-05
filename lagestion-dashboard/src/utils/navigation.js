@@ -16,6 +16,9 @@ const ROUTES = [
   { motif: "/factures/nouvelle", libelle: "Nouvelle facture", parent: () => "/factures" },
   { motif: "/factures/:id/modifier", libelle: "Modifier la facture", parent: ({ id }) => `/factures/${id}` },
   { motif: "/factures/:id", libelle: "Fiche facture", parent: () => "/factures" },
+  { motif: "/catalogue", libelle: "Catalogue", parent: () => "/dashboard" },
+  { motif: "/catalogue/nouveau", libelle: "Nouvel article", parent: () => "/catalogue" },
+  { motif: "/catalogue/:id/modifier", libelle: "Modifier l'article", parent: () => "/catalogue" },
 ];
 
 function trouver(chemin) {

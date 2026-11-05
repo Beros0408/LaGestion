@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, AlertCircle, Boxes } from "lucide-react";
 import { C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
@@ -18,6 +18,8 @@ import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
 import Textarea from "../components/form/Textarea.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
+import ChoixCatalogue from "../components/ChoixCatalogue.jsx";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 
 const MESSAGE_REMISE_PLAFOND = "La remise globale ne peut pas dépasser le total HT des lignes.";
 
@@ -29,7 +31,11 @@ const LIGNE_VIDE = {
   prix_unitaire: "",
   taux_tva: "20",
   remise: "0",
+  produit_id: null,
 };
+
+// Ligne « remplie » : le choix d'un article demande confirmation avant d'écraser son contenu.
+const ligneRemplie = (l) => l.description.trim() !== "" || (l.prix_unitaire !== "" && Number(l.prix_unitaire) !== 0);
 
 const VIDE = {
   client_id: "",
@@ -79,6 +85,7 @@ function normaliser(existant) {
       prix_unitaire: l.prix_unitaire != null ? String(l.prix_unitaire) : "",
       taux_tva: l.taux_tva != null ? String(l.taux_tva) : "20",
       remise: l.remise != null ? String(l.remise) : "0",
+      produit_id: l.produit_id ?? null,
     })),
   };
 }
@@ -100,6 +107,9 @@ export default function FactureForm() {
   const [errors, setErrors] = useState({});
   const [erreurSoumission, setErreurSoumission] = useState(null);
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
+  // Choix dans le catalogue : ligne visée et bouton d'origine (retour du focus)
+  const [choixLigne, setChoixLigne] = useState(null);
+  const [remplacement, setRemplacement] = useState(null);
   const quitter = useQuitter();
   const etatInitial = useMemo(() => (existant ? normaliser(existant) : VIDE), [existant]);
   useGardeModifications(JSON.stringify(form) !== JSON.stringify(etatInitial));
@@ -200,6 +210,37 @@ export default function FactureForm() {
     });
   };
 
+  // Pré-remplit la ligne ; quantité et remise de ligne restent inchangées, tout reste modifiable.
+  const appliquerProduit = (i, p) => {
+    setForm((prev) => ({
+      ...prev,
+      lignes: prev.lignes.map((l, idx) =>
+        idx === i
+          ? {
+              ...l,
+              description: p.nom,
+              reference: p.reference ?? "",
+              unite: p.unite ?? "",
+              prix_unitaire: String(p.prix_unitaire_ht),
+              taux_tva: String(p.taux_tva),
+              produit_id: p.id,
+            }
+          : l
+      ),
+    }));
+    setErrors((prev) => {
+      if (!prev.ligneItems?.[i]?.prix_unitaire) return prev;
+      return { ...prev, ligneItems: prev.ligneItems.map((e, idx) => (idx === i ? { ...e, prix_unitaire: undefined } : e)) };
+    });
+  };
+
+  const choisirProduit = (p) => {
+    const { index, element } = choixLigne;
+    setChoixLigne(null);
+    if (ligneRemplie(form.lignes[index])) setRemplacement({ index, produit: p, element });
+    else appliquerProduit(index, p);
+  };
+
   const ajouterLigne = () => {
     setForm((prev) => ({ ...prev, lignes: [...prev.lignes, { ...LIGNE_VIDE }] }));
   };
@@ -259,6 +300,7 @@ export default function FactureForm() {
         prix_unitaire: Number(l.prix_unitaire),
         taux_tva: Number(l.taux_tva),
         remise: Number(l.remise) || 0,
+        produit_id: l.produit_id || null,
       })),
     };
 
@@ -387,6 +429,21 @@ export default function FactureForm() {
                   className="grid grid-cols-12 gap-2 rounded-xl p-3"
                   style={{ backgroundColor: C.bgMain, border: `1px solid ${C.border}` }}
                 >
+                  <div className="col-span-12 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs" style={{ color: C.textSecondary }}>
+                      {l.produit_id ? "Article du catalogue (valeurs modifiables)" : "Saisie libre"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => setChoixLigne({ index: i, element: e.currentTarget })}
+                      aria-label={`Choisir dans le catalogue pour la ligne ${i + 1}`}
+                      className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
+                      style={{ color: C.primary, border: `1px solid ${C.borderInput}` }}
+                    >
+                      <Boxes size={14} aria-hidden="true" />
+                      Choisir dans le catalogue
+                    </button>
+                  </div>
                   <div className="col-span-12 md:col-span-8">
                     <Input
                       label={`Description ligne ${i + 1}`}
@@ -589,6 +646,26 @@ export default function FactureForm() {
           </button>
         </div>
       </form>
+
+      <ChoixCatalogue
+        ouvert={Boolean(choixLigne)}
+        onChoisir={choisirProduit}
+        onFermer={() => setChoixLigne(null)}
+        elementRetour={choixLigne?.element}
+      />
+      <ConfirmDialog
+        ouvert={Boolean(remplacement)}
+        titre="Remplacer le contenu de cette ligne ?"
+        message={remplacement ? `La description, la référence, l'unité, le prix HT et la TVA seront remplacés par ceux de « ${remplacement.produit.nom} ».` : ""}
+        libelleAnnuler="Annuler"
+        libelleConfirmer="Remplacer"
+        onAnnuler={() => setRemplacement(null)}
+        onConfirmer={() => {
+          appliquerProduit(remplacement.index, remplacement.produit);
+          setRemplacement(null);
+        }}
+        elementRetour={remplacement?.element}
+      />
     </>
   );
 }

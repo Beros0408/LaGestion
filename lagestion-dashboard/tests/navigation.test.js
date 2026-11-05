@@ -17,6 +17,9 @@ test("page parente de chaque écran", () => {
     ["/factures/nouvelle", "/factures"],
     ["/factures/f-7", "/factures"],
     ["/factures/f-7/modifier", "/factures/f-7"],
+    ["/catalogue", "/dashboard"],
+    ["/catalogue/nouveau", "/catalogue"],
+    ["/catalogue/p-3/modifier", "/catalogue"],
     ["/page-inconnue", "/dashboard"],
   ];
   for (const [chemin, parent] of attendus) assert.equal(pageParente(chemin), parent, chemin);
@@ -27,5 +30,7 @@ test("libellés du fil d'Ariane", () => {
   assert.equal(libellePage("/clients/abc"), "Fiche client");
   assert.equal(libellePage("/factures/nouvelle"), "Nouvelle facture");
   assert.equal(libellePage("/factures/f-7/modifier"), "Modifier la facture");
+  assert.equal(libellePage("/catalogue/nouveau"), "Nouvel article");
+  assert.equal(libellePage("/catalogue/p-3/modifier"), "Modifier l'article");
   assert.equal(libellePage("/inconnue"), "Tableau de bord");
 });

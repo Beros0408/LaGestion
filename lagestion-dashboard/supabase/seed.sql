@@ -1,6 +1,6 @@
 -- seed.sql — Lagestion
 -- Données de démonstration pour UNE entreprise existante (créée depuis l'onboarding).
--- S'applique après 004_secteur_clients.sql, dans le SQL Editor (rôle postgres).
+-- S'applique après 006_catalogue.sql, dans le SQL Editor (rôle postgres).
 --
 -- Ce que fait le script :
 --   - ne crée aucune entreprise et ne touche ni à entreprises, ni à memberships, ni à profiles ;
@@ -10,10 +10,12 @@
 -- Marquage des données de démonstration :
 --   - clients : tag « démo » ;
 --   - factures : numéro « DEMO-NNNN » (lignes et paiements suivent la facture) ;
---   - opportunités : rattachées à un client de démo et portant un nom de la liste ci-dessous.
+--   - opportunités : rattachées à un client de démo et portant un nom de la liste ci-dessous ;
+--   - catalogue : référence « DEMO-ART-NN » (10 articles, dont 1 inactif ; 9 lignes de facture y sont reliées).
 --
 -- Refus (rien n'est modifié) si l'entreprise n'existe pas, n'a pas d'admin, ou si une donnée
--- saisie à la main (facture, opportunité, contact) est rattachée à un client de démo.
+-- saisie à la main (facture, opportunité, contact) est rattachée à un client de démo, ou si une
+-- ligne de facture saisie à la main est reliée à un article de démo.
 --
 -- Montants : vendeur = entreprise de rénovation et d'aménagement.
 --   TVA 10 % : travaux dans des logements ; TVA 20 % : locaux professionnels et fournitures.
@@ -77,6 +79,14 @@ begin
     raise exception 'Seed interrompu : % contact(s) rattaché(s) à un client de démo seraient supprimés.', n;
   end if;
 
+  select count(*) into n from public.lignes_facture l
+   join public.produits p on p.id = l.produit_id
+   join public.factures f on f.id = l.facture_id
+   where p.entreprise_id = v_ent and p.reference like 'DEMO-ART-%' and f.numero not like 'DEMO-%';
+  if n > 0 then
+    raise exception 'Seed interrompu : % ligne(s) de facture saisie(s) à la main sont reliée(s) à un article de démo.', n;
+  end if;
+
   -- 2. Bascule sur l'admin : toutes les écritures suivantes passent par la RLS
   perform set_config('request.jwt.claims',
     json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
@@ -94,6 +104,25 @@ begin
    where c.id = o.client_id and o.entreprise_id = v_ent and c.tags @> array['démo'];
   delete from public.clients
    where entreprise_id = v_ent and tags @> array['démo'];
+  delete from public.produits
+   where entreprise_id = v_ent and reference like 'DEMO-ART-%';
+
+  -- 3 bis. Catalogue (10 articles, dont 1 inactif)
+  insert into public.produits (entreprise_id, type, reference, nom, description, unite, prix_unitaire_ht, taux_tva, actif)
+  select v_ent, v.type, v.reference, v.nom, v.description, v.unite, v.prix, v.tva, v.actif
+  from (values
+    ('service', 'DEMO-ART-01', 'Main-d''œuvre — heure',                 'Taux horaire compagnon, locaux professionnels', 'h',        45.00, 20, true),
+    ('produit', 'DEMO-ART-02', 'Rayonnages métalliques',                'Élément 100 × 40 × 200 cm, 5 tablettes',          'u',       189.00, 20, true),
+    ('service', 'DEMO-ART-03', 'Entretien hotte et extraction',         'Dégraissage et contrôle, intervention semestrielle', 'forfait', 1250.00, 20, true),
+    ('produit', 'DEMO-ART-04', 'Filtres à graisse inox',                'Filtre à chicanes 500 × 400 mm',                  'u',        85.00, 20, true),
+    ('produit', 'DEMO-ART-05', 'Faux plafond acoustique',               'Dalles minérales 600 × 600, fourni posé',         'm²',       62.00, 20, true),
+    ('produit', 'DEMO-ART-06', 'Carrelage et faïence',                  'Grès cérame et faïence murale, fourni posé (logement)', 'm²', 48.50, 10, true),
+    ('service', 'DEMO-ART-07', 'Sol résine époxy',                      'Préparation du support et deux couches',          'm²',       32.00, 20, true),
+    ('produit', 'DEMO-ART-08', 'Éclairage LED',                         'Spot encastré 12 W, fourni posé',                 'u',        74.90, 20, true),
+    ('produit', 'DEMO-ART-09', 'Porte coupe-feu EI 30',                 'Bloc-porte 93 × 204 cm, fourni posé',             'u',      1150.00, 20, true),
+    ('service', 'DEMO-ART-10', 'Peinture murale (ancien tarif)',        'Remplacé par un forfait : article désactivé',     'm²',       24.00, 10, false)
+  ) as v(type, reference, nom, description, unite, prix, tva, actif);
+
 
   -- 4. Clients (15)
   insert into public.clients (entreprise_id, type, nom, secteur, email, telephone, adresse, statut, tags, score,
@@ -164,34 +193,35 @@ begin
 
   -- 7. Lignes de facture (23)
   insert into public.lignes_facture (entreprise_id, facture_id, position, description, unite,
-                                     quantite, prix_unitaire, taux_tva)
-  select v_ent, f.id, v.pos, v.description, v.unite, v.quantite, v.prix, v.tva
+                                     quantite, prix_unitaire, taux_tva, reference, produit_id)
+  select v_ent, f.id, v.pos, v.description, v.unite, v.quantite, v.prix, v.tva, p.reference, p.id
   from (values
-    ('DEMO-0001', 0, 'Aménagement de la réserve — main d''œuvre',          'h',       24,    45.00, 20),
-    ('DEMO-0001', 1, 'Rayonnages métalliques',                             'u',        6,   189.00, 20),
-    ('DEMO-0002', 0, 'Remise en peinture appartement T3 — main d''œuvre',  'forfait',  1,  2400.00, 10),
-    ('DEMO-0002', 1, 'Peintures et fournitures',                           'forfait',  1,   640.00, 10),
-    ('DEMO-0003', 0, 'Entretien hotte et extraction — semestre',           'forfait',  1,  1250.00, 20),
-    ('DEMO-0003', 1, 'Filtres à graisse inox',                             'u',        4,    85.00, 20),
-    ('DEMO-0004', 0, 'Réaménagement de l''officine — acompte',             'forfait',  1,  4500.00, 20),
-    ('DEMO-0005', 0, 'Cloisonnement de la salle de soins',                 'forfait',  1,  3850.00, 20),
-    ('DEMO-0005', 1, 'Faux plafond acoustique',                            'm²',      18,    62.00, 20),
-    ('DEMO-0006', 0, 'Rénovation salle de bains — main d''œuvre',          'forfait',  1,  4200.00, 10),
-    ('DEMO-0006', 1, 'Carrelage et faïence',                               'm²',      22,    48.50, 10),
-    ('DEMO-0007', 0, 'Aménagement open space — main d''œuvre',             'forfait',  1,  7600.00, 20),
-    ('DEMO-0007', 1, 'Postes de travail équipés',                          'u',        8,   412.50, 20),
-    ('DEMO-0008', 0, 'Réfection du sol de l''atelier — résine époxy',      'm²',     240,    32.00, 20),
-    ('DEMO-0008', 1, 'Marquage au sol',                                    'forfait',  1,   950.00, 20),
-    ('DEMO-0009', 0, 'Mise aux normes électriques du fournil',             'forfait',  1,  2980.00, 20),
-    ('DEMO-0009', 1, 'Éclairage LED de la vitrine',                        'u',       12,    74.90, 20),
-    ('DEMO-0010', 0, 'Maintenance préventive du bâtiment — trimestre',     'forfait',  1,  1800.00, 20),
-    ('DEMO-0010', 1, 'Remplacement de portes coupe-feu',                   'u',        2,  1150.00, 20),
-    ('DEMO-0011', 0, 'Rafraîchissement des parties communes — main d''œuvre','forfait', 1,  3600.00, 10),
-    ('DEMO-0011', 1, 'Éclairage du hall avec détecteurs',                  'u',        6,    95.00, 10),
-    ('DEMO-0012', 0, 'Création d''un bar en chêne massif',                 'forfait',  1,  5400.00, 20),
-    ('DEMO-0012', 1, 'Pose et finitions',                                  'forfait',  1,  1200.00, 20)
-  ) as v(numero, pos, description, unite, quantite, prix, tva)
-  join public.factures f on f.entreprise_id = v_ent and f.numero = v.numero;
+    ('DEMO-0001', 0, 'Aménagement de la réserve — main d''œuvre',          'h',       24,    45.00, 20, 'DEMO-ART-01'),
+    ('DEMO-0001', 1, 'Rayonnages métalliques',                             'u',        6,   189.00, 20, 'DEMO-ART-02'),
+    ('DEMO-0002', 0, 'Remise en peinture appartement T3 — main d''œuvre',  'forfait',  1,  2400.00, 10, null),
+    ('DEMO-0002', 1, 'Peintures et fournitures',                           'forfait',  1,   640.00, 10, null),
+    ('DEMO-0003', 0, 'Entretien hotte et extraction — semestre',           'forfait',  1,  1250.00, 20, 'DEMO-ART-03'),
+    ('DEMO-0003', 1, 'Filtres à graisse inox',                             'u',        4,    85.00, 20, 'DEMO-ART-04'),
+    ('DEMO-0004', 0, 'Réaménagement de l''officine — acompte',             'forfait',  1,  4500.00, 20, null),
+    ('DEMO-0005', 0, 'Cloisonnement de la salle de soins',                 'forfait',  1,  3850.00, 20, null),
+    ('DEMO-0005', 1, 'Faux plafond acoustique',                            'm²',      18,    62.00, 20, 'DEMO-ART-05'),
+    ('DEMO-0006', 0, 'Rénovation salle de bains — main d''œuvre',          'forfait',  1,  4200.00, 10, null),
+    ('DEMO-0006', 1, 'Carrelage et faïence',                               'm²',      22,    48.50, 10, 'DEMO-ART-06'),
+    ('DEMO-0007', 0, 'Aménagement open space — main d''œuvre',             'forfait',  1,  7600.00, 20, null),
+    ('DEMO-0007', 1, 'Postes de travail équipés',                          'u',        8,   412.50, 20, null),
+    ('DEMO-0008', 0, 'Réfection du sol de l''atelier — résine époxy',      'm²',     240,    32.00, 20, 'DEMO-ART-07'),
+    ('DEMO-0008', 1, 'Marquage au sol',                                    'forfait',  1,   950.00, 20, null),
+    ('DEMO-0009', 0, 'Mise aux normes électriques du fournil',             'forfait',  1,  2980.00, 20, null),
+    ('DEMO-0009', 1, 'Éclairage LED de la vitrine',                        'u',       12,    74.90, 20, 'DEMO-ART-08'),
+    ('DEMO-0010', 0, 'Maintenance préventive du bâtiment — trimestre',     'forfait',  1,  1800.00, 20, null),
+    ('DEMO-0010', 1, 'Remplacement de portes coupe-feu',                   'u',        2,  1150.00, 20, 'DEMO-ART-09'),
+    ('DEMO-0011', 0, 'Rafraîchissement des parties communes — main d''œuvre','forfait', 1,  3600.00, 10, null),
+    ('DEMO-0011', 1, 'Éclairage du hall avec détecteurs',                  'u',        6,    95.00, 10, null),
+    ('DEMO-0012', 0, 'Création d''un bar en chêne massif',                 'forfait',  1,  5400.00, 20, null),
+    ('DEMO-0012', 1, 'Pose et finitions',                                  'forfait',  1,  1200.00, 20, null)
+  ) as v(numero, pos, description, unite, quantite, prix, tva, article)
+  join public.factures f on f.entreprise_id = v_ent and f.numero = v.numero
+  left join public.produits p on p.entreprise_id = v_ent and p.reference = v.article and p.deleted_at is null;
 
   -- 8. Paiements (8) : payée = TTC réglé ; partiellement payée = acompte
   insert into public.paiements (entreprise_id, facture_id, date, montant, mode, reference)
@@ -235,6 +265,14 @@ begin
   select count(*) into n from public.paiements p join public.factures f on f.id = p.facture_id
    where f.entreprise_id = v_ent and f.numero like 'DEMO-%';
   if n <> 8 then raise exception 'Contrôle seed : % paiement(s) au lieu de 8', n; end if;
+
+  select count(*) into n from public.produits where entreprise_id = v_ent and reference like 'DEMO-ART-%' and deleted_at is null;
+  if n <> 10 then raise exception 'Contrôle seed : % article(s) de démo au lieu de 10', n; end if;
+
+  select count(*) into n from public.lignes_facture l join public.factures f on f.id = l.facture_id
+   join public.produits p on p.id = l.produit_id
+   where f.entreprise_id = v_ent and f.numero like 'DEMO-%' and p.actif and p.entreprise_id = v_ent;
+  if n <> 9 then raise exception 'Contrôle seed : % ligne(s) reliée(s) à un article actif au lieu de 9', n; end if;
 
   -- Cohérence paiements / statut, au centime
   for r in
@@ -288,7 +326,7 @@ begin
   ) s where s.entreprise_id is distinct from s.fe;
   if n > 0 then raise exception 'Contrôle seed : % ligne(s) ou paiement(s) hors de l''entreprise', n; end if;
 
-  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes, 8 paiements).';
+  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes, 8 paiements), 10 articles.';
 end $$;
 
 commit;

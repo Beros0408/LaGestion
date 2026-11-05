@@ -1,7 +1,6 @@
-import React, { useEffect, useId, useRef } from "react";
+import React, { useId, useRef } from "react";
 import { C, OMBRE, VOILE } from "../theme";
-
-const FOCUSABLES = 'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+import usePiegeFocus from "../hooks/usePiegeFocus";
 
 // Fenêtre de confirmation accessible : focus initial sur l'action prudente (annuler),
 // focus piégé, Échap = annuler, retour du focus à l'élément d'origine à la fermeture.
@@ -18,35 +17,9 @@ export default function ConfirmDialog({
   const refFenetre = useRef(null);
   const refAnnuler = useRef(null);
   const id = useId();
-
-  useEffect(() => {
-    if (!ouvert) return undefined;
-    refAnnuler.current?.focus();
-    return () => {
-      if (elementRetour && document.contains(elementRetour)) elementRetour.focus();
-    };
-  }, [ouvert, elementRetour]);
+  const auClavier = usePiegeFocus({ ouvert, refFenetre, refInitial: refAnnuler, elementRetour, onEchap: onAnnuler });
 
   if (!ouvert) return null;
-
-  const auClavier = (e) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      onAnnuler();
-      return;
-    }
-    if (e.key !== "Tab") return;
-    const elements = [...refFenetre.current.querySelectorAll(FOCUSABLES)];
-    const premier = elements[0];
-    const dernier = elements[elements.length - 1];
-    if (e.shiftKey && document.activeElement === premier) {
-      e.preventDefault();
-      dernier.focus();
-    } else if (!e.shiftKey && document.activeElement === dernier) {
-      e.preventDefault();
-      premier.focus();
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onKeyDown={auClavier}>

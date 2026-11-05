@@ -7,6 +7,7 @@ import { EntrepriseProvider } from "./context/EntrepriseContext.jsx";
 import { ClientsProvider } from "./context/ClientsContext.jsx";
 import { OpportunitesProvider } from "./context/OpportunitesContext.jsx";
 import { FacturesProvider } from "./context/FacturesContext.jsx";
+import { ProduitsProvider } from "./context/ProduitsContext.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -17,7 +18,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <ClientsProvider>
             <OpportunitesProvider>
               <FacturesProvider>
-                <App />
+                <ProduitsProvider>
+                  <App />
+                </ProduitsProvider>
               </FacturesProvider>
             </OpportunitesProvider>
           </ClientsProvider>
