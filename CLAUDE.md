@@ -56,13 +56,17 @@ Référence fonctionnelle : docs/LaGestion_Cahier_des_charges_V2.md.
 # CLAUDE.md — Lagestion
 
 > Fichier de référence du projet. À lire en premier, à chaque session.
-> En cas de doute, l'ordre d'autorité est : ce fichier > Instructions_Developpement_Lagestion.md > Cahier_des_Charges_Lagestion.md.
+> En cas de doute, l'ordre d'autorité est : ce fichier > docs/LaGestion_Cahier_des_charges_V2.md > Instructions_Developpement_Lagestion.md.
+> L'ancien Cahier_des_Charges_Lagestion.md n'est plus qu'une archive.
 > Toute décision contraire doit être discutée et inscrite ici avant d'être appliquée.
 
 ## 1. Vision produit
 Lagestion est une plateforme de gestion commerciale (CRM + facturation) pour PME. L'interface doit évoquer la sobriété, l'élégance et la lisibilité des meilleurs SaaS (Stripe, Linear, HubSpot), sans tape-à-l'œil. La retenue prime sur l'effet.
 
 ## 2. Périmètre MVP — GELÉ (Instruction 1)
+> Remplacée par le périmètre MVP de la V2 (section 2 de docs/LaGestion_Cahier_des_charges_V2.md) : devis inclus ; IWa après le MVP.
+
+Historique :
 À développer : CRM de base (clients, opportunités), facturation simple, tableau de bord.
 Reporté en phase 2+ : comptabilité avancée, stock, marketing/campagnes, IA conversationnelle, application mobile.
 Ne pas ajouter de fonctionnalité hors de ce périmètre sans décision explicite.
@@ -163,4 +167,5 @@ Interdit (sobriété) : halo, rotation au chargement, points lumineux, ombres po
 
 ## 13. Workflow
 - Lancer l'app : depuis lagestion-dashboard/, commande `npm run dev`, URL http://localhost:5173.
-- Sauvegarde : git add . ; git commit ; git push (dépôt https://github.com/Beros0408/LaGestion).
+- Sauvegarde : git add <fichiers concernés, nommés un par un> ; git commit ; git push (dépôt https://github.com/Beros0408/LaGestion).
+- Ne jamais utiliser git add . ; ne jamais ajouter FONGOLA -SUP/ ni my-video/.
