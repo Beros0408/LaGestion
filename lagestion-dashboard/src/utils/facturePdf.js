@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ligneHT, remiseGlobale, totalHTBrut, totalHT, tvaParTaux, totalTTC } from "./facture";
 import { LIBELLE_STATUT } from "../data/factures";
+import { LIBELLE_STATUT_DEVIS } from "../data/devis";
 
 const COLORS = {
   primary:       [45, 91, 127],
@@ -11,6 +12,8 @@ const COLORS = {
   bgLight:       [248, 249, 250],
   white:         [255, 255, 255],
 };
+
+const HAUTEUR_BON_POUR_ACCORD = 34;
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -43,45 +46,85 @@ function descriptionAvecReference(l) {
   return l.reference ? `${base}\n(Réf. ${l.reference})` : base;
 }
 
-export function genererFacturePdf(facture, client, totaux) {
+// Identité de l'entreprise émettrice (table entreprises) ; les champs vides sont omis.
+function ecrireEmetteur(doc, entreprise, x, largeur) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(...COLORS.primary);
+  const nom = doc.splitTextToSize(entreprise?.nom || "—", largeur);
+  doc.text(nom, x, 24);
+  let y = 24 + (nom.length - 1) * 6;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...COLORS.textSecondary);
+  const siret = (entreprise?.siret || "").trim();
+  if (siret) {
+    y += 5;
+    doc.text(`SIRET ${siret}`, x, y);
+  }
+  const adresse = (entreprise?.adresse || "").trim();
+  if (adresse) {
+    const lignes = doc.splitTextToSize(adresse, largeur);
+    y += 5;
+    doc.text(lignes, x, y);
+    y += (lignes.length - 1) * 4;
+  }
+  return y;
+}
+
+function zoneBonPourAccord(doc, x, y, largeur) {
+  doc.setDrawColor(...COLORS.border);
+  doc.setLineWidth(0.3);
+  doc.rect(x, y, largeur, HAUTEUR_BON_POUR_ACCORD);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...COLORS.textPrimary);
+  doc.text("Bon pour accord", x + 4, y + 7);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...COLORS.textSecondary);
+  doc.text("Date :", x + 4, y + 15);
+  doc.text("Signature du client :", x + largeur / 2, y + 15);
+}
+
+function genererDocumentPdf(document, client, totaux, entreprise, config) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 20;
+  const limiteBas = pageH - 26; // au-dessus du pied de page
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(...COLORS.primary);
-  doc.text("Lagestion", margin, 25);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(...COLORS.textSecondary);
-  doc.text("Gestion commerciale", margin, 30);
+  const basEmetteur = ecrireEmetteur(doc, entreprise, margin, pageW / 2 - margin);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(24);
   doc.setTextColor(...COLORS.textPrimary);
-  doc.text("FACTURE", pageW - margin, 25, { align: "right" });
+  doc.text(config.titre, pageW - margin, 25, { align: "right" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text(facture.numero, pageW - margin, 32, { align: "right" });
+  doc.text(document.numero, pageW - margin, 32, { align: "right" });
 
-  doc.setFontSize(9);
-  doc.setTextColor(...COLORS.textSecondary);
-  doc.text(`Émise le ${formatDate(facture.date_emission)}`, pageW - margin, 38, { align: "right" });
-  doc.text(`Échéance le ${formatDate(facture.date_echeance)}`, pageW - margin, 43, { align: "right" });
+  let basTitre = 32;
+  config.dates.forEach(({ texte, important }) => {
+    doc.setFont("helvetica", important ? "bold" : "normal");
+    doc.setFontSize(important ? 11 : 9);
+    doc.setTextColor(...(important ? COLORS.primary : COLORS.textSecondary));
+    basTitre += important ? 6 : 5.5;
+    doc.text(texte, pageW - margin, basTitre, { align: "right" });
+  });
 
+  const ligneY = Math.max(50, Math.max(basEmetteur, basTitre) + 6);
   doc.setDrawColor(...COLORS.border);
   doc.setLineWidth(0.3);
-  doc.line(margin, 50, pageW - margin, 50);
+  doc.line(margin, ligneY, pageW - margin, ligneY);
 
-  let y = 60;
+  let y = ligneY + 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.textSecondary);
-  doc.text("FACTURÉ À", margin, y);
+  doc.text(config.destinataire, margin, y);
 
   y += 6;
   doc.setFont("helvetica", "bold");
@@ -114,7 +157,7 @@ export function genererFacturePdf(facture, client, totaux) {
   }
 
   const startY = y + 12;
-  const lignes = facture.lignes ?? [];
+  const lignes = document.lignes ?? [];
   const rows = lignes.map((l) => [
     descriptionAvecReference(l),
     formatQuantiteUnite(l),
@@ -155,15 +198,20 @@ export function genererFacturePdf(facture, client, totaux) {
     margin: { left: margin, right: margin },
   });
 
-  const htBrut = totaux?.htBrut ?? totalHTBrut(facture);
-  const ht = totaux?.ht ?? totalHT(facture);
-  const tvaDetail = totaux?.tvaDetail ?? tvaParTaux(facture);
-  const ttc = totaux?.ttc ?? totalTTC(facture);
-  const remise = totaux?.remise ?? remiseGlobale(facture);
+  const htBrut = totaux?.htBrut ?? totalHTBrut(document);
+  const ht = totaux?.ht ?? totalHT(document);
+  const tvaDetail = totaux?.tvaDetail ?? tvaParTaux(document);
+  const ttc = totaux?.ttc ?? totalTTC(document);
+  const remise = totaux?.remise ?? remiseGlobale(document);
 
   let recapY = (doc.lastAutoTable?.finalY ?? startY) + 8;
   const recapRight = pageW - margin;
   const recapLeft = pageW - margin - 70;
+  const hauteurRecap = (remise > 0 ? 10 : 0) + tvaDetail.length * 5 + 9;
+  if (recapY + hauteurRecap > limiteBas) {
+    doc.addPage();
+    recapY = 25;
+  }
 
   doc.setFontSize(9);
   if (remise > 0) {
@@ -208,18 +256,31 @@ export function genererFacturePdf(facture, client, totaux) {
   doc.text("Total TTC", recapLeft, recapY);
   doc.text(formatEuro(ttc), recapRight, recapY, { align: "right" });
 
-  if (facture.message_client) {
-    let messageY = recapY + 14;
+  let basContenu = recapY;
+  if (document.message_client) {
     const messageMaxWidth = pageW - margin * 2;
-    doc.setFont("helvetica", "bold");
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
+    const lignesMessage = doc.splitTextToSize(document.message_client, messageMaxWidth);
+    const hauteurMessage = 5 + lignesMessage.length * 4;
+    let messageY = recapY + 14;
+    if (messageY + hauteurMessage > limiteBas) {
+      doc.addPage();
+      messageY = 25;
+    }
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(...COLORS.textSecondary);
     doc.text("MESSAGE", margin, messageY);
     messageY += 5;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.textPrimary);
-    const lignesMessage = doc.splitTextToSize(facture.message_client, messageMaxWidth);
     doc.text(lignesMessage, margin, messageY);
+    basContenu = messageY + lignesMessage.length * 4;
+  }
+
+  if (config.bonPourAccord) {
+    if (basContenu + 8 + HAUTEUR_BON_POUR_ACCORD > limiteBas) doc.addPage();
+    zoneBonPourAccord(doc, margin, limiteBas - HAUTEUR_BON_POUR_ACCORD, pageW - margin * 2);
   }
 
   const footerY = pageH - 18;
@@ -230,13 +291,36 @@ export function genererFacturePdf(facture, client, totaux) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.textSecondary);
-  doc.text(`Statut : ${LIBELLE_STATUT[facture.statut] ?? facture.statut ?? "—"}`, margin, footerY);
-  doc.text(
-    "En cas de retard de paiement, des pénalités seront exigibles au taux légal en vigueur.",
-    pageW - margin,
-    footerY,
-    { align: "right" }
-  );
+  doc.text(`Statut : ${config.statut}`, margin, footerY);
+  if (config.mentionPied) {
+    doc.text(config.mentionPied, pageW - margin, footerY, { align: "right" });
+  }
 
-  doc.save(`${facture.numero}.pdf`);
+  doc.save(`${document.numero}.pdf`);
+}
+
+export function genererFacturePdf(facture, client, totaux, entreprise) {
+  genererDocumentPdf(facture, client, totaux, entreprise, {
+    titre: "FACTURE",
+    destinataire: "FACTURÉ À",
+    dates: [
+      { texte: `Émise le ${formatDate(facture.date_emission)}` },
+      { texte: `Échéance le ${formatDate(facture.date_echeance)}` },
+    ],
+    statut: LIBELLE_STATUT[facture.statut] ?? facture.statut ?? "—",
+    mentionPied: "En cas de retard de paiement, des pénalités seront exigibles au taux légal en vigueur.",
+  });
+}
+
+export function genererDevisPdf(devis, client, totaux, entreprise) {
+  genererDocumentPdf(devis, client, totaux, entreprise, {
+    titre: "DEVIS",
+    destinataire: "DEVIS POUR",
+    dates: [
+      { texte: `Émis le ${formatDate(devis.date_emission)}` },
+      { texte: `Valable jusqu'au ${formatDate(devis.date_validite)}`, important: true },
+    ],
+    statut: LIBELLE_STATUT_DEVIS[devis.statut] ?? devis.statut ?? "—",
+    bonPourAccord: true,
+  });
 }

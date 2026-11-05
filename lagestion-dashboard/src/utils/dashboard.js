@@ -3,6 +3,7 @@
 // Dates au format ISO « AAAA-MM-JJ » ; « aujourdhui » est passé en paramètre (déterminisme, tests).
 import { totalHT, totalTTC, totalPaye, resteAPayer } from "./facture.js";
 import { STATUTS_IMPAYES, LIBELLE_STATUT } from "../data/factures.js";
+import { LIBELLE_STATUT_DEVIS } from "../data/devis.js";
 import { ETAPES } from "../data/opportunites.js";
 import { SECTEUR_NON_RENSEIGNE, SECTEUR_AUTRES } from "../data/secteurs.js";
 
@@ -364,6 +365,14 @@ export function phraseActivite(evt, facturesParId = new Map()) {
       if (restauree) return `Facture ${d.numero} restaurée`;
       if (o.statut !== n.statut) return `Facture ${d.numero} marquée ${statutMinuscule(n.statut)}`;
       return `Facture ${d.numero} modifiée`;
+    }
+    case "devis": {
+      if (evt.action === "insert") return `Devis ${d.numero} créé`;
+      if (evt.action === "delete") return `Devis ${d.numero} supprimé définitivement`;
+      if (supprimee) return `Devis ${d.numero} supprimé`;
+      if (restauree) return `Devis ${d.numero} restauré`;
+      if (o.statut !== n.statut) return `Devis ${d.numero} marqué ${(LIBELLE_STATUT_DEVIS[n.statut] ?? n.statut ?? "").toLocaleLowerCase("fr")}`;
+      return `Devis ${d.numero} modifié`;
     }
     case "opportunites": {
       if (evt.action === "insert") return `Opportunité « ${d.nom} » créée`;

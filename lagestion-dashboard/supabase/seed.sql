@@ -1,25 +1,29 @@
 -- seed.sql — Lagestion
 -- Données de démonstration pour UNE entreprise existante (créée depuis l'onboarding).
--- S'applique après 006_catalogue.sql, dans le SQL Editor (rôle postgres).
+-- S'applique après 007_devis.sql, dans le SQL Editor (rôle postgres).
 --
 -- Ce que fait le script :
 --   - ne crée aucune entreprise et ne touche ni à entreprises, ni à memberships, ni à profiles ;
 --   - écrit en se faisant passer pour un admin de l'entreprise : RLS et triggers des migrations 002/003 s'appliquent ;
+--     seules exceptions, en rôle postgres : la suppression de la démo de devis précédente et la pose des statuts
+--     des devis (un devis accepté puis converti ne peut pas être créé tel quel par un utilisateur) ;
 --   - rejouable : supprime puis recrée les seules données de démonstration de l'entreprise.
 --
 -- Marquage des données de démonstration :
 --   - clients : tag « démo » ;
 --   - factures : numéro « DEMO-NNNN » (lignes et paiements suivent la facture) ;
 --   - opportunités : rattachées à un client de démo et portant un nom de la liste ci-dessous ;
---   - catalogue : référence « DEMO-ART-NN » (10 articles, dont 1 inactif ; 9 lignes de facture y sont reliées).
+--   - catalogue : référence « DEMO-ART-NN » (10 articles, dont 1 inactif ; 9 lignes de facture y sont reliées) ;
+--   - devis : numéro « DEV-DEMO-NNNN » (7 devis, 13 lignes) ; une facture issue d'un de ces devis est de la démo
+--     et disparaît au rejeu, y compris celles créées depuis l'application par « Transformer en facture ».
 --
 -- Refus (rien n'est modifié) si l'entreprise n'existe pas, n'a pas d'admin, ou si une donnée
--- saisie à la main (facture, opportunité, contact) est rattachée à un client de démo, ou si une
--- ligne de facture saisie à la main est reliée à un article de démo.
+-- saisie à la main (facture, devis, opportunité, contact) est rattachée à un client de démo, ou si une
+-- ligne de facture ou de devis saisie à la main est reliée à un article de démo.
 --
 -- Montants : vendeur = entreprise de rénovation et d'aménagement.
 --   TVA 10 % : travaux dans des logements ; TVA 20 % : locaux professionnels et fournitures.
---   Aucune remise (règle de calcul : migrations/005_totaux_remises.sql).
+--   Aucune remise sur les factures, une remise globale sur le devis DEV-DEMO-0003 (règle de calcul : migrations/005_totaux_remises.sql).
 -- Dates calculées depuis current_date : 12 factures, une par mois sur les 12 derniers mois.
 -- created_at / updated_at étalés sur 12 mois (âges fixes en jours) : chaque client est créé avant
 -- sa première facture ; 3 opportunités ouvertes sont sans mouvement depuis plus de 30 jours.
@@ -60,9 +64,17 @@ begin
 
   select count(*) into n from public.factures f
    join public.clients c on c.id = f.client_id
-   where f.entreprise_id = v_ent and c.tags @> array['démo'] and f.numero not like 'DEMO-%';
+   where f.entreprise_id = v_ent and c.tags @> array['démo'] and f.numero not like 'DEMO-%'
+     and not exists (select 1 from public.devis d where d.id = f.devis_id and d.numero like 'DEV-DEMO-%');
   if n > 0 then
     raise exception 'Seed interrompu : % facture(s) saisie(s) à la main référence(nt) un client de démo. Rattachez-la(les) à un autre client ou retirez le tag « démo » de ce client.', n;
+  end if;
+
+  select count(*) into n from public.devis d
+   join public.clients c on c.id = d.client_id
+   where d.entreprise_id = v_ent and c.tags @> array['démo'] and d.numero not like 'DEV-DEMO-%';
+  if n > 0 then
+    raise exception 'Seed interrompu : % devis saisi(s) à la main référence(nt) un client de démo. Rattachez-le(s) à un autre client ou retirez le tag « démo » de ce client.', n;
   end if;
 
   select count(*) into n from public.opportunites o
@@ -82,10 +94,27 @@ begin
   select count(*) into n from public.lignes_facture l
    join public.produits p on p.id = l.produit_id
    join public.factures f on f.id = l.facture_id
-   where p.entreprise_id = v_ent and p.reference like 'DEMO-ART-%' and f.numero not like 'DEMO-%';
+   where p.entreprise_id = v_ent and p.reference like 'DEMO-ART-%' and f.numero not like 'DEMO-%'
+     and not exists (select 1 from public.devis d where d.id = f.devis_id and d.numero like 'DEV-DEMO-%');
   if n > 0 then
     raise exception 'Seed interrompu : % ligne(s) de facture saisie(s) à la main sont reliée(s) à un article de démo.', n;
   end if;
+
+  select count(*) into n from public.lignes_devis l
+   join public.produits p on p.id = l.produit_id
+   join public.devis d on d.id = l.devis_id
+   where p.entreprise_id = v_ent and p.reference like 'DEMO-ART-%' and d.numero not like 'DEV-DEMO-%';
+  if n > 0 then
+    raise exception 'Seed interrompu : % ligne(s) de devis saisie(s) à la main sont reliée(s) à un article de démo.', n;
+  end if;
+
+  -- 1 bis. Suppression de la démo de devis précédente (rôle postgres : un devis converti ne peut pas être
+  -- supprimé par un utilisateur). Les factures issues de ces devis partent avec eux.
+  delete from public.factures f
+   using public.devis d
+   where d.id = f.devis_id and d.entreprise_id = v_ent and d.numero like 'DEV-DEMO-%';
+  delete from public.devis
+   where entreprise_id = v_ent and numero like 'DEV-DEMO-%';
 
   -- 2. Bascule sur l'admin : toutes les écritures suivantes passent par la RLS
   perform set_config('request.jwt.claims',
@@ -238,7 +267,74 @@ begin
   ) as v(numero, jours, montant, mode, reference)
   join public.factures f on f.entreprise_id = v_ent and f.numero = v.numero;
 
+  -- 8 bis. Devis (7), créés brouillons : statuts posés à l'étape 8 ter
+  -- DEV-DEMO-0006 : émis 10 jours avant DEMO-0009, la facture qui en est issue
+  insert into public.devis (entreprise_id, client_id, numero, date_emission, date_validite, remise, message_client, notes_internes)
+  select v_ent, c.id, v.numero, e.emission, e.emission + v.validite, v.remise, v.message, v.notes
+  from (values
+    ('DEV-DEMO-0001', 'Hôtel des Remparts',                 2, 30,   0.00, null, 'Attente des plans de l''architecte.'),
+    ('DEV-DEMO-0002', 'Thomas Girard',                      5, 30,   0.00, 'Travaux dans un logement de plus de deux ans : TVA à 10 %.', null),
+    ('DEV-DEMO-0003', 'Cabinet dentaire Lemoine',          12, 30, 150.00, 'Remise commerciale accordée pour la seconde salle de soins.', 'Accord donné par téléphone.'),
+    ('DEV-DEMO-0004', 'Menuiserie Chevalier',               8, 30,   0.00, null, 'Budget trop élevé pour le client.'),
+    ('DEV-DEMO-0005', 'Clinique vétérinaire des Tilleuls', 40, 30,   0.00, null, null),
+    ('DEV-DEMO-0007', 'Agence immobilière Delmas',         35, 30,   0.00, null, 'À relancer : validité dépassée.')
+  ) as v(numero, client, age, validite, remise, message, notes)
+  cross join lateral (select (current_date - v.age) as emission) e
+  join public.clients c
+    on c.entreprise_id = v_ent and c.nom = v.client and c.tags @> array['démo'];
+
+  insert into public.devis (entreprise_id, client_id, numero, date_emission, date_validite, remise)
+  select v_ent, f.client_id, 'DEV-DEMO-0006', f.date_emission - 10, f.date_emission + 20, f.remise
+  from public.factures f
+  where f.entreprise_id = v_ent and f.numero = 'DEMO-0009';
+
+  insert into public.lignes_devis (entreprise_id, devis_id, position, description, unite,
+                                   quantite, prix_unitaire, taux_tva, reference, produit_id)
+  select v_ent, d.id, v.pos, v.description, v.unite, v.quantite, v.prix, v.tva, p.reference, p.id
+  from (values
+    ('DEV-DEMO-0001', 0, 'Rénovation de 12 chambres — main-d''œuvre',    'forfait',  1, 24000.00, 10, null),
+    ('DEV-DEMO-0001', 1, 'Carrelage et faïence des salles d''eau',       'm²',      96,    48.50, 10, 'DEMO-ART-06'),
+    ('DEV-DEMO-0002', 0, 'Dépose et rénovation de la cuisine',           'forfait',  1,  6200.00, 10, null),
+    ('DEV-DEMO-0002', 1, 'Carrelage et faïence',                         'm²',      14,    48.50, 10, 'DEMO-ART-06'),
+    ('DEV-DEMO-0003', 0, 'Aménagement de la seconde salle de soins',     'forfait',  1,  8900.00, 20, null),
+    ('DEV-DEMO-0003', 1, 'Faux plafond acoustique',                      'm²',      20,    62.00, 20, 'DEMO-ART-05'),
+    ('DEV-DEMO-0003', 2, 'Éclairage LED',                                'u',        8,    74.90, 20, 'DEMO-ART-08'),
+    ('DEV-DEMO-0004', 0, 'Mise aux normes accessibilité PMR',            'forfait',  1,  7200.00, 20, null),
+    ('DEV-DEMO-0005', 0, 'Agrandissement de la salle d''attente',        'forfait',  1, 15400.00, 20, null),
+    ('DEV-DEMO-0007', 0, 'Rénovation de 3 logements locatifs',           'forfait',  1, 28000.00, 10, null),
+    ('DEV-DEMO-0007', 1, 'Peinture murale (ancien tarif)',               'm²',     120,    24.00, 10, 'DEMO-ART-10')
+  ) as v(numero, pos, description, unite, quantite, prix, tva, article)
+  join public.devis d on d.entreprise_id = v_ent and d.numero = v.numero
+  left join public.produits p on p.entreprise_id = v_ent and p.reference = v.article and p.deleted_at is null;
+
+  -- DEV-DEMO-0006 : mêmes lignes que sa facture
+  insert into public.lignes_devis (entreprise_id, devis_id, position, description, reference, unite,
+                                   quantite, prix_unitaire, taux_tva, remise, produit_id)
+  select v_ent, d.id, l.position, l.description, l.reference, l.unite,
+         l.quantite, l.prix_unitaire, l.taux_tva, l.remise, l.produit_id
+  from public.lignes_facture l
+  join public.factures f on f.id = l.facture_id and f.entreprise_id = v_ent and f.numero = 'DEMO-0009'
+  join public.devis d on d.entreprise_id = v_ent and d.numero = 'DEV-DEMO-0006';
+
+  update public.factures f set devis_id = d.id
+    from public.devis d
+   where d.entreprise_id = v_ent and d.numero = 'DEV-DEMO-0006'
+     and f.entreprise_id = v_ent and f.numero = 'DEMO-0009';
+
   execute 'reset role';
+
+  -- 8 ter. Statuts des devis (rôle postgres, sans utilisateur : les règles de statut ne s'appliquent pas)
+  perform set_config('request.jwt.claims', '{}', true);
+  update public.devis d set statut = v.statut
+    from (values
+      ('DEV-DEMO-0002', 'envoye'),
+      ('DEV-DEMO-0003', 'accepte'),
+      ('DEV-DEMO-0004', 'refuse'),
+      ('DEV-DEMO-0005', 'expire'),
+      ('DEV-DEMO-0006', 'converti'),
+      ('DEV-DEMO-0007', 'envoye')
+    ) as v(numero, statut)
+   where d.entreprise_id = v_ent and d.numero = v.numero;
 end $$;
 
 -- 9. Contrôles finaux (rôle postgres) : toute anomalie annule le seed
@@ -273,6 +369,43 @@ begin
    join public.produits p on p.id = l.produit_id
    where f.entreprise_id = v_ent and f.numero like 'DEMO-%' and p.actif and p.entreprise_id = v_ent;
   if n <> 9 then raise exception 'Contrôle seed : % ligne(s) reliée(s) à un article actif au lieu de 9', n; end if;
+
+  select count(*) into n from public.devis where entreprise_id = v_ent and numero like 'DEV-DEMO-%';
+  if n <> 7 then raise exception 'Contrôle seed : % devis de démo au lieu de 7', n; end if;
+
+  select count(*) into n from public.lignes_devis l join public.devis d on d.id = l.devis_id
+   where d.entreprise_id = v_ent and d.numero like 'DEV-DEMO-%';
+  if n <> 13 then raise exception 'Contrôle seed : % ligne(s) de devis au lieu de 13', n; end if;
+
+  select count(distinct statut) into n from public.devis where entreprise_id = v_ent and numero like 'DEV-DEMO-%';
+  if n <> 6 then raise exception 'Contrôle seed : % statut(s) de devis au lieu de 6', n; end if;
+
+  -- Devis converti : relié à sa facture, totaux identiques ; aucun autre devis de démo relié
+  select count(*) into n from public.factures f join public.devis d on d.id = f.devis_id
+   where d.entreprise_id = v_ent and d.numero like 'DEV-DEMO-%';
+  if n <> 1 then raise exception 'Contrôle seed : % devis de démo relié(s) à une facture au lieu de 1', n; end if;
+  select count(*) into n
+    from public.devis d
+    join public.factures f on f.devis_id = d.id
+    join public.devis_totaux dt on dt.devis_id = d.id
+    join public.factures_totaux ft on ft.facture_id = f.id
+   where d.entreprise_id = v_ent and d.numero = 'DEV-DEMO-0006' and d.statut = 'converti' and f.numero = 'DEMO-0009'
+     and dt.total_ttc = ft.total_ttc and dt.total_ht = ft.total_ht and dt.total_tva = ft.total_tva;
+  if n <> 1 then raise exception 'Contrôle seed : DEV-DEMO-0006 incohérent avec sa facture DEMO-0009'; end if;
+
+  -- Validité : cohérente avec le statut ; DEV-DEMO-0007 démontre la validité dépassée
+  select count(*) into n from public.devis
+   where entreprise_id = v_ent and numero like 'DEV-DEMO-%'
+     and ((statut = 'expire' and date_validite >= current_date)
+       or (statut = 'accepte' and date_validite < current_date)
+       or (numero = 'DEV-DEMO-0007' and date_validite >= current_date)
+       or (numero = 'DEV-DEMO-0002' and date_validite < current_date));
+  if n > 0 then raise exception 'Contrôle seed : % devis aux dates de validité incohérentes', n; end if;
+
+  -- Chronologie : aucun devis antérieur à la création de son client
+  select count(*) into n from public.devis d join public.clients c on c.id = d.client_id
+   where d.entreprise_id = v_ent and d.numero like 'DEV-DEMO-%' and d.date_emission < c.created_at::date;
+  if n > 0 then raise exception 'Contrôle seed : % devis antérieur(s) à la création du client', n; end if;
 
   -- Cohérence paiements / statut, au centime
   for r in
@@ -326,7 +459,7 @@ begin
   ) s where s.entreprise_id is distinct from s.fe;
   if n > 0 then raise exception 'Contrôle seed : % ligne(s) ou paiement(s) hors de l''entreprise', n; end if;
 
-  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes, 8 paiements), 10 articles.';
+  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes, 8 paiements), 10 articles, 7 devis (13 lignes).';
 end $$;
 
 commit;

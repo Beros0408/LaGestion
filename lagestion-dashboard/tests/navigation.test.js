@@ -13,6 +13,10 @@ test("page parente de chaque écran", () => {
     ["/opportunites", "/dashboard"],
     ["/opportunites/nouvelle", "/opportunites"],
     ["/opportunites/o-9/modifier", "/opportunites"],
+    ["/devis", "/dashboard"],
+    ["/devis/nouveau", "/devis"],
+    ["/devis/d-2", "/devis"],
+    ["/devis/d-2/modifier", "/devis/d-2"],
     ["/factures", "/dashboard"],
     ["/factures/nouvelle", "/factures"],
     ["/factures/f-7", "/factures"],
@@ -28,6 +32,8 @@ test("page parente de chaque écran", () => {
 test("libellés du fil d'Ariane", () => {
   assert.equal(libellePage("/clients/nouveau"), "Nouveau client");   // pas « Fiche client »
   assert.equal(libellePage("/clients/abc"), "Fiche client");
+  assert.equal(libellePage("/devis/nouveau"), "Nouveau devis");   // pas « Fiche devis »
+  assert.equal(libellePage("/devis/d-2/modifier"), "Modifier le devis");
   assert.equal(libellePage("/factures/nouvelle"), "Nouvelle facture");
   assert.equal(libellePage("/factures/f-7/modifier"), "Modifier la facture");
   assert.equal(libellePage("/catalogue/nouveau"), "Nouvel article");

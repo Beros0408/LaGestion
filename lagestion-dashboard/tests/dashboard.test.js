@@ -168,4 +168,9 @@ test("phrases d'activité", () => {
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
     old_data: { numero: "F1", deleted_at: null }, new_data: { numero: "F1", deleted_at: "2026-11-01" } }),
     "Facture F1 supprimée");
+  assert.equal(phraseActivite({ table_name: "devis", action: "insert", new_data: { numero: "DEV-2026-0001" } }),
+    "Devis DEV-2026-0001 créé");
+  assert.equal(phraseActivite({ table_name: "devis", action: "update",
+    old_data: { numero: "D1", statut: "accepte" }, new_data: { numero: "D1", statut: "envoye" } }),
+    "Devis D1 marqué envoyé");
 });

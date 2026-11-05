@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { useEntreprise } from "./EntrepriseContext.jsx";
 import { erreurFrancaise, messageErreur, MESSAGE_REFUS } from "../utils/erreurs";
 import { STATUTS } from "../data/factures";
+import { preparerLignes } from "../utils/lignesDocument";
 
 const FacturesContext = createContext(null);
 
@@ -18,17 +19,6 @@ const CHAMPS_FACTURE = [
   "notes_internes",
   "message_client",
 ];
-const CHAMPS_LIGNE = [
-  "description",
-  "reference",
-  "unite",
-  "quantite",
-  "prix_unitaire",
-  "taux_tva",
-  "remise",
-  "produit_id",
-];
-const CHAMPS_TEXTE_LIGNE = new Set(["description", "reference", "unite"]);
 const CHAMPS_PAIEMENT = ["date", "montant", "mode", "reference"];
 
 function preparerEnteteFacture(data) {
@@ -45,31 +35,6 @@ function preparerEnteteFacture(data) {
     }
   });
   return payload;
-}
-
-function preparerLignes(lignes, factureId, entrepriseId) {
-  return lignes.map((l, i) => {
-    const ligne = { entreprise_id: entrepriseId, facture_id: factureId, position: i };
-    CHAMPS_LIGNE.forEach((cle) => {
-      const v = l?.[cle];
-      if (CHAMPS_TEXTE_LIGNE.has(cle)) {
-        if (cle === "description") {
-          ligne[cle] = typeof v === "string" ? v.trim() : (v ?? "");
-        } else {
-          const t = typeof v === "string" ? v.trim() : v;
-          ligne[cle] = t ? t : null;
-        }
-      } else if (cle === "quantite") {
-        const n = Number(v);
-        ligne[cle] = Number.isFinite(n) && n > 0 ? n : 1;
-      } else if (cle === "produit_id") {
-        ligne[cle] = v || null;
-      } else {
-        ligne[cle] = Number(v) || 0;
-      }
-    });
-    return ligne;
-  });
 }
 
 function preparerPaiement(data) {
@@ -159,7 +124,7 @@ export function FacturesProvider({ children }) {
         .single();
       if (error) throw erreurFrancaise(error);
       if (lignes.length > 0) {
-        const rows = preparerLignes(lignes, cree.id, entrepriseId);
+        const rows = preparerLignes(lignes, "facture_id", cree.id, entrepriseId);
         const { error: e2 } = await supabase.from("lignes_facture").insert(rows);
         if (e2) throw erreurFrancaise(e2);
       }
@@ -182,7 +147,7 @@ export function FacturesProvider({ children }) {
         const { error: e1 } = await supabase.from("lignes_facture").delete().eq("facture_id", id);
         if (e1) throw erreurFrancaise(e1);
         if (lignes.length > 0) {
-          const rows = preparerLignes(lignes, id, entrepriseId);
+          const rows = preparerLignes(lignes, "facture_id", id, entrepriseId);
           const { error: e2 } = await supabase.from("lignes_facture").insert(rows);
           if (e2) throw erreurFrancaise(e2);
         }
@@ -274,7 +239,7 @@ export function FacturesProvider({ children }) {
       if (error) throw erreurFrancaise(error);
       const lignes = source.lignes ?? [];
       if (lignes.length > 0) {
-        const rows = preparerLignes(lignes, cree.id, entrepriseId);
+        const rows = preparerLignes(lignes, "facture_id", cree.id, entrepriseId);
         const { error: e2 } = await supabase.from("lignes_facture").insert(rows);
         if (e2) throw erreurFrancaise(e2);
       }
@@ -289,6 +254,7 @@ export function FacturesProvider({ children }) {
       factures,
       chargement,
       erreur,
+      rechargerFactures: chargerFactures,
       addFacture,
       updateFacture,
       deleteFacture,
@@ -301,6 +267,7 @@ export function FacturesProvider({ children }) {
       factures,
       chargement,
       erreur,
+      chargerFactures,
       addFacture,
       updateFacture,
       deleteFacture,

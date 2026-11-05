@@ -1,41 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, Trash2, AlertCircle, Boxes } from "lucide-react";
-import { C, alpha, euroCentimes } from "../theme";
+import { AlertCircle } from "lucide-react";
+import { C, alpha } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
-import { STATUTS, LIBELLE_STATUT, TAUX_TVA } from "../data/factures";
+import { STATUTS, LIBELLE_STATUT } from "../data/factures";
 import {
-  ligneHT,
-  totalHTBrut,
-  remiseGlobale,
-  totalHT,
-  tvaParTaux,
-  totalTVA,
-  totalTTC,
-} from "../utils/facture";
+  LIGNE_VIDE,
+  MESSAGE_REMISE_PLAFOND,
+  calculerRecap,
+  ligneDepuisFormulaire,
+  ligneVersFormulaire,
+  validerLignes,
+} from "../utils/lignesDocument";
 import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
 import Textarea from "../components/form/Textarea.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
-import ChoixCatalogue from "../components/ChoixCatalogue.jsx";
-import ConfirmDialog from "../components/ConfirmDialog.jsx";
-
-const MESSAGE_REMISE_PLAFOND = "La remise globale ne peut pas dépasser le total HT des lignes.";
-
-const LIGNE_VIDE = {
-  description: "",
-  reference: "",
-  unite: "",
-  quantite: "1",
-  prix_unitaire: "",
-  taux_tva: "20",
-  remise: "0",
-  produit_id: null,
-};
-
-// Ligne « remplie » : le choix d'un article demande confirmation avant d'écraser son contenu.
-const ligneRemplie = (l) => l.description.trim() !== "" || (l.prix_unitaire !== "" && Number(l.prix_unitaire) !== 0);
+import LignesDocument from "../components/document/LignesDocument.jsx";
+import RecapitulatifDocument from "../components/document/RecapitulatifDocument.jsx";
 
 const VIDE = {
   client_id: "",
@@ -61,11 +44,6 @@ const MODE_PAIEMENT_OPTIONS = [
   { value: "autre", label: "Autre" },
 ];
 
-const TAUX_OPTIONS = TAUX_TVA.map((t) => ({
-  value: String(t),
-  label: `${String(t).replace(".", ",")} %`,
-}));
-
 function normaliser(existant) {
   return {
     client_id: existant.client_id != null ? String(existant.client_id) : "",
@@ -77,16 +55,7 @@ function normaliser(existant) {
     conditions_paiement: existant.conditions_paiement ?? "",
     notes_internes: existant.notes_internes ?? "",
     message_client: existant.message_client ?? "",
-    lignes: (existant.lignes ?? []).map((l) => ({
-      description: l.description ?? "",
-      reference: l.reference ?? "",
-      unite: l.unite ?? "",
-      quantite: l.quantite != null ? String(l.quantite) : "",
-      prix_unitaire: l.prix_unitaire != null ? String(l.prix_unitaire) : "",
-      taux_tva: l.taux_tva != null ? String(l.taux_tva) : "20",
-      remise: l.remise != null ? String(l.remise) : "0",
-      produit_id: l.produit_id ?? null,
-    })),
+    lignes: (existant.lignes ?? []).map(ligneVersFormulaire),
   };
 }
 
@@ -107,9 +76,6 @@ export default function FactureForm() {
   const [errors, setErrors] = useState({});
   const [erreurSoumission, setErreurSoumission] = useState(null);
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
-  // Choix dans le catalogue : ligne visée et bouton d'origine (retour du focus)
-  const [choixLigne, setChoixLigne] = useState(null);
-  const [remplacement, setRemplacement] = useState(null);
   const quitter = useQuitter();
   const etatInitial = useMemo(() => (existant ? normaliser(existant) : VIDE), [existant]);
   useGardeModifications(JSON.stringify(form) !== JSON.stringify(etatInitial));
@@ -131,31 +97,7 @@ export default function FactureForm() {
     [clients]
   );
 
-  const factureCalc = useMemo(
-    () => ({
-      remise: Number(form.remise) || 0,
-      lignes: form.lignes.map((l) => ({
-        quantite: Number(l.quantite) || 0,
-        prix_unitaire: Number(l.prix_unitaire) || 0,
-        taux_tva: Number(l.taux_tva) || 0,
-        remise: Number(l.remise) || 0,
-      })),
-    }),
-    [form.lignes, form.remise]
-  );
-
-  const recap = useMemo(
-    () => ({
-      htBrut: totalHTBrut(factureCalc),
-      remise: remiseGlobale(factureCalc),
-      ht: totalHT(factureCalc),
-      tvaDetail: tvaParTaux(factureCalc),
-      tva: totalTVA(factureCalc),
-      ttc: totalTTC(factureCalc),
-      plafonnee: Math.round(factureCalc.remise * 100) > Math.round(totalHTBrut(factureCalc) * 100),
-    }),
-    [factureCalc]
-  );
+  const recap = useMemo(() => calculerRecap(form.remise, form.lignes), [form.lignes, form.remise]);
   // Remise supérieure au HT des lignes : signalée dès la saisie (l'erreur de validation obsolète est ignorée).
   const erreurRemise = recap.plafonnee
     ? MESSAGE_REMISE_PLAFOND
@@ -190,83 +132,10 @@ export default function FactureForm() {
     });
   };
 
-  const majLigne = (i, cle, valeur) => {
-    setForm((prev) => ({
-      ...prev,
-      lignes: prev.lignes.map((l, idx) => (idx === i ? { ...l, [cle]: valeur } : l)),
-    }));
-    setErrors((prev) => {
-      if (!prev.ligneItems?.[i]?.[cle] && !prev.lignes) return prev;
-      const next = { ...prev };
-      if (next.lignes) delete next.lignes;
-      if (next.ligneItems?.[i]?.[cle]) {
-        next.ligneItems = next.ligneItems.map((e, idx) => {
-          if (idx !== i) return e;
-          const { [cle]: _omit, ...reste } = e;
-          return reste;
-        });
-      }
-      return next;
-    });
-  };
-
-  // Pré-remplit la ligne ; quantité et remise de ligne restent inchangées, tout reste modifiable.
-  const appliquerProduit = (i, p) => {
-    setForm((prev) => ({
-      ...prev,
-      lignes: prev.lignes.map((l, idx) =>
-        idx === i
-          ? {
-              ...l,
-              description: p.nom,
-              reference: p.reference ?? "",
-              unite: p.unite ?? "",
-              prix_unitaire: String(p.prix_unitaire_ht),
-              taux_tva: String(p.taux_tva),
-              produit_id: p.id,
-            }
-          : l
-      ),
-    }));
-    setErrors((prev) => {
-      if (!prev.ligneItems?.[i]?.prix_unitaire) return prev;
-      return { ...prev, ligneItems: prev.ligneItems.map((e, idx) => (idx === i ? { ...e, prix_unitaire: undefined } : e)) };
-    });
-  };
-
-  const choisirProduit = (p) => {
-    const { index, element } = choixLigne;
-    setChoixLigne(null);
-    if (ligneRemplie(form.lignes[index])) setRemplacement({ index, produit: p, element });
-    else appliquerProduit(index, p);
-  };
-
-  const ajouterLigne = () => {
-    setForm((prev) => ({ ...prev, lignes: [...prev.lignes, { ...LIGNE_VIDE }] }));
-  };
-
-  const supprimerLigne = (i) => {
-    setForm((prev) => ({ ...prev, lignes: prev.lignes.filter((_, idx) => idx !== i) }));
-  };
-
   const valider = (data) => {
     const errs = {};
     if (!data.client_id) errs.client_id = "Le client est requis.";
-    if (data.lignes.length === 0) {
-      errs.lignes = "Ajoutez au moins une ligne.";
-    } else {
-      const ligneItems = data.lignes.map((l) => {
-        const e = {};
-        const q = Number(l.quantite);
-        const p = Number(l.prix_unitaire);
-        const r = Number(l.remise);
-        if (l.quantite === "" || Number.isNaN(q) || q <= 0) e.quantite = "Quantité positive.";
-        if (l.prix_unitaire === "" || Number.isNaN(p) || p <= 0) e.prix_unitaire = "Prix positif.";
-        if (l.remise !== "" && (Number.isNaN(r) || r < 0)) e.remise = "Remise ≥ 0.";
-        return e;
-      });
-      if (ligneItems.some((e) => Object.keys(e).length > 0)) errs.ligneItems = ligneItems;
-    }
+    Object.assign(errs, validerLignes(data.lignes));
     const remiseGlobale = Number(data.remise);
     if (data.remise !== "" && (Number.isNaN(remiseGlobale) || remiseGlobale < 0)) {
       errs.remise = "La remise doit être ≥ 0.";
@@ -292,16 +161,7 @@ export default function FactureForm() {
       conditions_paiement: form.conditions_paiement,
       notes_internes: form.notes_internes,
       message_client: form.message_client,
-      lignes: form.lignes.map((l) => ({
-        description: l.description.trim(),
-        reference: l.reference,
-        unite: l.unite,
-        quantite: Number(l.quantite),
-        prix_unitaire: Number(l.prix_unitaire),
-        taux_tva: Number(l.taux_tva),
-        remise: Number(l.remise) || 0,
-        produit_id: l.produit_id || null,
-      })),
+      lignes: form.lignes.map(ligneDepuisFormulaire),
     };
 
     setErreurSoumission(null);
@@ -393,212 +253,9 @@ export default function FactureForm() {
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Lignes d'articles</h3>
-            <button
-              type="button"
-              onClick={ajouterLigne}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2"
-              style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
-            >
-              <Plus size={14} aria-hidden="true" />
-              Ajouter une ligne
-            </button>
-          </div>
+        <LignesDocument lignes={form.lignes} errors={errors} setForm={setForm} setErrors={setErrors} />
 
-          {errors.lignes && (
-            <p role="alert" className="mb-3 text-xs font-medium" style={{ color: C.errorText }}>
-              {errors.lignes}
-            </p>
-          )}
-
-          <div className="space-y-3">
-            {form.lignes.map((l, i) => {
-              const erreursLigne = errors.ligneItems?.[i] ?? {};
-              const ligneCalc = {
-                quantite: Number(l.quantite) || 0,
-                prix_unitaire: Number(l.prix_unitaire) || 0,
-                taux_tva: Number(l.taux_tva) || 0,
-                remise: Number(l.remise) || 0,
-              };
-              const ht = ligneHT(ligneCalc);
-              return (
-                <div
-                  key={i}
-                  className="grid grid-cols-12 gap-2 rounded-xl p-3"
-                  style={{ backgroundColor: C.bgMain, border: `1px solid ${C.border}` }}
-                >
-                  <div className="col-span-12 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs" style={{ color: C.textSecondary }}>
-                      {l.produit_id ? "Article du catalogue (valeurs modifiables)" : "Saisie libre"}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={(e) => setChoixLigne({ index: i, element: e.currentTarget })}
-                      aria-label={`Choisir dans le catalogue pour la ligne ${i + 1}`}
-                      className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
-                      style={{ color: C.primary, border: `1px solid ${C.borderInput}` }}
-                    >
-                      <Boxes size={14} aria-hidden="true" />
-                      Choisir dans le catalogue
-                    </button>
-                  </div>
-                  <div className="col-span-12 md:col-span-8">
-                    <Input
-                      label={`Description ligne ${i + 1}`}
-                      value={l.description}
-                      onChange={(e) => majLigne(i, "description", e.target.value)}
-                      placeholder="Prestation, produit…"
-                    />
-                  </div>
-                  <div className="col-span-6 md:col-span-2">
-                    <Input
-                      label="Référence"
-                      value={l.reference}
-                      onChange={(e) => majLigne(i, "reference", e.target.value)}
-                      placeholder="SKU"
-                    />
-                  </div>
-                  <div className="col-span-6 md:col-span-2">
-                    <Input
-                      label="Unité"
-                      value={l.unite}
-                      onChange={(e) => majLigne(i, "unite", e.target.value)}
-                      placeholder="h, j, kg…"
-                    />
-                  </div>
-
-                  <div className="col-span-4 md:col-span-2">
-                    <Input
-                      label="Quantité"
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="0.01"
-                      value={l.quantite}
-                      onChange={(e) => majLigne(i, "quantite", e.target.value)}
-                      error={erreursLigne.quantite}
-                    />
-                  </div>
-                  <div className="col-span-4 md:col-span-2">
-                    <Input
-                      label="Prix U. HT (€)"
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="0.01"
-                      value={l.prix_unitaire}
-                      onChange={(e) => majLigne(i, "prix_unitaire", e.target.value)}
-                      error={erreursLigne.prix_unitaire}
-                    />
-                  </div>
-                  <div className="col-span-4 md:col-span-2">
-                    <Input
-                      label="Remise (€)"
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="0.01"
-                      value={l.remise}
-                      onChange={(e) => majLigne(i, "remise", e.target.value)}
-                      error={erreursLigne.remise}
-                    />
-                  </div>
-                  <div className="col-span-6 md:col-span-2">
-                    <Select
-                      label="TVA"
-                      value={l.taux_tva}
-                      onChange={(e) => majLigne(i, "taux_tva", e.target.value)}
-                      options={TAUX_OPTIONS}
-                    />
-                  </div>
-                  <div className="col-span-6 md:col-span-3 flex flex-col justify-end pb-1">
-                    <p className="text-[11px]" style={{ color: C.textSecondary }}>Total ligne</p>
-                    <p className="text-sm font-semibold tabular-nums" style={{ color: C.textPrimary }}>
-                      {euroCentimes(ht)}<span className="text-xs font-normal" style={{ color: C.textSecondary }}> HT</span>
-                    </p>
-                  </div>
-                  <div className="col-span-12 md:col-span-1 flex items-end justify-end">
-                    <button
-                      type="button"
-                      onClick={() => supprimerLigne(i)}
-                      aria-label={`Supprimer la ligne ${i + 1}`}
-                      title="Supprimer la ligne"
-                      disabled={form.lignes.length === 1}
-                      className="rounded-lg p-1.5 transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40"
-                      style={{ color: C.error }}
-                    >
-                      <Trash2 size={16} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
-          <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Récapitulatif</h3>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <Input
-                label="Remise globale (€)"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                value={form.remise}
-                onChange={(e) => definir("remise")(e.target.value)}
-                error={erreurRemise}
-                hint="Appliquée sur le total HT, répartie entre les taux de TVA"
-              />
-            </div>
-            <dl className="space-y-2 text-sm">
-              {recap.remise > 0 && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <dt style={{ color: C.textSecondary }}>Total HT brut</dt>
-                    <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.htBrut)}</dd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <dt style={{ color: C.textSecondary }}>
-                      Remise globale
-                      {recap.plafonnee && <span className="block text-xs">Remise limitée au total HT</span>}
-                    </dt>
-                    <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euroCentimes(recap.remise)}</dd>
-                  </div>
-                </>
-              )}
-              <div className="flex items-center justify-between">
-                <dt style={{ color: C.textSecondary }}>{recap.remise > 0 ? "Total HT net" : "Total HT"}</dt>
-                <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.ht)}</dd>
-              </div>
-              {recap.tvaDetail.length === 0 ? (
-                <div className="flex items-center justify-between">
-                  <dt style={{ color: C.textSecondary }}>TVA</dt>
-                  <dd className="tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(0)}</dd>
-                </div>
-              ) : (
-                recap.tvaDetail.map((d) => (
-                  <div key={d.taux} className="flex items-center justify-between">
-                    <dt style={{ color: C.textSecondary }}>
-                      TVA {String(d.taux).replace(".", ",")} % <span style={{ color: C.textSecondary }}>(base {euroCentimes(d.base)})</span>
-                    </dt>
-                    <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(d.tva)}</dd>
-                  </div>
-                ))
-              )}
-              <div
-                className="flex items-center justify-between pt-2"
-                style={{ borderTop: `1px solid ${C.border}` }}
-              >
-                <dt className="font-semibold" style={{ color: C.textPrimary }}>Total TTC</dt>
-                <dd className="text-lg font-bold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.ttc)}</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
+        <RecapitulatifDocument remise={form.remise} onRemise={definir("remise")} erreurRemise={erreurRemise} recap={recap} />
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
@@ -646,26 +303,6 @@ export default function FactureForm() {
           </button>
         </div>
       </form>
-
-      <ChoixCatalogue
-        ouvert={Boolean(choixLigne)}
-        onChoisir={choisirProduit}
-        onFermer={() => setChoixLigne(null)}
-        elementRetour={choixLigne?.element}
-      />
-      <ConfirmDialog
-        ouvert={Boolean(remplacement)}
-        titre="Remplacer le contenu de cette ligne ?"
-        message={remplacement ? `La description, la référence, l'unité, le prix HT et la TVA seront remplacés par ceux de « ${remplacement.produit.nom} ».` : ""}
-        libelleAnnuler="Annuler"
-        libelleConfirmer="Remplacer"
-        onAnnuler={() => setRemplacement(null)}
-        onConfirmer={() => {
-          appliquerProduit(remplacement.index, remplacement.produit);
-          setRemplacement(null);
-        }}
-        elementRetour={remplacement?.element}
-      />
     </>
   );
 }

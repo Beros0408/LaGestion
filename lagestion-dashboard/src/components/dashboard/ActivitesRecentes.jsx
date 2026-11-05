@@ -4,7 +4,7 @@ import { C } from "../../theme";
 import { messageErreur } from "../../utils/erreurs";
 import { phraseActivite, quandRelatif } from "../../utils/dashboard";
 
-const COULEURS = { clients: C.chart2, factures: C.chart1, opportunites: C.chart6, paiements: C.chart5 };
+const COULEURS = { clients: C.chart2, devis: C.chart4, factures: C.chart1, opportunites: C.chart6, paiements: C.chart5 };
 const LIMITE = 12;
 
 // Lecture de audit_events : la RLS (002) la réserve aux administrateurs.
@@ -19,6 +19,7 @@ function ActivitesRecentes({ entrepriseId, estAdmin, factures }) {
       .from("audit_events")
       .select("id, action, table_name, old_data, new_data, created_at")
       .eq("entreprise_id", entrepriseId)
+      .neq("table_name", "lignes_devis") // tracées, mais trop nombreuses pour ce fil : le devis suffit
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(LIMITE)

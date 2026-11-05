@@ -10,6 +10,9 @@ import ClientForm from "./pages/ClientForm.jsx";
 import ClientDetail from "./pages/ClientDetail.jsx";
 import Opportunites from "./pages/Opportunites.jsx";
 import OpportuniteForm from "./pages/OpportuniteForm.jsx";
+import Devis from "./pages/Devis.jsx";
+import DevisForm from "./pages/DevisForm.jsx";
+import DevisDetail from "./pages/DevisDetail.jsx";
 import Factures from "./pages/Factures.jsx";
 import FactureForm from "./pages/FactureForm.jsx";
 import FactureDetail from "./pages/FactureDetail.jsx";
@@ -32,6 +35,10 @@ export default function App() {
           <Route path="/opportunites" element={<Opportunites />} />
           <Route path="/opportunites/nouvelle" element={<OpportuniteForm />} />
           <Route path="/opportunites/:id/modifier" element={<OpportuniteForm />} />
+          <Route path="/devis" element={<Devis />} />
+          <Route path="/devis/nouveau" element={<DevisForm />} />
+          <Route path="/devis/:id" element={<DevisDetail />} />
+          <Route path="/devis/:id/modifier" element={<DevisForm />} />
           <Route path="/factures" element={<Factures />} />
           <Route path="/factures/nouvelle" element={<FactureForm />} />
           <Route path="/factures/:id" element={<FactureDetail />} />

@@ -1,10 +1,14 @@
 // Traduction des erreurs Supabase / PostgreSQL en messages français pour l'interface.
+// Une erreur non reconnue n'est jamais affichée telle quelle : le texte technique est en anglais.
 
 export const MESSAGE_REFUS =
   "Action refusée : votre rôle ne permet pas cette opération, ou l'élément n'existe plus.";
 
+export const MESSAGE_TECHNIQUE =
+  "Une erreur technique est survenue. Réessayez dans un instant ; si le problème persiste, contactez le support.";
+
 export function messageErreur(error) {
-  if (!error) return "Une erreur inattendue est survenue.";
+  if (!error) return MESSAGE_TECHNIQUE;
   const message = error.message || "";
   switch (error.code) {
     case "42501":
@@ -17,18 +21,19 @@ export function messageErreur(error) {
       // Mise à jour .single() sans ligne renvoyée : refus silencieux de la RLS ou ligne absente.
       return MESSAGE_REFUS;
     case "23505":
-      return "Cet élément existe déjà (même e-mail, SIREN ou numéro de facture).";
+      return "Cet élément existe déjà (même e-mail, SIREN ou numéro).";
     case "23503":
       return "Opération impossible : cet élément est lié à d'autres données.";
     case "23502":
       return "Opération impossible : aucune entreprise n'est sélectionnée.";
     case "P0001":
+      // Exceptions levées par nos fonctions et triggers, rédigées en français.
       if (message.includes("même entreprise")) {
         return "Opération refusée : l'élément lié appartient à une autre entreprise.";
       }
       return message;
     default:
-      return message || "Une erreur inattendue est survenue.";
+      return MESSAGE_TECHNIQUE;
   }
 }
 

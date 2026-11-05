@@ -51,12 +51,18 @@ async function chargerProfil(userId) {
 async function chargerAppartenances(userId) {
   const { data, error } = await supabase
     .from("memberships")
-    .select("role, entreprise:entreprises(id, nom)")
+    .select("role, entreprise:entreprises(id, nom, siret, adresse)")
     .eq("user_id", userId);
   if (error) throw error;
   return (data ?? [])
     .filter((m) => m.entreprise)
-    .map((m) => ({ entrepriseId: m.entreprise.id, nom: m.entreprise.nom, role: m.role }))
+    .map((m) => ({
+      entrepriseId: m.entreprise.id,
+      nom: m.entreprise.nom,
+      siret: m.entreprise.siret,
+      adresse: m.entreprise.adresse,
+      role: m.role,
+    }))
     .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 }
 

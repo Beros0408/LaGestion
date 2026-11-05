@@ -4,6 +4,7 @@ import { LogIn } from "lucide-react";
 import { C, OMBRE, alpha } from "../theme";
 import Input from "../components/form/Input.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { MESSAGE_TECHNIQUE } from "../utils/erreurs";
 
 function traduireErreur(err) {
   const message = (err?.message || "").toLowerCase();
@@ -16,7 +17,7 @@ function traduireErreur(err) {
   if (message.includes("rate limit")) {
     return "Trop de tentatives. Réessayez dans quelques instants.";
   }
-  return err?.message || "Une erreur est survenue lors de la connexion.";
+  return MESSAGE_TECHNIQUE;
 }
 
 export default function Login() {
