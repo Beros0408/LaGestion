@@ -1,11 +1,11 @@
 import React, { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, List, Pencil, Phone, Mail, MapPin } from "lucide-react";
-import { C, alpha } from "../theme";
+import { C, AVATARS, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 
-const AVATAR_PALETTE = [C.primary, C.secondary, C.accent, C.info];
+const AVATAR_PALETTE = Object.values(AVATARS);
 
 function initiales(nom) {
   return (nom || "")

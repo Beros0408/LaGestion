@@ -118,6 +118,7 @@ Fonctionnelles : succès #27AE60 · avertissement #F39C12 · erreur #E74C3C · i
 Fonds fonctionnels : la couleur à 12 % d'opacité (ex. succès → rgba(39,174,96,0.12)).
 Textes fonctionnels (tout texte coloré, y compris dans les badges) : successText #186A3A · warningText #855407 · infoText #1A6191 · errorText #B03A2E · accentText #96480A (accent, ex. étape « Négociation »).
 ≥ 4,6:1 sur carte, survol, fond de page et teinte de badge posée dessus (pire cas : teinte sur #DDE2E7). Les couleurs fonctionnelles brutes restent réservées aux icônes, points, bordures, fonds teintés et graphiques ; jamais au texte.
+Avatars (initiales blanches, AVATARS dans src/theme.js) : bleu #244A68 (9,32:1) · vert d'eau #336C63 (6,06:1) · orange #A5571F (5,27:1) · vert #1B6E3E (6,28:1) · violet #7A5BA8 (5,40:1) ; le profil utilise le vert d'eau.
 Badge « En retard » : fond opaque (rouge à 10 % posé sur #ECEFF2) pour que errorText reste ≥ 4,5:1 sur tout support.
 
 Couleur de catégorie (KPI) : CA = primaire · Clients = secondaire · Factures impayées = erreur · Pipeline = primaire-700.

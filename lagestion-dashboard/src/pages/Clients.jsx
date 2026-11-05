@@ -4,7 +4,7 @@ import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download, AlertCircle,
 } from "lucide-react";
-import { C, alpha } from "../theme";
+import { C, AVATARS, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { exporterClientsExcel } from "../utils/excel";
@@ -45,7 +45,7 @@ const COLUMNS = [
 ];
 
 const PAGE_SIZE = 10;
-const AVATAR_PALETTE = [C.primary, C.secondary, C.accent, C.info];
+const AVATAR_PALETTE = Object.values(AVATARS);
 
 function useDebouncedValue(value, delay = 250) {
   const [debounced, setDebounced] = useState(value);

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Briefcase, FileText, Package, Mail, BarChart3, Bot,
   FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut, ArrowLeft,
 } from "lucide-react";
-import { C, VOILE, alpha } from "../theme";
+import { C, AVATARS, VOILE, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { GardeModificationsProvider, useQuitter } from "../context/GardeModificationsContext.jsx";
@@ -169,7 +169,7 @@ function LayoutContenu() {
         <div className="flex items-center gap-3 md:justify-center md:gap-0 xl:justify-start xl:gap-3">
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
-            style={{ backgroundColor: C.secondary }}
+            style={{ backgroundColor: AVATARS.vertEau }}
             aria-label={`Profil de ${nomAffiche}`}
             title={`${nomAffiche} — ${sousTitreProfil}`}
           >

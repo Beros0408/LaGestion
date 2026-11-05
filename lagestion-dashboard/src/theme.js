@@ -43,6 +43,15 @@ export const C = {
   chart8: "#717D89",
 };
 
+// Fonds d'avatar (initiales blanches) : ratio du blanc ≥ 5,2:1 sur chaque teinte.
+export const AVATARS = {
+  bleu: "#244A68", // primaire 700 — 9,32:1
+  vertEau: "#336C63", // secondaire 700 — 6,06:1
+  orange: "#A5571F", // accent 800 — 5,27:1
+  vert: "#1B6E3E", // 6,28:1
+  violet: "#7A5BA8", // 5,40:1
+};
+
 // Tuiles KPI du tableau de bord (dégradé début → fin), texte blanc ≥ 4,5:1 sur les deux teintes.
 export const TUILES = {
   bleu: ["#244A68", "#2D5B7F"],
