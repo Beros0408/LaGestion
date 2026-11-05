@@ -19,6 +19,8 @@ import Select from "../components/form/Select.jsx";
 import Textarea from "../components/form/Textarea.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 
+const MESSAGE_REMISE_PLAFOND = "La remise globale ne peut pas dépasser le total HT des lignes.";
+
 const LIGNE_VIDE = {
   description: "",
   reference: "",
@@ -140,9 +142,14 @@ export default function FactureForm() {
       tvaDetail: tvaParTaux(factureCalc),
       tva: totalTVA(factureCalc),
       ttc: totalTTC(factureCalc),
+      plafonnee: Math.round(factureCalc.remise * 100) > Math.round(totalHTBrut(factureCalc) * 100),
     }),
     [factureCalc]
   );
+  // Remise supérieure au HT des lignes : signalée dès la saisie (l'erreur de validation obsolète est ignorée).
+  const erreurRemise = recap.plafonnee
+    ? MESSAGE_REMISE_PLAFOND
+    : errors.remise !== MESSAGE_REMISE_PLAFOND ? errors.remise : undefined;
 
   if (modeEdition && !chargement && !existant) {
     return (
@@ -222,8 +229,8 @@ export default function FactureForm() {
     const remiseGlobale = Number(data.remise);
     if (data.remise !== "" && (Number.isNaN(remiseGlobale) || remiseGlobale < 0)) {
       errs.remise = "La remise doit être ≥ 0.";
-    } else if (Math.round(remiseGlobale * 100) > Math.round(recap.htBrut * 100)) {
-      errs.remise = "La remise globale ne peut pas dépasser le total HT des lignes.";
+    } else if (recap.plafonnee) {
+      errs.remise = MESSAGE_REMISE_PLAFOND;
     }
     return errs;
   };
@@ -486,7 +493,7 @@ export default function FactureForm() {
                 step="0.01"
                 value={form.remise}
                 onChange={(e) => definir("remise")(e.target.value)}
-                error={errors.remise}
+                error={erreurRemise}
                 hint="Appliquée sur le total HT, répartie entre les taux de TVA"
               />
             </div>
@@ -498,7 +505,10 @@ export default function FactureForm() {
                     <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.htBrut)}</dd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <dt style={{ color: C.textSecondary }}>Remise globale</dt>
+                    <dt style={{ color: C.textSecondary }}>
+                      Remise globale
+                      {recap.plafonnee && <span className="block text-xs">Remise limitée au total HT</span>}
+                    </dt>
                     <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euroCentimes(recap.remise)}</dd>
                   </div>
                 </>
