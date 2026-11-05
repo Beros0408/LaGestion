@@ -126,7 +126,8 @@ export function EntrepriseProvider({ children }) {
   const value = useMemo(() => {
     const courante = appartenances.find((a) => a.entrepriseId === entrepriseId) ?? null;
     const role = courante?.role ?? null;
-    const nomAffiche = profil?.nom?.trim() || (user?.email ?? "").split("@")[0] || "Utilisateur";
+    // Jamais l'e-mail dans le profil : nom saisi, sinon libellé neutre.
+    const nomAffiche = profil?.nom?.trim() || "Utilisateur";
     return {
       chargement,
       erreur,
@@ -143,7 +144,7 @@ export function EntrepriseProvider({ children }) {
       creerEntreprise,
       recharger: charger,
     };
-  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, charger]);
+  }, [chargement, erreur, appartenances, entrepriseId, profil, creerEntreprise, charger]);
 
   return <EntrepriseContext.Provider value={value}>{children}</EntrepriseContext.Provider>;
 }

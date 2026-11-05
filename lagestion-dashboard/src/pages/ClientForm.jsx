@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, AlertCircle, ExternalLink } from "lucide-react";
-import { C } from "../theme";
+import { C, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { detecterDoublons } from "../utils/doublons";
 import Input from "../components/form/Input.jsx";
@@ -103,7 +103,7 @@ export default function ClientForm() {
             type="button"
             onClick={() => navigate("/clients")}
             className="mt-4 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
-            style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+            style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
           >
             Retour à la liste
           </button>
@@ -240,7 +240,7 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "rgba(231,76,60,0.08)",
+            backgroundColor: alpha(C.error, 0.08),
             color: C.error,
             border: `1px solid ${C.error}`,
           }}
@@ -430,7 +430,7 @@ function LigneFiche({ client, resume }) {
         target="_blank"
         rel="noreferrer"
         className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus-visible:ring-2"
-        style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+        style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
         aria-label={`Ouvrir la fiche de ${client.nom} dans un nouvel onglet`}
       >
         <ExternalLink size={12} aria-hidden="true" /> Ouvrir la fiche
@@ -457,7 +457,7 @@ function EncartCertains({ matches, modeEdition, soumission, onCreerQuandMeme }) 
     <div
       role="alert"
       className="mb-4 rounded-2xl p-4"
-      style={{ backgroundColor: "rgba(231,76,60,0.06)", border: `1px solid ${C.error}` }}
+      style={{ backgroundColor: alpha(C.error, 0.06), border: `1px solid ${C.error}` }}
     >
       <div className="flex items-start gap-3">
         <AlertTriangle
@@ -486,7 +486,7 @@ function EncartCertains({ matches, modeEdition, soumission, onCreerQuandMeme }) 
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
-              style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+              style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
             >
               <ExternalLink size={14} aria-hidden="true" />
               Voir la fiche existante
@@ -513,7 +513,7 @@ function EncartPotentiels({ matches }) {
       role="status"
       aria-live="polite"
       className="mb-4 rounded-2xl p-4"
-      style={{ backgroundColor: "rgba(243,156,18,0.06)", border: `1px solid ${C.warning}` }}
+      style={{ backgroundColor: alpha(C.warning, 0.06), border: `1px solid ${C.warning}` }}
     >
       <div className="flex items-start gap-3">
         <AlertCircle

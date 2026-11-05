@@ -41,7 +41,7 @@ export default function Select({
           className="w-full appearance-none rounded-xl py-2 pl-3 pr-8 text-sm focus:outline-none focus-visible:ring-2"
           style={{
             backgroundColor: C.bgCard,
-            border: `1px solid ${error ? C.error : C.border}`,
+            border: `1px solid ${error ? C.error : C.borderInput}`,
             color: C.textPrimary,
             "--tw-ring-color": C.primary,
           }}

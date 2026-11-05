@@ -1,16 +1,16 @@
 import React from "react";
 import { CheckCircle2, Clock, AlertTriangle, FileEdit, Send, CircleDollarSign, Ban } from "lucide-react";
-import { C } from "../theme";
+import { C, alpha } from "../theme";
 import { LIBELLE_STATUT } from "../data/factures";
 
 const META = {
-  brouillon:           { color: C.textSecondary, bg: "rgba(99,110,114,0.12)",  Icon: FileEdit },
-  en_attente:          { color: C.info,          bg: "rgba(52,152,219,0.12)",  Icon: Clock },
-  envoyee:             { color: C.primary,       bg: "rgba(45,91,127,0.10)",   Icon: Send },
-  payee:               { color: C.success,       bg: "rgba(39,174,96,0.12)",   Icon: CheckCircle2 },
-  partiellement_payee: { color: C.warning,       bg: "rgba(243,156,18,0.12)",  Icon: CircleDollarSign },
-  en_retard:           { color: C.error,         bg: "rgba(231,76,60,0.12)",   Icon: AlertTriangle },
-  annulee:             { color: C.textSecondary, bg: "rgba(99,110,114,0.12)",  Icon: Ban },
+  brouillon:           { color: C.textSecondary, bg: alpha(C.textSecondary, 0.12),  Icon: FileEdit },
+  en_attente:          { color: C.info,          bg: alpha(C.info, 0.12),  Icon: Clock },
+  envoyee:             { color: C.primary,       bg: alpha(C.primary, 0.10),   Icon: Send },
+  payee:               { color: C.success,       bg: alpha(C.success, 0.12),   Icon: CheckCircle2 },
+  partiellement_payee: { color: C.warning,       bg: alpha(C.warning, 0.12),  Icon: CircleDollarSign },
+  en_retard:           { color: C.error,         bg: alpha(C.error, 0.12),   Icon: AlertTriangle },
+  annulee:             { color: C.textSecondary, bg: alpha(C.textSecondary, 0.12),  Icon: Ban },
 };
 
 const BadgeStatutFacture = React.memo(function BadgeStatutFacture({ statut }) {

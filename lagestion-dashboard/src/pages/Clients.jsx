@@ -4,15 +4,15 @@ import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download, AlertCircle,
 } from "lucide-react";
-import { C } from "../theme";
+import { C, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { exporterClientsExcel } from "../utils/excel";
 
 const STATUTS = {
-  actif:    { label: "Actif",    color: C.success,        bg: "rgba(39,174,96,0.12)" },
-  prospect: { label: "Prospect", color: C.info,           bg: "rgba(52,152,219,0.12)" },
-  inactif:  { label: "Inactif",  color: C.textSecondary,  bg: "rgba(99,110,114,0.12)" },
+  actif:    { label: "Actif",    color: C.success,        bg: alpha(C.success, 0.12) },
+  prospect: { label: "Prospect", color: C.info,           bg: alpha(C.info, 0.12) },
+  inactif:  { label: "Inactif",  color: C.textSecondary,  bg: alpha(C.textSecondary, 0.12) },
 };
 
 const TYPES = {
@@ -222,7 +222,7 @@ export default function Clients() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "rgba(231,76,60,0.08)",
+            backgroundColor: alpha(C.error, 0.08),
             color: C.error,
             border: `1px solid ${C.error}`,
           }}
@@ -248,7 +248,7 @@ export default function Clients() {
                 onChange={(e) => setRequete(e.target.value)}
                 placeholder="Nom, e-mail ou téléphone…"
                 className="w-full rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus-visible:ring-2"
-                style={{ backgroundColor: C.bgMain, border: `1px solid ${C.border}`, color: C.textPrimary }}
+                style={{ backgroundColor: C.bgMain, border: `1px solid ${C.borderInput}`, color: C.textPrimary }}
               />
             </div>
           </div>
@@ -411,7 +411,7 @@ function FilterGroup({ label, options, value, onChange, ariaLabel }) {
               aria-pressed={actif}
               className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2"
               style={{
-                color: actif ? "#fff" : C.textSecondary,
+                color: actif ? C.onPrimary : C.textSecondary,
                 backgroundColor: actif ? C.primary : "transparent",
               }}
             >
@@ -428,7 +428,7 @@ function LigneClient({ client, selected, onToggle, onView, onEdit, onDelete }) {
   return (
     <tr
       onClick={onView}
-      className="cursor-pointer transition-colors hover:bg-[#F1F3F5]"
+      className="cursor-pointer transition-colors hover:bg-lg-hover"
       style={{ borderBottom: `1px solid ${C.border}` }}
     >
       <td className="px-3 py-3">
@@ -465,7 +465,7 @@ function LigneClient({ client, selected, onToggle, onView, onEdit, onDelete }) {
               <span
                 key={t}
                 className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+                style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
               >
                 {t}
               </span>
@@ -582,7 +582,7 @@ function EtatVide({ onReset }) {
         type="button"
         onClick={onReset}
         className="mt-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2"
-        style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+        style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
       >
         Réinitialiser les filtres
       </button>

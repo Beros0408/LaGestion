@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
-import { C } from "../theme";
+import { C, alpha } from "../theme";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { ETAPES } from "../data/opportunites";
@@ -80,7 +80,7 @@ export default function OpportuniteForm() {
           type="button"
           onClick={() => navigate("/opportunites")}
           className="mt-4 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
-          style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+          style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
         >
           Retour au pipeline
         </button>
@@ -170,7 +170,7 @@ export default function OpportuniteForm() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "rgba(231,76,60,0.08)",
+            backgroundColor: alpha(C.error, 0.08),
             color: C.error,
             border: `1px solid ${C.error}`,
           }}

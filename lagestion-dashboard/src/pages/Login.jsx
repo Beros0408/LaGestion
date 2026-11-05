@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
-import { C } from "../theme";
+import { C, OMBRE, alpha } from "../theme";
 import Input from "../components/form/Input.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -61,7 +61,7 @@ export default function Login() {
         style={{
           backgroundColor: C.bgCard,
           border: `1px solid ${C.border}`,
-          boxShadow: "0 4px 12px rgba(45,52,54,0.08)",
+          boxShadow: OMBRE.md,
         }}
         aria-labelledby="titre-connexion"
       >
@@ -116,7 +116,7 @@ export default function Login() {
               role="alert"
               className="rounded-xl p-3 text-sm"
               style={{
-                backgroundColor: "rgba(231,76,60,0.08)",
+                backgroundColor: alpha(C.error, 0.08),
                 color: C.error,
                 border: `1px solid ${C.error}`,
               }}

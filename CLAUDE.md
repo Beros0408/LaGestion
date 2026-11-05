@@ -100,8 +100,13 @@ Accent (#F4A261 = 500)
 | #FEF4EB | #FCE6D2 | #FACDA5 | #F7B47E | #F5A86F | #F4A261 | #E98A3F | #CF6F27 | #A5571F | #7C4117 |
 
 Neutres
-| 50 (#F8F9FA, fond) | 100 #F1F3F5 | 200 (#DFE6E9, bordure) | 300 #CBD5DA | 400 (#9AA5AD, texte atténué) | 500 #7B8794 | 600 (#636E72, texte secondaire) | 700 #4B545A | 800 #3A4146 | 900 (#2D3436, texte principal) |
-Surface (cartes) : #FFFFFF.
+Thème « gris perle » :
+| Fond de page #E3E7EB | Surface (cartes, tableaux, menus, champs) #ECEFF2 | Survol #DDE2E7 | Bordure #C9D1D8 | Bordure des champs #717D89 | Texte secondaire #4F5A5F | Texte principal #2D3436 |
+Le blanc pur #FFFFFF est réservé au texte sur fond plein (boutons primaires, avatars).
+Tokens (src/theme.js) : bgMain #E3E7EB · bgCard #ECEFF2 · bgHover #DDE2E7 · border #C9D1D8 (cartes, tableaux, séparateurs) · borderInput #717D89 (input, select, textarea : contraste ≥ 3:1) · textSecondary #4F5A5F · onPrimary #FFFFFF.
+Barre latérale sombre : sidebarBg #1B2A38 · sidebarHover #223444 (survol, bloc profil) · sidebarActiveBg #26394B · sidebarText #E4E8EC · sidebarTextMuted #9AA8B5 · sidebarAccent #A9C4DC (texte et liseré du lien actif) · sidebarBorder #2E4256 · sidebarFocus #7DA5C9 (anneau de focus).
+Échelle neutre de référence : 300 #CBD5DA · 400 #9AA5AD · 700 #4B545A · 800 #3A4146.
+Fonds teintés : alpha(couleur, opacité) ; ombres : OMBRE.xs/sm/md/lg ; classes Tailwind lg-* (ex. hover:bg-lg-hover) générées depuis theme.js.
 
 Fonctionnelles : succès #27AE60 · avertissement #F39C12 · erreur #E74C3C · info #3498DB.
 Fonds fonctionnels : la couleur à 12 % d'opacité (ex. succès → rgba(39,174,96,0.12)).
@@ -137,7 +142,7 @@ Ombres :
 Briques réutilisables : Card, Button (états : normal, survol, pressé, chargement, désactivé, ghost, outline), Input/Select/Checkbox/Switch, Badge, KpiCard. Toute recette « CSS premium » se traduit en composant React + tokens, jamais en feuille CSS séparée.
 
 **Card** (`src/components/Card.jsx`) : conteneur de surface partagé par toutes les cartes du tableau de bord.
-- Base : fond blanc, bordure 1 px neutre-200 (#DFE6E9), rayon 16 px, padding 20 px, ombre SM (`0 1px 3px rgba(45,52,54,.06)`).
+- Base : fond surface (#ECEFF2), bordure 1 px (#C9D1D8), rayon 16 px, padding 20 px, ombre SM (`0 1px 3px rgba(45,52,54,.06)`).
 - Survol : translation `-2px`, ombre MD (`0 4px 12px rgba(45,52,54,.08)`), bordure primaire-200 (#A9C4DC), transition 200 ms sur `transform`, `box-shadow`, `border-color`.
 - Apparition : fondu + translation 8 px vers le haut, 400 ms, avec un décalage de 60 ms par carte via le prop `index` (`animation-delay: index * 60ms`).
 - `prefers-reduced-motion: reduce` désactive transitions et animation.

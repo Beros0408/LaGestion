@@ -10,18 +10,18 @@ body,
 }
 
 .lg-card {
-  background-color: #FFFFFF;
-  border: 1px solid #DFE6E9;
+  background-color: theme('colors.lg.card');
+  border: 1px solid theme('colors.lg.border');
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(45, 52, 54, 0.06);
+  box-shadow: theme('boxShadow.lg-sm');
   transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
 }
 
 .lg-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(45, 52, 54, 0.08);
-  border-color: #A9C4DC;
+  box-shadow: theme('boxShadow.lg-md');
+  border-color: theme('colors.lg.primary-200');
 }
 
 .lg-card-enter {
@@ -41,8 +41,8 @@ body,
 }
 
 :root, *, *::before, *::after {
-  --tw-ring-color: #5283A6;
+  --tw-ring-color: theme('colors.lg.primary-400');
   --tw-ring-offset-width: 2px;
-  --tw-ring-offset-color: #FFFFFF;
-  --tw-ring-offset-shadow: 0 0 0 2px #FFFFFF;
+  --tw-ring-offset-color: theme('colors.lg.card');
+  --tw-ring-offset-shadow: 0 0 0 2px theme('colors.lg.card');
 }

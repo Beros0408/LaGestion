@@ -1,23 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Calendar, User, AlertCircle } from "lucide-react";
-import { C, euro } from "../theme";
+import { C, OMBRE, alpha, euro } from "../theme";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { ETAPES } from "../data/opportunites";
 
 const ETAPE_STYLE = {
-  Qualification: { couleur: C.info,      bg: "rgba(52,152,219,0.12)" },
-  Proposition:   { couleur: C.primary,   bg: "rgba(45,91,127,0.10)" },
-  "Négociation": { couleur: C.accent,    bg: "rgba(244,162,97,0.15)" },
-  Conclusion:    { couleur: C.success,   bg: "rgba(39,174,96,0.12)" },
+  Qualification: { couleur: C.info,      bg: alpha(C.info, 0.12) },
+  Proposition:   { couleur: C.primary,   bg: alpha(C.primary, 0.10) },
+  "Négociation": { couleur: C.accent,    bg: alpha(C.accent, 0.15) },
+  Conclusion:    { couleur: C.success,   bg: alpha(C.success, 0.12) },
 };
 
 function couleurProbabilite(p) {
-  if (p >= 75) return { couleur: C.success, bg: "rgba(39,174,96,0.12)" };
-  if (p >= 50) return { couleur: C.warning, bg: "rgba(243,156,18,0.12)" };
-  return { couleur: C.textSecondary, bg: "rgba(99,110,114,0.12)" };
+  if (p >= 75) return { couleur: C.success, bg: alpha(C.success, 0.12) };
+  if (p >= 50) return { couleur: C.warning, bg: alpha(C.warning, 0.12) };
+  return { couleur: C.textSecondary, bg: alpha(C.textSecondary, 0.12) };
 }
 
 function formaterDate(iso) {
@@ -117,7 +117,7 @@ export default function Opportunites() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "rgba(231,76,60,0.08)",
+            backgroundColor: alpha(C.error, 0.08),
             color: C.error,
             border: `1px solid ${C.error}`,
           }}
@@ -172,7 +172,7 @@ export default function Opportunites() {
               style={{
                 backgroundColor: C.bgCard,
                 border: `1px solid ${estSurvolee ? style.couleur : C.border}`,
-                boxShadow: "0 1px 3px rgba(45,52,54,0.06)",
+                boxShadow: OMBRE.sm,
               }}
               aria-label={`Colonne ${etape}`}
             >
@@ -300,7 +300,7 @@ function CarteOpportunite({
       style={{
         backgroundColor: C.bgCard,
         border: `1px solid ${C.border}`,
-        boxShadow: "0 1px 2px rgba(45,52,54,0.04)",
+        boxShadow: OMBRE.xs,
         cursor: onMove ? "grab" : "default",
       }}
       aria-label={`Opportunité ${op.nom}`}
@@ -346,7 +346,7 @@ function CarteOpportunite({
               style={{
                 backgroundColor: C.bgCard,
                 border: `1px solid ${C.border}`,
-                boxShadow: "0 12px 28px rgba(45,52,54,0.10)",
+                boxShadow: OMBRE.lg,
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -356,7 +356,7 @@ function CarteOpportunite({
                 type="button"
                 role="menuitem"
                 onClick={onEdit}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                 style={{ color: C.textPrimary }}
               >
                 <Pencil size={14} aria-hidden="true" />
@@ -374,7 +374,7 @@ function CarteOpportunite({
                   aria-expanded={sousMenuOuvert}
                   onClick={onOuvrirSousMenu}
                   onFocus={onOuvrirSousMenu}
-                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                   style={{ color: C.textPrimary }}
                 >
                   <span className="flex items-center gap-2">
@@ -392,7 +392,7 @@ function CarteOpportunite({
                     style={{
                       backgroundColor: C.bgCard,
                       border: `1px solid ${C.border}`,
-                      boxShadow: "0 12px 28px rgba(45,52,54,0.10)",
+                      boxShadow: OMBRE.lg,
                     }}
                   >
                     {autresEtapes.map((e) => (
@@ -401,7 +401,7 @@ function CarteOpportunite({
                         type="button"
                         role="menuitem"
                         onClick={() => onMove(e)}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                         style={{ color: C.textPrimary }}
                       >
                         <span
@@ -426,7 +426,7 @@ function CarteOpportunite({
                 type="button"
                 role="menuitem"
                 onClick={onDelete}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                 style={{ color: C.error }}
               >
                 <Trash2 size={14} aria-hidden="true" />

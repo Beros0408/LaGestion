@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Pencil, Phone, Mail, MapPin } from "lucide-react";
-import { C } from "../theme";
+import { C, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 
@@ -41,9 +41,9 @@ function urlComplete(u) {
 }
 
 const STATUT_CLIENT = {
-  actif:    { label: "Actif",    color: C.success,        bg: "rgba(39,174,96,0.12)" },
-  prospect: { label: "Prospect", color: C.info,           bg: "rgba(52,152,219,0.12)" },
-  inactif:  { label: "Inactif",  color: C.textSecondary,  bg: "rgba(99,110,114,0.12)" },
+  actif:    { label: "Actif",    color: C.success,        bg: alpha(C.success, 0.12) },
+  prospect: { label: "Prospect", color: C.info,           bg: alpha(C.info, 0.12) },
+  inactif:  { label: "Inactif",  color: C.textSecondary,  bg: alpha(C.textSecondary, 0.12) },
 };
 
 const TYPE_CLIENT = {
@@ -86,7 +86,7 @@ export default function ClientDetail() {
         <Link
           to="/clients"
           className="mt-4 inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
-          style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+          style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
         >
           <ArrowLeft size={16} aria-hidden="true" />
           Retour à la liste
@@ -160,7 +160,7 @@ export default function ClientDetail() {
                         <span
                           key={t}
                           className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                          style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+                          style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
                         >
                           {t}
                         </span>

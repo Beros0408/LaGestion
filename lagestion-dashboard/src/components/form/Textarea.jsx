@@ -40,7 +40,7 @@ export default function Textarea({
         className="w-full resize-y rounded-xl px-3 py-2 text-sm focus:outline-none focus-visible:ring-2"
         style={{
           backgroundColor: C.bgCard,
-          border: `1px solid ${error ? C.error : C.border}`,
+          border: `1px solid ${error ? C.error : C.borderInput}`,
           color: C.textPrimary,
           "--tw-ring-color": C.primary,
         }}

@@ -4,7 +4,7 @@ import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   Eye, Pencil, Trash2, SearchX, MoreHorizontal, RefreshCw, Download, AlertCircle,
 } from "lucide-react";
-import { C, euro } from "../theme";
+import { C, OMBRE, alpha, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -180,7 +180,7 @@ export default function Factures() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "rgba(231,76,60,0.08)",
+            backgroundColor: alpha(C.error, 0.08),
             color: C.error,
             border: `1px solid ${C.error}`,
           }}
@@ -205,7 +205,7 @@ export default function Factures() {
                 onChange={(e) => setRequete(e.target.value)}
                 placeholder="Numéro ou client…"
                 className="w-full rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus-visible:ring-2"
-                style={{ backgroundColor: C.bgMain, border: `1px solid ${C.border}`, color: C.textPrimary }}
+                style={{ backgroundColor: C.bgMain, border: `1px solid ${C.borderInput}`, color: C.textPrimary }}
               />
             </div>
           </div>
@@ -306,7 +306,7 @@ function FilterGroup({ label, options, value, onChange, ariaLabel }) {
               aria-pressed={actif}
               className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2"
               style={{
-                color: actif ? "#fff" : C.textSecondary,
+                color: actif ? C.onPrimary : C.textSecondary,
                 backgroundColor: actif ? C.primary : "transparent",
               }}
             >
@@ -352,7 +352,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
   return (
     <tr
       onClick={onView}
-      className="cursor-pointer transition-colors hover:bg-[#F1F3F5]"
+      className="cursor-pointer transition-colors hover:bg-lg-hover"
       style={{ borderBottom: `1px solid ${C.border}` }}
     >
       <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>{facture.numero}</td>
@@ -392,7 +392,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                 style={{
                   backgroundColor: C.bgCard,
                   border: `1px solid ${C.border}`,
-                  boxShadow: "0 12px 28px rgba(45,52,54,0.10)",
+                  boxShadow: OMBRE.lg,
                 }}
               >
                 {onChangerStatut && (
@@ -404,7 +404,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                     aria-expanded={sousMenuOuvert}
                     onClick={() => setSousMenuOuvert((v) => !v)}
                     onFocus={() => setSousMenuOuvert(true)}
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                     style={{ color: C.textPrimary }}
                   >
                     <span className="flex items-center gap-2">
@@ -422,7 +422,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                       style={{
                         backgroundColor: C.bgCard,
                         border: `1px solid ${C.border}`,
-                        boxShadow: "0 12px 28px rgba(45,52,54,0.10)",
+                        boxShadow: OMBRE.lg,
                       }}
                     >
                       {STATUTS.map((s) => {
@@ -438,7 +438,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                               setMenuOuvert(false);
                               setSousMenuOuvert(false);
                             }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                             style={{ color: actif ? C.primary : C.textPrimary, fontWeight: actif ? 600 : 400 }}
                           >
                             {LIBELLE_STATUT[s]}
@@ -462,7 +462,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                     setSousMenuOuvert(false);
                     onDelete();
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                   style={{ color: C.error }}
                 >
                   <Trash2 size={14} aria-hidden="true" />
@@ -529,7 +529,7 @@ function EtatVide({ onReset }) {
         type="button"
         onClick={onReset}
         className="mt-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2"
-        style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+        style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
       >
         Réinitialiser les filtres
       </button>

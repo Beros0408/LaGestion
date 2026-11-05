@@ -4,7 +4,7 @@ import {
   ArrowLeft, Pencil, Mail, Phone, MapPin, Download, Printer, Copy, CreditCard,
   ChevronDown, ExternalLink, Trash2, AlertCircle, Plus,
 } from "lucide-react";
-import { C, euro } from "../theme";
+import { C, OMBRE, alpha, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -100,7 +100,7 @@ export default function FactureDetail() {
           type="button"
           onClick={() => navigate("/factures")}
           className="mt-4 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
-          style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+          style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
         >
           Retour à la liste
         </button>
@@ -146,7 +146,7 @@ export default function FactureDetail() {
           role="alert"
           className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "rgba(231,76,60,0.08)",
+            backgroundColor: alpha(C.error, 0.08),
             color: C.error,
             border: `1px solid ${C.error}`,
           }}
@@ -329,7 +329,7 @@ function MenuStatut({ statutActuel, ouvert, onOuvrir, onFermer, onSelectionner, 
           style={{
             backgroundColor: C.bgCard,
             border: `1px solid ${C.border}`,
-            boxShadow: "0 12px 28px rgba(45,52,54,0.10)",
+            boxShadow: OMBRE.lg,
           }}
         >
           {STATUTS.map((s) => {
@@ -341,7 +341,7 @@ function MenuStatut({ statutActuel, ouvert, onOuvrir, onFermer, onSelectionner, 
                 role="menuitem"
                 aria-current={actif || undefined}
                 onClick={() => onSelectionner(s)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[#F1F3F5] focus:outline-none focus-visible:ring-2"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                 style={{ color: actif ? C.primary : C.textPrimary, fontWeight: actif ? 600 : 400 }}
               >
                 {LIBELLE_STATUT[s]}
@@ -463,7 +463,7 @@ function CartePaiements({
             type="button"
             onClick={onOuvrirForm}
             className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2"
-            style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+            style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
           >
             <Plus size={14} aria-hidden="true" />
             Enregistrer un paiement
@@ -577,7 +577,7 @@ function FormulairePaiement({ onAnnuler, onEnregistrer }) {
           role="alert"
           className="mb-3 flex items-start gap-2 rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "rgba(231,76,60,0.08)",
+            backgroundColor: alpha(C.error, 0.08),
             color: C.error,
             border: `1px solid ${C.error}`,
           }}
@@ -749,7 +749,7 @@ function CarteClient({ client, chargement }) {
           <Link
             to={`/clients/${client.id}`}
             className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2"
-            style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+            style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
             aria-label={`Voir la fiche de ${client.nom}`}
           >
             <ExternalLink size={12} aria-hidden="true" />

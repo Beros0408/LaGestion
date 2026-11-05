@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Briefcase, FileText, Package, Mail, BarChart3, Bot,
   FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut,
 } from "lucide-react";
-import { C } from "../theme";
+import { C, VOILE, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 
@@ -33,10 +33,16 @@ const breadcrumbLabels = {
 };
 
 const itemClass =
-  "flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-[15px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 md:justify-center md:gap-0 md:px-0 xl:justify-start xl:gap-3 xl:px-2.5";
+  "flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-[15px] font-medium transition-colors duration-150 hover:bg-lg-sidebar-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-lg-sidebar-focus focus-visible:ring-offset-lg-sidebar-bg md:justify-center md:gap-0 md:px-0 xl:justify-start xl:gap-3 xl:px-2.5";
 
-const activeStyle = { color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" };
-const inactiveStyle = { color: C.textSecondary, backgroundColor: "transparent" };
+// Lien actif : fond plus clair et liseré gauche (ombre interne : aucun décalage de mise en page).
+const activeStyle = {
+  color: C.sidebarAccent,
+  backgroundColor: C.sidebarActiveBg,
+  boxShadow: `inset 3px 0 0 ${C.sidebarAccent}`,
+};
+const inactiveStyle = { color: C.sidebarText };
+const bientotStyle = { color: C.sidebarTextMuted };
 
 export default function Layout() {
   const [menuMobile, setMenuMobile] = useState(false);
@@ -66,7 +72,7 @@ export default function Layout() {
         {item.soon && (
           <span
             className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold md:hidden xl:inline"
-            style={{ color: C.accent, backgroundColor: "rgba(244,162,97,0.15)" }}
+            style={{ color: C.accent, backgroundColor: alpha(C.accent, 0.15) }}
           >
             Phase 2
           </span>
@@ -97,7 +103,7 @@ export default function Layout() {
         aria-label={item.label}
         title={item.label}
         className={itemClass}
-        style={inactiveStyle}
+        style={bientotStyle}
       >
         {content}
       </button>
@@ -107,7 +113,7 @@ export default function Layout() {
   const Sidebar = (
     <aside
       className="flex h-full w-[216px] md:w-[72px] xl:w-[216px] shrink-0 flex-col"
-      style={{ backgroundColor: C.bgCard, borderRight: `1px solid ${C.border}` }}
+      style={{ backgroundColor: C.sidebarBg, borderRight: `1px solid ${C.sidebarBorder}` }}
     >
       <div className="flex items-center gap-2.5 px-4 py-4 md:justify-center md:px-2 xl:justify-start xl:px-4">
         <div
@@ -118,7 +124,7 @@ export default function Layout() {
         </div>
         <span
           className="text-lg font-bold md:hidden xl:inline"
-          style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
+          style={{ color: C.sidebarText, fontFamily: "Sora, sans-serif" }}
         >
           Lagestion
         </span>
@@ -127,7 +133,7 @@ export default function Layout() {
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2 xl:px-3" aria-label="Navigation principale">
         {navItems.map(renderNavItem)}
 
-        <div className="my-3" style={{ borderTop: `1px solid ${C.border}` }} />
+        <div className="my-3" style={{ borderTop: `1px solid ${C.sidebarBorder}` }} />
 
         {navSecondaires.map((item) => {
           const Icon = item.icon;
@@ -138,7 +144,7 @@ export default function Layout() {
               aria-label={item.label}
               title={item.label}
               className={itemClass}
-              style={inactiveStyle}
+              style={bientotStyle}
             >
               <Icon size={20} aria-hidden="true" />
               <span className="md:hidden xl:inline">{item.label}</span>
@@ -147,7 +153,7 @@ export default function Layout() {
         })}
       </nav>
 
-      <div className="m-2 rounded-xl p-2.5 xl:m-3 xl:p-3" style={{ backgroundColor: C.bgMain }}>
+      <div className="m-2 rounded-xl p-2.5 xl:m-3 xl:p-3" style={{ backgroundColor: C.sidebarHover }}>
         <div className="flex items-center gap-3 md:justify-center md:gap-0 xl:justify-start xl:gap-3">
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
@@ -158,8 +164,8 @@ export default function Layout() {
             {initiales}
           </div>
           <div className="min-w-0 flex-1 md:hidden xl:block">
-            <p className="truncate text-[15px] font-semibold" style={{ color: C.textPrimary }}>{nomAffiche}</p>
-            <p className="truncate text-xs" style={{ color: C.textSecondary }}>{sousTitreProfil}</p>
+            <p className="truncate text-[15px] font-semibold" style={{ color: C.sidebarText }}>{nomAffiche}</p>
+            <p className="truncate text-xs" style={{ color: C.sidebarTextMuted }}>{sousTitreProfil}</p>
           </div>
         </div>
       </div>
@@ -190,7 +196,7 @@ export default function Layout() {
         <div className="fixed inset-0 z-40 md:hidden">
           <div
             className="absolute inset-0"
-            style={{ backgroundColor: "rgba(45,52,54,0.4)" }}
+            style={{ backgroundColor: VOILE }}
             onClick={closeMobile}
             aria-hidden="true"
           />
@@ -241,7 +247,7 @@ export default function Layout() {
               type="search"
               placeholder="Rechercher un client, une facture…"
               className="w-64 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus-visible:ring-2"
-              style={{ backgroundColor: C.bgMain, border: `1px solid ${C.border}`, color: C.textPrimary }}
+              style={{ backgroundColor: C.bgMain, border: `1px solid ${C.borderInput}`, color: C.textPrimary }}
               aria-label="Rechercher"
             />
           </div>

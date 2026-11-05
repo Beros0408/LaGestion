@@ -1,6 +1,6 @@
 import React, { useState, useMemo, lazy, Suspense } from "react";
 import { TrendingUp, TrendingDown, Calendar, ArrowRight } from "lucide-react";
-import { C, euro, num } from "../theme";
+import { C, alpha, euro, num } from "../theme";
 import Card from "../components/Card";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
@@ -72,7 +72,7 @@ const KpiCard = React.memo(function KpiCard({ titre, valeur, variation, positif,
       <div className="mt-2 flex items-center gap-2">
         <span
           className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold"
-          style={{ color: positif ? C.success : C.error, backgroundColor: positif ? "rgba(39,174,96,0.1)" : "rgba(231,76,60,0.1)" }}
+          style={{ color: positif ? C.success : C.error, backgroundColor: positif ? alpha(C.success, 0.1) : alpha(C.error, 0.1) }}
         >
           <TrendIcon size={13} aria-hidden="true" />
           {variation}
@@ -97,7 +97,7 @@ function CardTitle({ children, action }) {
 function ChartFallback({ height }) {
   return (
     <div
-      style={{ width: "100%", height, backgroundColor: "#F1F3F5", borderRadius: 8 }}
+      style={{ width: "100%", height, backgroundColor: C.bgHover, borderRadius: 8 }}
       aria-hidden="true"
     />
   );
@@ -205,7 +205,7 @@ export default function Dashboard() {
               aria-pressed={periode === p}
               className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2"
               style={{
-                color: periode === p ? "#fff" : C.textSecondary,
+                color: periode === p ? C.onPrimary : C.textSecondary,
                 backgroundColor: periode === p ? C.primary : "transparent",
               }}
             >
@@ -235,7 +235,7 @@ export default function Dashboard() {
           variation="+6,8 %"
           positif
           sousTitre={`${pipelineTotaux.nombre} ${pipelineTotaux.nombre > 1 ? "opportunités" : "opportunité"}`}
-          accent="#244A68"
+          accent={C.primary700}
         />
       </div>
 
@@ -341,7 +341,7 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {facturesRecentes.map((f) => (
-                <tr key={f.num} className="transition-colors hover:bg-[#F8F9FA]" style={{ borderBottom: `1px solid ${C.border}` }}>
+                <tr key={f.num} className="transition-colors hover:bg-lg-hover" style={{ borderBottom: `1px solid ${C.border}` }}>
                   <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>{f.num}</td>
                   <td className="px-3 py-3" style={{ color: C.textSecondary }}>{f.client}</td>
                   <td className="px-3 py-3 font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(f.montant)}</td>

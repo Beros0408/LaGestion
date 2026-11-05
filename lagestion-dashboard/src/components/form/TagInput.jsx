@@ -1,6 +1,6 @@
 import React, { useId, useState } from "react";
 import { X } from "lucide-react";
-import { C } from "../../theme";
+import { C, alpha } from "../../theme";
 
 export default function TagInput({
   label,
@@ -51,7 +51,7 @@ export default function TagInput({
         className="flex flex-wrap items-center gap-1.5 rounded-xl px-2 py-1.5 focus-within:ring-2"
         style={{
           backgroundColor: C.bgCard,
-          border: `1px solid ${C.border}`,
+          border: `1px solid ${C.borderInput}`,
           "--tw-ring-color": C.primary,
         }}
       >
@@ -59,7 +59,7 @@ export default function TagInput({
           <span
             key={tag}
             className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-            style={{ color: C.primary, backgroundColor: "rgba(45,91,127,0.08)" }}
+            style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
           >
             {tag}
             <button
