@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Lock } from "lucide-react";
 import { C, alpha } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -118,6 +118,11 @@ export default function FactureForm() {
     );
   }
 
+  // Un avoir a son propre formulaire.
+  if (existant?.type === "avoir" && factureModifiable(existant.statut)) {
+    return <Navigate to={`/factures/${existant.id}/avoir/modifier`} replace />;
+  }
+
   // Lien direct vers le formulaire d'une facture finalisée : la base refuserait de toute façon l'écriture.
   if (existant && !factureModifiable(existant.statut)) {
     return (
@@ -127,7 +132,9 @@ export default function FactureForm() {
       >
         <Lock size={24} aria-hidden="true" className="mx-auto" style={{ color: C.textSecondary }} />
         <p className="mt-3 text-sm" style={{ color: C.textPrimary }}>
-          {`La facture ${existant.numero} est finalisée : elle ne peut plus être modifiée. Sa correction passera par un avoir.`}
+          {existant.type === "avoir"
+            ? `L'avoir ${existant.numero} est finalisé : il ne peut plus être modifié.`
+            : `La facture ${existant.numero} est finalisée : elle ne peut plus être modifiée. Sa correction passe par un avoir.`}
         </p>
         <Link
           to={`/factures/${existant.id}`}

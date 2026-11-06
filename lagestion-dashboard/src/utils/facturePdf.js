@@ -156,6 +156,17 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
     doc.text(client.email, margin, y);
   }
 
+  // Référence au document d'origine et motif (avoir)
+  (config.mentions ?? []).forEach((texte, i) => {
+    doc.setFont("helvetica", i === 0 ? "bold" : "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.textPrimary);
+    const lignesMention = doc.splitTextToSize(texte, pageW - margin * 2);
+    y += i === 0 ? 8 : 5;
+    doc.text(lignesMention, margin, y);
+    y += (lignesMention.length - 1) * 4;
+  });
+
   const startY = y + 12;
   const lignes = document.lignes ?? [];
   const rows = lignes.map((l) => [
@@ -164,7 +175,7 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
     formatEuro(l.prix_unitaire),
     Number(l.remise) > 0 ? `- ${formatEuro(l.remise)}` : "",
     formatTaux(l.taux_tva),
-    formatEuro(ligneHT(l)),
+    formatEuro(config.lignesNegatives && ligneHT(l) !== 0 ? -ligneHT(l) : ligneHT(l)),
   ]);
 
   autoTable(doc, {
@@ -207,14 +218,14 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
   let recapY = (doc.lastAutoTable?.finalY ?? startY) + 8;
   const recapRight = pageW - margin;
   const recapLeft = pageW - margin - 70;
-  const hauteurRecap = (remise > 0 ? 10 : 0) + tvaDetail.length * 5 + 9;
+  const hauteurRecap = (remise !== 0 ? 10 : 0) + tvaDetail.length * 5 + 9;
   if (recapY + hauteurRecap > limiteBas) {
     doc.addPage();
     recapY = 25;
   }
 
   doc.setFontSize(9);
-  if (remise > 0) {
+  if (remise !== 0) {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.textSecondary);
     doc.text("Total HT brut", recapLeft, recapY);
@@ -225,13 +236,13 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
     doc.setTextColor(...COLORS.textSecondary);
     doc.text("Remise globale", recapLeft, recapY);
     doc.setTextColor(...COLORS.textPrimary);
-    doc.text(`- ${formatEuro(remise)}`, recapRight, recapY, { align: "right" });
+    doc.text(`${remise > 0 ? "-" : "+"} ${formatEuro(Math.abs(remise))}`, recapRight, recapY, { align: "right" });
     recapY += 5;
   }
 
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COLORS.textSecondary);
-  doc.text(remise > 0 ? "Total HT net" : "Total HT", recapLeft, recapY);
+  doc.text(remise !== 0 ? "Total HT net" : "Total HT", recapLeft, recapY);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...COLORS.textPrimary);
   doc.text(formatEuro(ht), recapRight, recapY, { align: "right" });
@@ -302,6 +313,23 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
 // Facture émise : identités figées à la finalisation. Brouillon : présenté comme tel, sans numéro ni date d'émission.
 export function genererFacturePdf(facture, client, totaux, entreprise) {
   const brouillon = facture.statut === "brouillon";
+  if (facture.type === "avoir") {
+    const dateOrigine = facture.origine_date ? ` du ${formatDate(facture.origine_date)}` : "";
+    genererDocumentPdf(facture, facture.client_fige ?? client, totaux, facture.emetteur_fige ?? entreprise, {
+      titre: brouillon ? "BROUILLON D'AVOIR" : "AVOIR",
+      reference: brouillon ? "Sans valeur d'avoir" : undefined,
+      nomFichier: brouillon ? "brouillon-avoir.pdf" : undefined,
+      destinataire: "AVOIR POUR",
+      dates: brouillon ? [] : [{ texte: `Émis le ${formatDate(facture.date_emission)}` }],
+      mentions: [
+        `Avoir sur la facture ${facture.origine_numero ?? ""}${dateOrigine}`,
+        `Motif : ${facture.motif ?? ""}`,
+      ],
+      lignesNegatives: true,
+      statut: LIBELLE_STATUT[facture.statut] ?? facture.statut ?? "—",
+    });
+    return;
+  }
   genererDocumentPdf(facture, facture.client_fige ?? client, totaux, facture.emetteur_fige ?? entreprise, {
     titre: brouillon ? "BROUILLON" : "FACTURE",
     reference: brouillon ? "Sans valeur de facture" : undefined,

@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { totalHT, totalTVA, totalTTC } from "./facture";
+import { resteAPayer, totalAvoirs, totalHT, totalPaye, totalTVA, totalTTC } from "./facture";
 import { LIBELLE_STATUT } from "../data/factures";
 
 const TYPE_LABEL = {
@@ -66,6 +66,8 @@ export function exporterFacturesExcel(factures, clients) {
 
   const headers = [
     "Numéro",
+    "Type",
+    "Facture d'origine",
     "Client",
     "Date d'émission",
     "Date d'échéance",
@@ -73,9 +75,14 @@ export function exporterFacturesExcel(factures, clients) {
     "Total HT",
     "Total TVA",
     "Total TTC",
+    "Avoirs",
+    "Encaissé net",
+    "Reste à payer",
   ];
   const rows = factures.map((f) => [
     f.numero ?? "",
+    f.type === "avoir" ? "Avoir" : "Facture",
+    f.origine_numero ?? "",
     clientsParId.get(f.client_id)?.nom ?? "",
     parseDate(f.date_emission),
     parseDate(f.date_echeance),
@@ -83,10 +90,15 @@ export function exporterFacturesExcel(factures, clients) {
     totalHT(f),
     totalTVA(f),
     totalTTC(f),
+    totalAvoirs(f),
+    totalPaye(f),
+    resteAPayer(f),
   ]);
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows], { cellDates: true });
   ws["!cols"] = [
+    { wch: 16 },
+    { wch: 10 },
     { wch: 16 },
     { wch: 30 },
     { wch: 16 },
@@ -95,11 +107,14 @@ export function exporterFacturesExcel(factures, clients) {
     { wch: 14 },
     { wch: 14 },
     { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
   ];
 
   for (let r = 1; r <= rows.length; r++) {
-    appliquerFormat(ws, [2, 3], r, "d", FMT_DATE);
-    appliquerFormat(ws, [5, 6, 7], r, "n", FMT_EURO);
+    appliquerFormat(ws, [4, 5], r, "d", FMT_DATE);
+    appliquerFormat(ws, [7, 8, 9, 10, 11, 12], r, "n", FMT_EURO);
   }
 
   const wb = XLSX.utils.book_new();

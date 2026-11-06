@@ -52,7 +52,8 @@ Référence fonctionnelle : docs/LaGestion_Cahier_des_charges_V2.md.
 - Clé d'isolation : entreprise_id (et non tenant_id).
 - Rôles : admin, manager, commercial, comptable, lecture.
 - Palette : à trancher entre #2D5B7F (actuel) et #489AF0 (V2) ; #2D5B7F reste en vigueur en attendant.
-- Factures (migration 008) : brouillon sans numéro → finalisée (numéro FAC-AAAA-NNNN par entreprise, remise à zéro annuelle, date d'émission = jour de finalisation, totaux, TVA par taux et identités client / émetteur figés) ; ni modification ni suppression ensuite. SIRET et adresse de l'entreprise obligatoires pour finaliser. Statut « annulée » inaccessible jusqu'à l'étape des avoirs (annulation par avoir total). Mentions légales à ajouter et à faire valider par un expert-comptable avant toute vraie facture.
+- Factures (migration 008) : brouillon sans numéro → finalisée (numéro FAC-AAAA-NNNN par entreprise, remise à zéro annuelle, date d'émission = jour de finalisation, totaux, TVA par taux et identités client / émetteur figés) ; ni modification ni suppression ensuite. SIRET et adresse de l'entreprise obligatoires pour finaliser. Mentions légales à ajouter et à faire valider par un expert-comptable avant toute vraie facture.
+- Avoirs (migration 009) : ligne de factures (type avoir), lignes positives et totaux figés négatifs, série AV-AAAA-NNNN distincte, référence à la facture et motif obligatoires. Plafonds TTC et par taux de TVA sous verrou de la facture d'origine. Finalisation réservée à admin, manager et comptable. La facture passe « annulée » dès que le cumul des avoirs finalisés atteint son TTC ; aucune autre voie. Trop-perçu : remboursement enregistré (paiements.sens), plafonné, permis sur une facture annulée. Tableau de bord : facture comptée à sa date, avoir en négatif à la sienne.
 - Tuiles KPI colorées autorisées sur le tableau de bord uniquement (exception à la section 1) : dégradé léger entre deux teintes soutenues (TUILES dans src/theme.js), texte blanc ≥ 4,5:1 sur les deux teintes, sans halo, lueur ni ombre colorée. Le reste de l'application garde le thème gris perle.
 
 # CLAUDE.md — Lagestion
@@ -81,7 +82,7 @@ Ne pas ajouter de fonctionnalité hors de ce périmètre sans décision explicit
 - Composants fonctionnels, un export par défaut par écran.
 - Application dans le sous-dossier lagestion-dashboard/. Structure :
   - `src/App.jsx` + `src/main.jsx` : entrée + routeur React Router.
-  - `src/pages/` : un écran par fichier — `Dashboard.jsx`, `Clients.jsx`, `ClientForm.jsx`, `ClientDetail.jsx`, `Catalogue.jsx`, `ProduitForm.jsx`, `Devis.jsx`, `DevisForm.jsx`, `DevisDetail.jsx`…
+  - `src/pages/` : un écran par fichier — `Dashboard.jsx`, `Clients.jsx`, `ClientForm.jsx`, `ClientDetail.jsx`, `Catalogue.jsx`, `ProduitForm.jsx`, `Devis.jsx`, `DevisForm.jsx`, `DevisDetail.jsx`, `AvoirForm.jsx`…
   - `src/components/` : briques partagées (`Layout.jsx`, `Card.jsx`, `ConfirmDialog.jsx`, `ChoixCatalogue.jsx`, `form/*`, `charts/*`, `document/*` : lignes, récapitulatif et cartes communs aux factures et aux devis).
   - `src/context/` : état applicatif partagé (`ClientsContext.jsx`, `ProduitsContext.jsx`, `DevisContext.jsx`…).
   - `src/hooks/` : hooks partagés (`usePiegeFocus.js` : focus piégé des fenêtres modales).
@@ -182,7 +183,22 @@ Interdit (sobriété) : halo, rotation au chargement, points lumineux, ombres po
 - Effets décoratifs (glow, halo, rotation, pulse) : écartés.
 - Widgets comptables (trésorerie, encaissements, retards) : phase 2, quand les données existeront.
 
-## 13. Workflow
+## 13. À venir
+### Étape 010 : acomptes et facture de solde (FR-007, rien de codé à ce jour)
+Décidé par Beros le 2026-11-06 : même modèle que les avoirs, migration 010 et test 010.
+- Modèle : valeurs `acompte` et `solde` ajoutées à `factures.type` ; `acomptes_deduits` (figés) sur le solde ; `uniq_factures_devis` limité aux factures et aux soldes (un devis peut avoir plusieurs acomptes). Même série FAC que les factures.
+- Acompte : créé par une fonction SQL depuis un devis accepté, en pourcentage ou en montant TTC, une ligne par taux, au prorata des bases nettes du devis (`devis_totaux`). En montant TTC, le résultat peut s'écarter d'un centime (avec une TVA arrondie, certains TTC sont inatteignables) : afficher le montant réel avant création. Cumul des acomptes strictement inférieur au TTC du devis.
+- Devis : avec un acompte, il ne peut plus quitter « accepté » ni être supprimé. Converti : plus aucun acompte.
+- Solde : « Transformer en facture » crée un solde s'il y a des acomptes, sinon une facture normale ; refus si un acompte est encore en brouillon. Reprend tout le devis, déduit chaque acompte net de ses avoirs (numéro, HT, TVA par taux). Calcul par soustraction taux par taux, jamais par recalcul : acomptes + solde = devis, au centime. Refus à la finalisation si une base par taux devient négative.
+- Avoirs : un acompte déduit d'un solde ne peut plus recevoir d'avoir (correction sur le solde). Vérifier `lire_origine_avoir`, `totaux_avoir`, `factures_soldes` et `estComptabilisee` pour les nouveaux types.
+- Brouillon de solde : suppression refusée s'il y a des acomptes, sinon ils ne seraient jamais déduits ; il reste modifiable. Pour une facture normale issue d'un devis, le devis reste converti (décision de l'étape 07).
+- PDF : FACTURE D'ACOMPTE et FACTURE DE SOLDE, mention du devis d'origine, tableau des acomptes déduits.
+- Tests chiffrés : devis de 1 000 € HT à 20 % + 500 € HT à 10 %, TTC 1 750 € ; acompte de 30 % : 300 € + 60 € de TVA et 150 € + 15 € de TVA, soit 525 € ; solde : 700 € + 140 € et 350 € + 35 €, soit 1 225 € ; contrôle 525 + 1 225 = 1 750 €.
+- À faire valider par l'expert-comptable : série des acomptes, exigibilité de la TVA (encaissement pour les services ; pour les biens depuis 2023, à confirmer), option sur les débits, date de l'acompte, présentation du solde.
+### Étape Paramètres
+Mentions légales manquantes (voir la mémoire du projet et le plan de l'étape 08), à valider par un expert-comptable avant toute vraie facture.
+
+## 14. Workflow
 - Lancer l'app : depuis lagestion-dashboard/, commande `npm run dev`, URL http://localhost:5173.
 - Sauvegarde : git add <fichiers concernés, nommés un par un> ; git commit ; git push (dépôt https://github.com/Beros0408/LaGestion).
 - Ne jamais utiliser git add . ; ne jamais ajouter FONGOLA -SUP/ ni my-video/.

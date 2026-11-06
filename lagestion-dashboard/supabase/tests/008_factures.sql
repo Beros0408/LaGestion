@@ -320,7 +320,7 @@ begin
   -- Statuts
   perform public._t008_refuse(
     $q$update public.factures set statut = 'annulee' where id = 'a0080000-0000-4000-8000-000000000f02'$q$,
-    'passera par un avoir');
+    'passe par un avoir');
   perform public._t008_refuse(
     $q$update public.factures set statut = 'brouillon' where id = 'a0080000-0000-4000-8000-000000000f02'$q$,
     'repasser en brouillon');
@@ -334,7 +334,7 @@ begin
   update public.factures set statut = 'en_retard' where id = 'a0080000-0000-4000-8000-000000000f02';
   perform public._t008_refuse(
     $q$update public.factures set statut = 'annulee' where id = 'a0080000-0000-4000-8000-000000000f02'$q$,
-    'passera par un avoir');
+    'passe par un avoir');
   perform public._t008_refuse(
     $q$update public.factures set statut = 'brouillon' where id = 'a0080000-0000-4000-8000-000000000f02'$q$,
     'repasser en brouillon');

@@ -94,7 +94,8 @@ export function MenuStatut({ badge, ariaLabel, statutActuel, options, ouvert, on
   );
 }
 
-export function CarteLignes({ lignes, legende }) {
+// negatif : montants de ligne affichés en négatif (avoir).
+export function CarteLignes({ lignes, legende, negatif = false }) {
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Lignes d'articles</h3>
@@ -125,7 +126,7 @@ export function CarteLignes({ lignes, legende }) {
                   {Number(l.remise) > 0 ? `− ${euroCentimes(l.remise)}` : "—"}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums" style={{ color: C.textSecondary }}>{String(l.taux_tva).replace(".", ",")} %</td>
-                <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(ligneHT(l))}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(negatif && ligneHT(l) !== 0 ? -ligneHT(l) : ligneHT(l))}</td>
               </tr>
             ))}
           </tbody>
@@ -141,7 +142,7 @@ export function CarteResume({ recap, children }) {
     <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Résumé financier</h3>
       <dl className="space-y-2 text-sm">
-        {recap.remise > 0 && (
+        {recap.remise !== 0 && (
           <>
             <div className="flex items-center justify-between">
               <dt style={{ color: C.textSecondary }}>Total HT brut</dt>
@@ -149,12 +150,12 @@ export function CarteResume({ recap, children }) {
             </div>
             <div className="flex items-center justify-between">
               <dt style={{ color: C.textSecondary }}>Remise globale</dt>
-              <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euroCentimes(recap.remise)}</dd>
+              <dd className="tabular-nums" style={{ color: C.textPrimary }}>{recap.remise > 0 ? "−" : "+"} {euroCentimes(Math.abs(recap.remise))}</dd>
             </div>
           </>
         )}
         <div className="flex items-center justify-between">
-          <dt style={{ color: C.textSecondary }}>{recap.remise > 0 ? "Total HT net" : "Total HT"}</dt>
+          <dt style={{ color: C.textSecondary }}>{recap.remise !== 0 ? "Total HT net" : "Total HT"}</dt>
           <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(recap.ht)}</dd>
         </div>
         {recap.tvaDetail.length === 0 ? (

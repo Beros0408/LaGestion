@@ -1,9 +1,13 @@
 import React, { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, List, Pencil, Phone, Mail, MapPin } from "lucide-react";
-import { C, AVATARS, alpha } from "../theme";
+import { C, AVATARS, alpha, euroCentimes } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
+import { useFactures } from "../context/FacturesContext.jsx";
+import { libelleNumero } from "../data/factures";
+import { resteAPayer, soldeClient, totalTTC } from "../utils/facture";
+import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 
 const AVATAR_PALETTE = Object.values(AVATARS);
 
@@ -296,7 +300,7 @@ export default function ClientDetail() {
           )}
 
           <CarteVide titre="Opportunités liées" message="Aucune opportunité liée." />
-          <CarteVide titre="Factures liées"     message="Aucune facture liée." />
+          <CarteFacturesClient clientId={id} />
           <CarteVide titre="Documents"          message="Aucun document associé." />
         </div>
       </div>
@@ -311,6 +315,66 @@ function Coordonnee({ icon: Icon, label, value }) {
       <div className="flex items-center gap-2 text-sm" style={{ color: C.textPrimary }}>
         <Icon size={14} aria-hidden="true" style={{ color: C.textSecondary, flexShrink: 0 }} />
         <span className="truncate">{value || "—"}</span>
+      </div>
+    </div>
+  );
+}
+
+function CarteFacturesClient({ clientId }) {
+  const { factures } = useFactures();
+  const liste = useMemo(
+    () => factures
+      .filter((f) => f.client_id === clientId)
+      .sort((x, y) => (y.date_emission ?? "").localeCompare(x.date_emission ?? "")),
+    [factures, clientId]
+  );
+  const solde = useMemo(() => soldeClient(liste), [liste]);
+  if (liste.length === 0) return <CarteVide titre="Factures liées" message="Aucune facture liée." />;
+
+  const lignes = [
+    ["Facturé, net des avoirs", solde.facture],
+    ["Encaissé, net des remboursements", solde.encaisse],
+    ["Reste à payer", solde.reste],
+    ...(solde.tropPercu > 0 ? [["Trop-perçu à rembourser", solde.tropPercu]] : []),
+  ];
+  return (
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <h3 className="mb-3 text-base font-semibold" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
+        Factures liées
+      </h3>
+      <dl className="mb-4 space-y-1 text-sm">
+        {lignes.map(([libelle, valeur]) => (
+          <div key={libelle} className="flex items-center justify-between gap-3">
+            <dt style={{ color: C.textSecondary }}>{libelle}</dt>
+            <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(valeur)}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <caption className="sr-only">Factures et avoirs de ce client</caption>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+              {["Numéro", "TTC", "Reste", "Statut"].map((h) => (
+                <th key={h} scope="col" className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {liste.map((f) => (
+              <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <td className="whitespace-nowrap px-2 py-2 font-medium tabular-nums">
+                  <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
+                    {libelleNumero(f)}
+                  </Link>
+                </td>
+                <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(f))}</td>
+                <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(resteAPayer(f))}</td>
+                <td className="px-2 py-2"><BadgeStatutFacture statut={f.statut} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

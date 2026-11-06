@@ -11,13 +11,19 @@ import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import {
   STATUTS, LIBELLE_STATUT, STATUTS_IMPAYES, factureModifiable, libelleNumero, statutsSuivantsFacture,
 } from "../data/factures";
-import { totalTTC } from "../utils/facture";
+import { estComptabilisee, resteAPayer, totalAvoirs, totalTTC } from "../utils/facture";
 import { exporterFacturesExcel } from "../utils/excel";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 
 const STATUT_OPTIONS = [
   { id: "tous", label: "Tous" },
   ...STATUTS.map((s) => ({ id: s, label: LIBELLE_STATUT[s] })),
+];
+
+const TYPE_OPTIONS = [
+  { id: "tous", label: "Tous" },
+  { id: "facture", label: "Factures" },
+  { id: "avoir", label: "Avoirs" },
 ];
 
 const COLUMNS = [
@@ -55,6 +61,7 @@ export default function Factures() {
   const [requete, setRequete] = useState("");
   const requeteDeb = useDebouncedValue(requete, 250);
   const [statut, setStatut] = useState("tous");
+  const [type, setType] = useState("tous");
   const [tri, setTri] = useState({ col: "date_emission", dir: "desc" });
 
   const clientsParId = useMemo(() => {
@@ -75,13 +82,14 @@ export default function Factures() {
     const q = requeteDeb.trim().toLowerCase();
     return enrichies.filter((f) => {
       if (statut !== "tous" && f.statut !== statut) return false;
+      if (type !== "tous" && f.type !== type) return false;
       if (q) {
         const hay = `${libelleNumero(f)} ${f.clientNom}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [enrichies, requeteDeb, statut]);
+  }, [enrichies, requeteDeb, statut, type]);
 
   const triees = useMemo(() => {
     const arr = [...filtrees];
@@ -98,15 +106,16 @@ export default function Factures() {
 
   const recap = useMemo(() => {
     let nombre = 0;
+    let avoirs = 0;
     let totalTotal = 0;
     let impaye = 0;
     factures.forEach((f) => {
-      nombre += 1;
-      const ttc = totalTTC(f);
-      totalTotal += ttc;
-      if (STATUTS_IMPAYES.includes(f.statut)) impaye += ttc;
+      if (f.type === "avoir") avoirs += 1;
+      else nombre += 1;
+      if (estComptabilisee(f)) totalTotal += totalTTC(f);
+      if (STATUTS_IMPAYES.includes(f.statut)) impaye += resteAPayer(f);
     });
-    return { nombre, totalTotal, impaye };
+    return { nombre, avoirs, totalTotal, impaye };
   }, [factures]);
 
   const handleSort = (col) => {
@@ -120,12 +129,13 @@ export default function Factures() {
   const reinitialiserFiltres = () => {
     setRequete("");
     setStatut("tous");
+    setType("tous");
   };
 
   const handleView = (f) => navigate(`/factures/${f.id}`);
   const handleEdit = (f) => navigate(`/factures/${f.id}/modifier`);
   const handleDelete = (f) => {
-    const ok = window.confirm(`Supprimer le brouillon de facture de ${f.clientNom} ? Il ne sera plus visible.`);
+    const ok = window.confirm(`Supprimer le brouillon ${f.type === "avoir" ? "d'avoir" : "de facture"} de ${f.clientNom} ? Il ne sera plus visible.`);
     if (!ok) return;
     deleteFacture(f.id);
   };
@@ -142,7 +152,8 @@ export default function Factures() {
               "Chargement…"
             ) : (
               <>
-                {recap.nombre} {recap.nombre > 1 ? "factures" : "facture"} · Total facturé{" "}
+                {recap.nombre} {recap.nombre > 1 ? "factures" : "facture"}
+                {recap.avoirs > 0 ? ` · ${recap.avoirs} ${recap.avoirs > 1 ? "avoirs" : "avoir"}` : ""} · Total facturé{" "}
                 <span className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(recap.totalTotal)}</span>
                 <span className="mx-1">·</span>
                 Impayé{" "}
@@ -219,6 +230,13 @@ export default function Factures() {
             onChange={setStatut}
             ariaLabel="Filtrer par statut"
           />
+          <FilterGroup
+            label="Type"
+            options={TYPE_OPTIONS}
+            value={type}
+            onChange={setType}
+            ariaLabel="Filtrer par type"
+          />
         </div>
       </div>
 
@@ -277,7 +295,7 @@ export default function Factures() {
                     onEdit={peutEcrire && factureModifiable(f.statut) ? () => handleEdit(f) : null}
                     onDelete={peutSupprimer && factureModifiable(f.statut) ? () => handleDelete(f) : null}
                     // Refus affiché par le bandeau d'erreur de la liste
-                    onChangerStatut={peutEcrire && statutsSuivantsFacture(f.statut).length > 0
+                    onChangerStatut={peutEcrire && statutsSuivantsFacture(f.statut, f.type).length > 0
                       ? (s) => { changerStatut(f.id, s).catch(() => {}); }
                       : null}
                   />
@@ -329,7 +347,8 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
   const [sousMenuOuvert, setSousMenuOuvert] = useState(false);
   const conteneurRef = useRef(null);
   const boutonRef = useRef(null);
-  const nom = facture.numero ?? `brouillon de ${facture.clientNom}`;
+  const nom = facture.numero ?? `brouillon ${facture.type === "avoir" ? "d'avoir" : ""} de ${facture.clientNom}`.replace("  ", " ");
+  const avoirs = totalAvoirs(facture);
 
   useEffect(() => {
     if (!menuOuvert) return;
@@ -361,11 +380,21 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
       className="cursor-pointer transition-colors hover:bg-lg-hover"
       style={{ borderBottom: `1px solid ${C.border}` }}
     >
-      <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>{libelleNumero(facture)}</td>
+      <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>
+        {libelleNumero(facture)}
+        {facture.type === "avoir" && facture.numero && (
+          <span className="ml-2 text-xs font-normal" style={{ color: C.textSecondary }}>Avoir</span>
+        )}
+      </td>
       <td className="px-3 py-3" style={{ color: C.textSecondary }}>{facture.clientNom}</td>
       <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{formaterDate(facture.date_emission)}</td>
       <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{formaterDate(facture.date_echeance)}</td>
-      <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(facture.montantTTC)}</td>
+      <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+        {euro(facture.montantTTC)}
+        {avoirs > 0 && (
+          <span className="block text-xs font-normal" style={{ color: C.textSecondary }}>dont avoirs − {euro(avoirs)}</span>
+        )}
+      </td>
       <td className="px-3 py-3"><BadgeStatutFacture statut={facture.statut} /></td>
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -431,7 +460,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                         boxShadow: OMBRE.lg,
                       }}
                     >
-                      {statutsSuivantsFacture(facture.statut).map((s) => (
+                      {statutsSuivantsFacture(facture.statut, facture.type).map((s) => (
                         <button
                           key={s}
                           type="button"

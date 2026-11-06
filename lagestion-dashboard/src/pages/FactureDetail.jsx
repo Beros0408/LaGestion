@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  List, Pencil, Download, Printer, Copy, CreditCard, Trash2, AlertCircle, Plus, Lock,
+  List, Pencil, Download, Printer, Copy, CreditCard, Trash2, AlertCircle, Plus, Lock, FileMinus,
 } from "lucide-react";
 import { C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -9,7 +9,8 @@ import { useClients } from "../context/ClientsContext.jsx";
 import { useDevis } from "../context/DevisContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import {
-  totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTTC, totalPaye, resteAPayer,
+  totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTTC, totalPaye, totalAvoirs, resteAPayer, tropPercu, resteCreditable,
+  montantSigne,
 } from "../utils/facture";
 import { genererFacturePdf } from "../utils/facturePdf";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
@@ -17,7 +18,8 @@ import {
   BoutonSecondaire, CarteBloc, CarteClient, CarteLignes, CarteResume, MenuStatut, Panneau, Spinner,
 } from "../components/document/CartesDocument.jsx";
 import {
-  LIBELLE_STATUT, factureModifiable, libelleNumero, paiementPossible, statutsSuivantsFacture,
+  LIBELLE_STATUT, ROLES_FINALISATION_AVOIR, factureModifiable, libelleNumero, paiementPossible, peutCreerAvoir,
+  statutsSuivantsFacture,
 } from "../data/factures";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import Input from "../components/form/Input.jsx";
@@ -64,7 +66,7 @@ export default function FactureDetail() {
     factures, chargement, changerStatut, finaliserFacture, ajouterPaiement, supprimerPaiement, dupliquerFacture,
   } = useFactures();
   const { clients, chargement: chargementClients } = useClients();
-  const { peutEcrire, peutSupprimer, entreprise } = useEntreprise();
+  const { peutEcrire, peutSupprimer, entreprise, role } = useEntreprise();
   const { devis } = useDevis();
 
   const facture = useMemo(() => factures.find((f) => f.id === id), [factures, id]);
@@ -86,9 +88,15 @@ export default function FactureDetail() {
       tvaDetail: tvaParTaux(facture),
       ttc: totalTTC(facture),
       paye: totalPaye(facture),
+      avoirs: totalAvoirs(facture),
       reste: resteAPayer(facture),
+      trop: tropPercu(facture),
     };
   }, [facture]);
+  const avoirsLies = useMemo(
+    () => factures.filter((f) => f.type === "avoir" && f.facture_origine_id === id),
+    [factures, id]
+  );
 
   const [statutMenuOuvert, setStatutMenuOuvert] = useState(false);
   const [paiementFormOuvert, setPaiementFormOuvert] = useState(false);
@@ -125,8 +133,17 @@ export default function FactureDetail() {
   }
 
   const modifiable = factureModifiable(facture.statut);
-  const optionsStatut = statutsSuivantsFacture(facture.statut).map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
-  const nomFacture = facture.numero ? `la facture ${facture.numero}` : "ce brouillon de facture";
+  const estAvoir = facture.type === "avoir";
+  const optionsStatut = statutsSuivantsFacture(facture.statut, facture.type).map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
+  const nomFacture = estAvoir
+    ? (facture.numero ? `l'avoir ${facture.numero}` : "ce brouillon d'avoir")
+    : (facture.numero ? `la facture ${facture.numero}` : "ce brouillon de facture");
+  const peutFinaliser = !estAvoir || ROLES_FINALISATION_AVOIR.includes(role);
+  const creditable = peutCreerAvoir(facture) && resteCreditable(facture).length > 0;
+  const origineFacture = estAvoir ? factures.find((f) => f.id === facture.facture_origine_id) : null;
+  // Cet avoir solde-t-il la facture ? Annoncé dans la confirmation.
+  const soldeOrigine = estAvoir && origineFacture
+    && Math.round((totalAvoirs(origineFacture) - recap.ttc) * 100) >= Math.round(totalTTC(origineFacture) * 100);
   // Facture émise : identité figée ; le lien vers la fiche n'apparaît que si le client existe encore.
   const clientAffiche = facture.client_fige ? { ...facture.client_fige, id: client?.id } : client;
 
@@ -214,9 +231,29 @@ export default function FactureDetail() {
           </div>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
             {modifiable
-              ? `Sans valeur de facture tant qu'il n'est pas finalisé · Échéance le ${formaterDateLongue(facture.date_echeance)}`
-              : `Émise le ${formaterDateLongue(facture.date_emission)} · Échéance le ${formaterDateLongue(facture.date_echeance)}`}
+              ? (estAvoir
+                ? "Sans valeur d'avoir tant qu'il n'est pas finalisé"
+                : `Sans valeur de facture tant qu'il n'est pas finalisé · Échéance le ${formaterDateLongue(facture.date_echeance)}`)
+              : (estAvoir
+                ? `Émis le ${formaterDateLongue(facture.date_emission)}`
+                : `Émise le ${formaterDateLongue(facture.date_emission)} · Échéance le ${formaterDateLongue(facture.date_echeance)}`)}
           </p>
+          {estAvoir && (
+            <>
+              <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+                Avoir sur la facture{" "}
+                <Link
+                  to={`/factures/${facture.facture_origine_id}`}
+                  className="rounded font-medium underline focus:outline-none focus-visible:ring-2"
+                  style={{ color: C.primary }}
+                >
+                  {facture.origine_numero ?? "d'origine"}
+                </Link>
+                {facture.origine_date ? ` du ${formaterDateLongue(facture.origine_date)}` : ""}
+              </p>
+              <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>{`Motif : ${facture.motif}`}</p>
+            </>
+          )}
           {devisOrigine && (
             <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
               Issue du devis{" "}
@@ -255,17 +292,28 @@ export default function FactureDetail() {
           </BoutonSecondaire>
           {peutEcrire && (
             <>
-              <BoutonSecondaire
-                onClick={handleDupliquer}
-                ariaLabel={`Dupliquer ${nomFacture}`}
-                icon={Copy}
-                disabled={actionEnCours}
-              >
-                Dupliquer
-              </BoutonSecondaire>
-              {paiementPossible(facture.statut) && (
+              {!estAvoir && (
                 <BoutonSecondaire
-                  onClick={() => setPaiementFormOuvert(true)}
+                  onClick={handleDupliquer}
+                  ariaLabel={`Dupliquer ${nomFacture}`}
+                  icon={Copy}
+                  disabled={actionEnCours}
+                >
+                  Dupliquer
+                </BoutonSecondaire>
+              )}
+              {creditable && (
+                <BoutonSecondaire
+                  onClick={() => navigate(`/factures/${facture.id}/avoir`)}
+                  ariaLabel="Créer un avoir"
+                  icon={FileMinus}
+                >
+                  Créer un avoir
+                </BoutonSecondaire>
+              )}
+              {paiementPossible(facture.statut, facture.type) && (
+                <BoutonSecondaire
+                  onClick={() => setPaiementFormOuvert("encaissement")}
                   ariaLabel="Enregistrer un paiement"
                   icon={CreditCard}
                 >
@@ -275,22 +323,24 @@ export default function FactureDetail() {
               {modifiable && (
                 <>
                   <BoutonSecondaire
-                    onClick={() => navigate(`/factures/${facture.id}/modifier`)}
-                    ariaLabel="Modifier ce brouillon de facture"
+                    onClick={() => navigate(estAvoir ? `/factures/${facture.id}/avoir/modifier` : `/factures/${facture.id}/modifier`)}
+                    ariaLabel={`Modifier ${nomFacture}`}
                     icon={Pencil}
                   >
                     Modifier
                   </BoutonSecondaire>
-                  <button
-                    type="button"
-                    onClick={(e) => setAFinaliser({ element: e.currentTarget })}
-                    disabled={actionEnCours}
-                    className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ backgroundColor: C.primary }}
-                  >
-                    <Lock size={16} aria-hidden="true" />
-                    {actionEnCours ? "Finalisation…" : "Finaliser"}
-                  </button>
+                  {peutFinaliser && (
+                    <button
+                      type="button"
+                      onClick={(e) => setAFinaliser({ element: e.currentTarget })}
+                      disabled={actionEnCours}
+                      className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                      style={{ backgroundColor: C.primary }}
+                    >
+                      <Lock size={16} aria-hidden="true" />
+                      {actionEnCours ? "Finalisation…" : "Finaliser"}
+                    </button>
+                  )}
                 </>
               )}
             </>
@@ -305,38 +355,76 @@ export default function FactureDetail() {
           style={{ backgroundColor: alpha(C.info, 0.08), color: C.infoText, border: `1px solid ${C.info}` }}
         >
           <Lock size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-          <span>Cette facture est verrouillée : ni modification, ni suppression. Sa correction passera par un avoir.</span>
+          <span>
+            {estAvoir
+              ? `Cet avoir est verrouillé : ni modification, ni suppression.`
+              : facture.statut === "annulee"
+                ? (facture.avoirs.length > 0 ? "Cette facture est annulée par avoir." : "Cette facture est annulée.")
+                : `Cette facture est verrouillée : ni modification, ni suppression. Sa correction passe par un avoir.`}
+          </span>
+        </div>
+      )}
+
+      {estAvoir && modifiable && peutEcrire && !peutFinaliser && (
+        <div
+          role="status"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{ backgroundColor: alpha(C.info, 0.08), color: C.infoText, border: `1px solid ${C.info}` }}
+        >
+          <Lock size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span>Un administrateur, un manager ou un comptable doit finaliser cet avoir.</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
-          <CarteLignes lignes={facture.lignes} legende="Détail des lignes de la facture" />
+          <CarteLignes lignes={facture.lignes} legende={estAvoir ? "Détail des lignes de l'avoir" : "Détail des lignes de la facture"} negatif={estAvoir} />
           <CarteResume recap={recap}>
-            <div className="flex items-center justify-between">
-              <dt style={{ color: C.textSecondary }}>Déjà payé</dt>
-              <dd className="tabular-nums" style={{ color: C.successText }}>{euroCentimes(recap.paye)}</dd>
-            </div>
-            <div className="flex items-center justify-between">
-              <dt className="font-semibold" style={{ color: C.textPrimary }}>Reste à payer</dt>
-              <dd
-                className="text-base font-bold tabular-nums"
-                style={{ color: recap.reste > 0 ? C.errorText : C.successText }}
-              >
-                {euroCentimes(recap.reste)}
-              </dd>
-            </div>
+            {!estAvoir && (
+              <>
+                {recap.avoirs > 0 && (
+                  <div className="flex items-center justify-between">
+                    <dt style={{ color: C.textSecondary }}>Avoirs</dt>
+                    <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euroCentimes(recap.avoirs)}</dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <dt style={{ color: C.textSecondary }}>Déjà payé</dt>
+                  <dd className="tabular-nums" style={{ color: C.successText }}>{euroCentimes(recap.paye)}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="font-semibold" style={{ color: C.textPrimary }}>Reste à payer</dt>
+                  <dd
+                    className="text-base font-bold tabular-nums"
+                    style={{ color: recap.reste > 0 ? C.errorText : C.successText }}
+                  >
+                    {euroCentimes(recap.reste)}
+                  </dd>
+                </div>
+                {recap.trop > 0 && (
+                  <div className="flex items-center justify-between">
+                    <dt className="font-semibold" style={{ color: C.warningText }}>Trop-perçu à rembourser</dt>
+                    <dd className="text-base font-bold tabular-nums" style={{ color: C.warningText }}>{euroCentimes(recap.trop)}</dd>
+                  </div>
+                )}
+              </>
+            )}
           </CarteResume>
-          <CartePaiements
-            facture={facture}
-            paiementFormOuvert={paiementFormOuvert}
-            onOuvrirForm={() => setPaiementFormOuvert(true)}
-            onFermerForm={() => setPaiementFormOuvert(false)}
-            ajouterPaiement={ajouterPaiement}
-            supprimerPaiement={supprimerPaiement}
-            peutEcrire={peutEcrire && paiementPossible(facture.statut)}
-            peutSupprimer={peutSupprimer}
-          />
+          {avoirsLies.length > 0 && <CarteAvoirs avoirs={avoirsLies} />}
+          {!estAvoir && (
+            <CartePaiements
+              facture={facture}
+              paiementFormOuvert={paiementFormOuvert}
+              onOuvrirForm={setPaiementFormOuvert}
+              onFermerForm={() => setPaiementFormOuvert(false)}
+              ajouterPaiement={ajouterPaiement}
+              supprimerPaiement={supprimerPaiement}
+              peutEcrire={peutEcrire && paiementPossible(facture.statut, facture.type)}
+              peutRembourser={peutEcrire && recap.trop > 0}
+              tropPercu={recap.trop}
+              peutSupprimer={peutSupprimer}
+            />
+          )}
         </div>
 
         <div className="space-y-5">
@@ -357,8 +445,10 @@ export default function FactureDetail() {
 
       <ConfirmDialog
         ouvert={Boolean(aFinaliser)}
-        titre="Finaliser cette facture ?"
-        message={`Elle recevra son numéro définitif et sera datée du ${dateDuJourParis()}. Cette action est irréversible : la facture ne pourra plus être modifiée ni supprimée, sa correction passera par un avoir.`}
+        titre={estAvoir ? `Finaliser cet avoir ?` : `Finaliser cette facture ?`}
+        message={estAvoir
+          ? `Il recevra son numéro définitif et sera daté du ${dateDuJourParis()}. Cette action est irréversible : l'avoir ne pourra plus être modifié ni supprimé.${soldeOrigine ? ` La facture ${facture.origine_numero} passera au statut annulée.` : ""}`
+          : `Elle recevra son numéro définitif et sera datée du ${dateDuJourParis()}. Cette action est irréversible : la facture ne pourra plus être modifiée ni supprimée, sa correction passera par un avoir.`}
         libelleAnnuler="Annuler"
         libelleConfirmer="Finaliser"
         onAnnuler={() => setAFinaliser(null)}
@@ -369,31 +459,71 @@ export default function FactureDetail() {
   );
 }
 
+function CarteAvoirs({ avoirs }) {
+  return (
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Avoirs</h3>
+      <ul className="space-y-2 text-sm">
+        {avoirs.map((a) => (
+          <li key={a.id} className="flex flex-wrap items-center justify-between gap-2">
+            <Link
+              to={`/factures/${a.id}`}
+              className="rounded font-medium underline focus:outline-none focus-visible:ring-2"
+              style={{ color: C.primary }}
+            >
+              {libelleNumero(a)}
+            </Link>
+            <span className="flex items-center gap-3">
+              <span className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(a))}</span>
+              <BadgeStatutFacture statut={a.statut} />
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function CartePaiements({
   facture, paiementFormOuvert, onOuvrirForm, onFermerForm, ajouterPaiement, supprimerPaiement,
-  peutEcrire, peutSupprimer,
+  peutEcrire, peutRembourser, tropPercu: trop, peutSupprimer,
 }) {
   const paiements = facture.paiements ?? [];
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
       <div className="mb-3 flex items-center justify-between">
         <h3 style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Paiements</h3>
-        {peutEcrire && !paiementFormOuvert && (
-          <button
-            type="button"
-            onClick={onOuvrirForm}
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2"
-            style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
-          >
-            <Plus size={14} aria-hidden="true" />
-            Enregistrer un paiement
-          </button>
-        )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {peutRembourser && !paiementFormOuvert && (
+            <button
+              type="button"
+              onClick={() => onOuvrirForm("remboursement")}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2"
+              style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+            >
+              <Plus size={14} aria-hidden="true" />
+              Enregistrer un remboursement
+            </button>
+          )}
+          {peutEcrire && !paiementFormOuvert && (
+            <button
+              type="button"
+              onClick={() => onOuvrirForm("encaissement")}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2"
+              style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+            >
+              <Plus size={14} aria-hidden="true" />
+              Enregistrer un paiement
+            </button>
+          )}
+        </div>
       </div>
 
       {paiementFormOuvert && (
         <FormulairePaiement
           factureId={facture.id}
+          sens={paiementFormOuvert}
+          plafond={paiementFormOuvert === "remboursement" ? trop : null}
           onAnnuler={onFermerForm}
           onEnregistrer={async (data) => {
             await ajouterPaiement(facture.id, data);
@@ -437,10 +567,10 @@ function CartePaiements({
   );
 }
 
-function FormulairePaiement({ onAnnuler, onEnregistrer }) {
+function FormulairePaiement({ sens = "encaissement", plafond = null, onAnnuler, onEnregistrer }) {
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
-    montant: "",
+    montant: plafond != null ? String(plafond) : "",
     mode: "",
     reference: "",
   });
@@ -465,6 +595,8 @@ function FormulairePaiement({ onAnnuler, onEnregistrer }) {
     const m = Number(form.montant);
     if (form.montant === "" || Number.isNaN(m) || m <= 0) {
       errs.montant = "Le montant doit être positif.";
+    } else if (plafond != null && Math.round(m * 100) > Math.round(plafond * 100)) {
+      errs.montant = `Au plus ${euroCentimes(plafond)} (trop-perçu).`;
     }
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -474,6 +606,7 @@ function FormulairePaiement({ onAnnuler, onEnregistrer }) {
     try {
       await onEnregistrer({
         date: form.date,
+        sens,
         montant: m,
         mode: form.mode || null,
         reference: form.reference,
@@ -554,7 +687,7 @@ function FormulairePaiement({ onAnnuler, onEnregistrer }) {
           className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
           style={{ backgroundColor: C.primary }}
         >
-          {envoi ? "Enregistrement…" : "Enregistrer le paiement"}
+          {envoi ? "Enregistrement…" : sens === "remboursement" ? "Enregistrer le remboursement" : "Enregistrer le paiement"}
         </button>
       </div>
     </form>
@@ -586,10 +719,10 @@ function LignePaiement({ paiement, onSupprimer }) {
         {formaterDateCourte(paiement.date)}
       </td>
       <td className="px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>
-        {euroCentimes(paiement.montant)}
+        {euroCentimes(montantSigne(paiement))}
       </td>
       <td className="px-3 py-3 text-sm" style={{ color: C.textSecondary }}>
-        {MODE_PAIEMENT_LIBELLES[paiement.mode] ?? "—"}
+        {paiement.sens === "remboursement" ? "Remboursement · " : ""}{MODE_PAIEMENT_LIBELLES[paiement.mode] ?? "—"}
       </td>
       <td className="px-3 py-3 text-sm" style={{ color: C.textSecondary }}>
         {paiement.reference || "—"}

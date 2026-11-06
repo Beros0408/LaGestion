@@ -5,6 +5,7 @@
 // 3. TVA arrondie par taux sur la base remisée ; TTC = HT net + TVA.
 // Arrondi au centime, moitié éloignée de zéro (comme round() de Postgres).
 // Une facture émise porte ses totaux figés (migration 008) : ils priment sur tout calcul.
+// Un avoir (migration 009) a des lignes positives et des totaux négatifs : le signe est porté par le document.
 
 const enCentimes = (euros) => BigInt(Math.round((Number(euros) || 0) * 100));
 const enEuros = (c) => Number(c) / 100;
@@ -64,14 +65,15 @@ export function calculerTotaux(facture) {
     .sort((a, b) => b.taux - a.taux);
   const tvaTotal = tva.reduce((s, d) => s + d.tvaC, 0n);
   const ht = htBrut - remise;
+  const signe = (c) => (facture?.type === "avoir" && c !== 0n ? -Number(c) : Number(c));
 
   return {
-    htBrutC: Number(htBrut),
-    remiseC: Number(remise),
-    htC: Number(ht),
-    tva: tva.map((d) => ({ taux: d.taux, baseC: Number(d.baseC), tvaC: Number(d.tvaC) })),
-    tvaC: Number(tvaTotal),
-    ttcC: Number(ht + tvaTotal),
+    htBrutC: signe(htBrut),
+    remiseC: signe(remise),
+    htC: signe(ht),
+    tva: tva.map((d) => ({ taux: d.taux, baseC: signe(d.baseC), tvaC: signe(d.tvaC) })),
+    tvaC: signe(tvaTotal),
+    ttcC: signe(ht + tvaTotal),
   };
 }
 
@@ -105,11 +107,73 @@ export function totalTTC(facture) {
   return enEuros(calculerTotaux(facture).ttcC);
 }
 
+const centimes = (euros) => Number(enCentimes(euros));
+
+// Un remboursement réduit l'encaissé.
+export const montantSigne = (p) => (p?.sens === "remboursement" ? -1 : 1) * (Number(p?.montant) || 0);
+
+// Encaissé net des remboursements.
 export function totalPaye(facture) {
-  const paiements = facture?.paiements ?? [];
-  return paiements.reduce((s, p) => s + (Number(p?.montant) || 0), 0);
+  return (facture?.paiements ?? []).reduce((s, p) => s + centimes(montantSigne(p)), 0) / 100;
 }
 
+// Cumul des avoirs finalisés d'une facture, en positif (facture.avoirs : voir lierAvoirs).
+export function totalAvoirs(facture) {
+  return (facture?.avoirs ?? []).reduce((s, a) => s - centimes(totalTTC(a)), 0) / 100;
+}
+
+// Mêmes règles que la vue SQL public.factures_soldes. Un avoir n'a ni reste à payer ni trop-perçu.
 export function resteAPayer(facture) {
-  return Math.max(0, totalTTC(facture) - totalPaye(facture));
+  if (facture?.type === "avoir") return 0;
+  return Math.max(0, centimes(totalTTC(facture)) - centimes(totalAvoirs(facture)) - centimes(totalPaye(facture))) / 100;
+}
+
+export function tropPercu(facture) {
+  if (facture?.type === "avoir") return 0;
+  return Math.max(0, centimes(totalPaye(facture)) - (centimes(totalTTC(facture)) - centimes(totalAvoirs(facture)))) / 100;
+}
+
+// Ce qu'il reste à créditer sur une facture, par taux (base HT et TVA, en euros).
+export function resteCreditable(facture) {
+  const avoirs = (facture?.avoirs ?? []).flatMap((a) => calculerTotaux(a).tva);
+  return calculerTotaux(facture).tva
+    .map((d) => {
+      const deja = avoirs.filter((x) => x.taux === d.taux);
+      return {
+        taux: d.taux,
+        base: (d.baseC + deja.reduce((s, x) => s + x.baseC, 0)) / 100,
+        tva: (d.tvaC + deja.reduce((s, x) => s + x.tvaC, 0)) / 100,
+      };
+    })
+    .filter((d) => d.base > 0 || d.tva > 0);
+}
+
+// Rattache à chaque facture ses avoirs finalisés et à chaque avoir sa facture d'origine (numéro et date).
+export function lierAvoirs(factures) {
+  const parId = new Map(factures.map((f) => [f.id, f]));
+  const avoirs = new Map();
+  factures
+    .filter((f) => f.type === "avoir" && f.statut !== "brouillon")
+    .forEach((a) => avoirs.set(a.facture_origine_id, [...(avoirs.get(a.facture_origine_id) ?? []), a]));
+  return factures.map((f) => {
+    const origine = f.facture_origine_id ? parId.get(f.facture_origine_id) : null;
+    return { ...f, avoirs: avoirs.get(f.id) ?? [], origine_numero: origine?.numero ?? null, origine_date: origine?.date_emission ?? null };
+  });
+}
+
+// Document qui compte dans le facturé : ni brouillon, ni ancienne facture annulée sans avoir.
+// Une facture annulée par avoir compte à sa date, et l'avoir en négatif à la sienne : les mois passés ne bougent pas.
+export const estComptabilisee = (f) =>
+  f.statut !== "brouillon" && (f.statut !== "annulee" || (f.avoirs ?? []).length > 0);
+
+// Situation d'un client : facturé net des avoirs, encaissé net, reste à payer, trop-perçu.
+export function soldeClient(factures) {
+  const liste = factures.filter(estComptabilisee);
+  const somme = (fn) => liste.reduce((s, f) => s + centimes(fn(f)), 0) / 100;
+  return {
+    facture: somme(totalTTC),
+    encaisse: somme(totalPaye),
+    reste: somme(resteAPayer),
+    tropPercu: somme(tropPercu),
+  };
 }

@@ -1,7 +1,7 @@
 // Calculs du tableau de bord : fonctions pures, montants additionnés en centimes entiers.
 // Les totaux d'une facture viennent exclusivement de utils/facture.js.
 // Dates au format ISO « AAAA-MM-JJ » ; « aujourdhui » est passé en paramètre (déterminisme, tests).
-import { totalHT, totalTTC, totalPaye, resteAPayer } from "./facture.js";
+import { estComptabilisee, montantSigne, totalAvoirs, totalHT, totalTTC, totalPaye, resteAPayer } from "./facture.js";
 import { STATUTS_IMPAYES, LIBELLE_STATUT, libelleNumero } from "../data/factures.js";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis.js";
 import { ETAPES } from "../data/opportunites.js";
@@ -110,7 +110,6 @@ export function variation(courant, precedent) {
   return Math.round(((courant - precedent) / precedent) * 1000) / 10;
 }
 
-const estFacturee = (f) => f.statut !== "brouillon" && f.statut !== "annulee";
 const estImpayee = (f) => STATUTS_IMPAYES.includes(f.statut) && centimes(resteAPayer(f)) > 0;
 
 function nomClient(clientsParId, id) {
@@ -124,7 +123,7 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
   const clientsParId = new Map(clients.map((c) => [c.id, c]));
 
   const htC = new Map(factures.map((f) => [f.id, centimes(totalHT(f))]));
-  const facturees = factures.filter(estFacturee);
+  const facturees = factures.filter(estComptabilisee);
   const facturesPeriode = facturees.filter((f) => dans(f.date_emission, b));
   const facturesPrec = facturees.filter((f) => dans(f.date_emission, b.precedente));
   const paiements = factures.flatMap((f) => (f.paiements ?? []).map((p) => ({ ...p, facture: f })));
@@ -134,8 +133,8 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
   // KPI
   const caC = somme(facturesPeriode, (f) => htC.get(f.id));
   const caPrecC = somme(facturesPrec, (f) => htC.get(f.id));
-  const encC = somme(paiements.filter((p) => dans(p.date, b)), (p) => centimes(p.montant));
-  const encPrecC = somme(paiements.filter((p) => dans(p.date, b.precedente)), (p) => centimes(p.montant));
+  const encC = somme(paiements.filter((p) => dans(p.date, b)), (p) => centimes(montantSigne(p)));
+  const encPrecC = somme(paiements.filter((p) => dans(p.date, b.precedente)), (p) => centimes(montantSigne(p)));
   const impayees = factures.filter(estImpayee);
   const ouvertes = opportunites.filter((o) => o.etape !== ETAPE_FINALE);
   const nouveaux = clients.filter((c) => dans(jourLocal(c.created_at), b)).length;
@@ -165,7 +164,7 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
   });
   const parMois = new Map(mensuel.map((x) => [x.mois, x]));
   facturesPeriode.forEach((f) => { parMois.get(f.date_emission.slice(0, 7)).factureC += htC.get(f.id); });
-  paiements.filter((p) => dans(p.date, b)).forEach((p) => { parMois.get(p.date.slice(0, 7)).encaisseC += centimes(p.montant); });
+  paiements.filter((p) => dans(p.date, b)).forEach((p) => { parMois.get(p.date.slice(0, 7)).encaisseC += centimes(montantSigne(p)); });
 
   // CA HT par secteur et par client (période)
   const parSecteur = new Map();
@@ -236,8 +235,11 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
 
   // Jauges
   const enConclusion = opportunites.filter((o) => o.etape === ETAPE_FINALE).length;
-  const ttcPeriodeC = somme(facturesPeriode, (f) => centimes(totalTTC(f)));
-  const payePeriodeC = somme(facturesPeriode, (f) => Math.min(centimes(totalPaye(f)), centimes(totalTTC(f))));
+  // Taux d'encaissement : sur les factures de la période, nettes de leurs avoirs (les avoirs ne s'y ajoutent pas).
+  const aEncaisserC = (f) => centimes(totalTTC(f)) - centimes(totalAvoirs(f));
+  const facturesSeules = facturesPeriode.filter((f) => f.type !== "avoir");
+  const ttcPeriodeC = somme(facturesSeules, aEncaisserC);
+  const payePeriodeC = somme(facturesSeules, (f) => Math.max(0, Math.min(centimes(totalPaye(f)), aEncaisserC(f))));
   const jauges = {
     conclusion: {
       taux: opportunites.length ? Math.round((enConclusion / opportunites.length) * 1000) / 10 : null,
@@ -359,15 +361,18 @@ export function phraseActivite(evt, facturesParId = new Map()) {
       return `Fiche client ${d.nom} modifiée`;
     }
     case "factures": {
-      // Un brouillon n'a pas de numéro
-      const nom = d.numero ? `Facture ${d.numero}` : "Brouillon de facture";
-      if (evt.action === "insert") return `${nom} ${d.numero ? "créée" : "créé"}`;
-      if (evt.action === "delete") return `${nom} ${d.numero ? "supprimée définitivement" : "supprimé définitivement"}`;
-      if (supprimee) return `${nom} ${d.numero ? "supprimée" : "supprimé"}`;
-      if (restauree) return `${nom} ${d.numero ? "restaurée" : "restauré"}`;
-      if (o.statut !== n.statut && n.statut === "finalisee") return `${nom} finalisée`;
-      if (o.statut !== n.statut) return `${nom} marquée ${statutMinuscule(n.statut)}`;
-      return `${nom} ${d.numero ? "modifiée" : "modifié"}`;
+      // Un brouillon n'a pas de numéro ; « Facture … » au féminin, « Avoir … » et « Brouillon … » au masculin.
+      const avoir = d.type === "avoir";
+      const nom = d.numero ? `${avoir ? "Avoir" : "Facture"} ${d.numero}` : `Brouillon ${avoir ? "d'avoir" : "de facture"}`;
+      const e = d.numero && !avoir ? "e" : "";
+      if (evt.action === "insert") return `${nom} créé${e}`;
+      if (evt.action === "delete") return `${nom} supprimé${e} définitivement`;
+      if (supprimee) return `${nom} supprimé${e}`;
+      if (restauree) return `${nom} restauré${e}`;
+      if (o.statut !== n.statut && n.statut === "finalisee") return `${nom} finalisé${n.numero && !avoir ? "e" : ""}`;
+      if (o.statut !== n.statut && n.statut === "annulee") return `${nom} annulée par avoir`;
+      if (o.statut !== n.statut) return `${nom} marqué${e} ${statutMinuscule(n.statut)}`;
+      return `${nom} modifié${e}`;
     }
     case "devis": {
       if (evt.action === "insert") return `Devis ${d.numero} créé`;
@@ -388,9 +393,10 @@ export function phraseActivite(evt, facturesParId = new Map()) {
     case "paiements": {
       const numero = facturesParId.get(d.facture_id)?.numero;
       const sur = numero ? ` sur la facture ${numero}` : "";
-      if (evt.action === "insert") return `Paiement de ${fmtEuro(Number(d.montant) || 0)} enregistré${sur}`;
-      if (evt.action === "delete") return `Paiement de ${fmtEuro(Number(d.montant) || 0)} supprimé${sur}`;
-      return `Paiement modifié${sur}`;
+      const genre = d.sens === "remboursement" ? "Remboursement" : "Paiement";
+      if (evt.action === "insert") return `${genre} de ${fmtEuro(Number(d.montant) || 0)} enregistré${sur}`;
+      if (evt.action === "delete") return `${genre} de ${fmtEuro(Number(d.montant) || 0)} supprimé${sur}`;
+      return `${genre} modifié${sur}`;
     }
     default:
       return `Modification dans ${evt.table_name}`;

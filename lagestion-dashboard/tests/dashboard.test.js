@@ -175,6 +175,34 @@ test("phrases d'activité", () => {
     "Devis D1 marqué envoyé");
 });
 
+test("journal : avoir et remboursement", () => {
+  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "avoir" } }), "Brouillon d'avoir créé");
+  assert.equal(phraseActivite({ table_name: "factures", action: "update",
+    old_data: { numero: null, statut: "brouillon", type: "avoir" }, new_data: { numero: "AV-2026-0001", statut: "finalisee", type: "avoir" } }), "Avoir AV-2026-0001 finalisé");
+  assert.equal(phraseActivite({ table_name: "factures", action: "update",
+    old_data: { numero: "FAC-2026-0001", statut: "envoyee" }, new_data: { numero: "FAC-2026-0001", statut: "annulee" } }), "Facture FAC-2026-0001 annulée par avoir");
+  assert.equal(phraseActivite({ table_name: "paiements", action: "insert", new_data: { montant: 240, sens: "remboursement" } }).startsWith("Remboursement de"), true);
+});
+
+test("tableau de bord : facture à sa date, avoir en négatif à la sienne ; encaissement net", () => {
+  const fig = (id, numero, statut, date, ht, extra = {}) => ({
+    id, numero, statut, client_id: "c1", date_emission: date, date_echeance: "2026-12-31", paiements: [], lignes: [],
+    total_ht_brut: ht, remise_appliquee: 0, total_ht: ht, total_tva: 0, total_ttc: ht, tva_detail: [], ...extra,
+  });
+  const avoir = fig("a", "AV-2026-0001", "finalisee", "2026-10-10", -100, { type: "avoir", facture_origine_id: "f" });
+  const fac = fig("f", "FAC-2026-0001", "annulee", "2026-08-10", 100, {
+    type: "facture", avoirs: [avoir],
+    paiements: [{ date: "2026-08-20", montant: 100 }, { date: "2026-10-20", montant: 100, sens: "remboursement" }],
+  });
+  const t = calculerTableauDeBord({ factures: [fac, avoir], clients: [], opportunites: [], periode: "12m", aujourdhui: "2026-11-05" });
+  assert.equal(t.kpi.ca.valeur, 0);
+  assert.equal(t.kpi.encaissements.valeur, 0);
+  assert.equal(t.mensuel.find((m) => m.mois === "2026-08").facture, 100);
+  assert.equal(t.mensuel.find((m) => m.mois === "2026-10").facture, -100);
+  assert.equal(t.mensuel.find((m) => m.mois === "2026-10").encaisse, -100);
+  assert.equal(t.kpi.impayes.nombre, 0);
+});
+
 test("journal : brouillon sans numéro et finalisation", () => {
   assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null } }), "Brouillon de facture créé");
   assert.equal(phraseActivite({ table_name: "factures", action: "update",

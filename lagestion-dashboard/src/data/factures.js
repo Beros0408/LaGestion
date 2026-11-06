@@ -34,11 +34,21 @@ const STATUTS_SUIVANTS = {
   en_retard: ["partiellement_payee", "payee", "envoyee"],
 };
 
-export const statutsSuivantsFacture = (statut) => STATUTS_SUIVANTS[statut] ?? [];
+// Un avoir finalisé ne peut que passer à « envoyé ».
+export const statutsSuivantsFacture = (statut, type = "facture") =>
+  type === "avoir" ? (statut === "finalisee" ? ["envoyee"] : []) : STATUTS_SUIVANTS[statut] ?? [];
 
 export const factureModifiable = (statut) => statut === "brouillon";
 
-export const paiementPossible = (statut) => statut !== "brouillon" && statut !== "annulee";
+export const paiementPossible = (statut, type = "facture") =>
+  type !== "avoir" && statut !== "brouillon" && statut !== "annulee";
+
+export const peutCreerAvoir = (facture) =>
+  facture?.type !== "avoir" && facture?.statut !== "brouillon" && facture?.statut !== "annulee";
+
+// Mêmes rôles que verifier_facture (migration 009) : le commercial prépare, sans finaliser.
+export const ROLES_FINALISATION_AVOIR = ["admin", "manager", "comptable"];
 
 // Numéro affiché : un brouillon n'en a pas avant sa finalisation.
-export const libelleNumero = (facture) => facture?.numero ?? "Brouillon";
+export const libelleNumero = (facture) =>
+  facture?.numero ?? (facture?.type === "avoir" ? "Brouillon d'avoir" : "Brouillon");

@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { useEntreprise } from "./EntrepriseContext.jsx";
 import { erreurFrancaise, messageErreur, MESSAGE_REFUS } from "../utils/erreurs";
 import { STATUTS } from "../data/factures";
+import { lierAvoirs } from "../utils/facture";
 import { preparerLignes } from "../utils/lignesDocument";
 
 const FacturesContext = createContext(null);
@@ -17,8 +18,9 @@ const CHAMPS_FACTURE = [
   "mode_paiement",
   "notes_internes",
   "message_client",
+  "motif",
 ];
-const CHAMPS_PAIEMENT = ["date", "montant", "mode", "reference"];
+const CHAMPS_PAIEMENT = ["date", "montant", "mode", "reference", "sens"];
 
 function preparerEnteteFacture(data) {
   const payload = {};
@@ -84,7 +86,7 @@ export function FacturesProvider({ children }) {
       setErreur(messageErreur(error));
       setFactures([]);
     } else {
-      setFactures((data ?? []).map(normaliserFacture));
+      setFactures(lierAvoirs((data ?? []).map(normaliserFacture)));
     }
     setChargement(false);
   }, [entrepriseId]);
@@ -150,6 +152,25 @@ export function FacturesProvider({ children }) {
       return numero;
     },
     [chargerFactures]
+  );
+
+  // Transaction côté base (fonction creer_avoir) : renvoie l'identifiant du brouillon d'avoir.
+  const creerAvoir = useCallback(
+    async (factureId, { motif, total, lignes }) => {
+      const { data: avoirId, error } = await supabase.rpc("creer_avoir", {
+        p_facture_id: factureId,
+        p_motif: motif.trim(),
+        p_total: total,
+        p_lignes: total ? null : preparerLignes(lignes, "facture_id", factureId, entrepriseId),
+      });
+      if (error) {
+        await chargerFactures();
+        throw erreurFrancaise(error);
+      }
+      await chargerFactures();
+      return avoirId;
+    },
+    [entrepriseId, chargerFactures]
   );
 
   const deleteFacture = useCallback(async (id) => {
@@ -252,6 +273,7 @@ export function FacturesProvider({ children }) {
       addFacture,
       updateFacture,
       finaliserFacture,
+      creerAvoir,
       deleteFacture,
       changerStatut,
       ajouterPaiement,
@@ -266,6 +288,7 @@ export function FacturesProvider({ children }) {
       addFacture,
       updateFacture,
       finaliserFacture,
+      creerAvoir,
       deleteFacture,
       changerStatut,
       ajouterPaiement,
