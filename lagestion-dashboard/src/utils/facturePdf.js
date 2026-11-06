@@ -98,7 +98,8 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
   const basEmetteur = ecrireEmetteur(doc, entreprise, margin, pageW / 2 - margin);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(24);
+  // Titres longs (facture d'acompte, de solde) : plus petits, pour ne pas toucher l'identité de l'émetteur.
+  doc.setFontSize(config.titre.length > 9 ? 18 : 24);
   doc.setTextColor(...COLORS.textPrimary);
   doc.text(config.titre, pageW - margin, 25, { align: "right" });
 
@@ -209,6 +210,22 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
     margin: { left: margin, right: margin },
   });
 
+  // Facture de solde : tableau des acomptes déduits, puis le net
+  if (config.acomptes?.length) {
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 6,
+      head: [["Acompte déduit", "Date", "HT", "TVA", "TTC"]],
+      body: config.acomptes.map((a) => [
+        a.numero, formatDate(a.date), formatEuro(a.total_ht), formatEuro(a.total_tva), formatEuro(a.total_ttc),
+      ]),
+      theme: "grid",
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5, textColor: COLORS.textPrimary, lineColor: COLORS.border, lineWidth: 0.1 },
+      headStyles: { fillColor: COLORS.primary, textColor: COLORS.white, fontStyle: "bold", halign: "left" },
+      columnStyles: { 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right" } },
+      margin: { left: margin, right: margin },
+    });
+  }
+
   const htBrut = totaux?.htBrut ?? totalHTBrut(document);
   const ht = totaux?.ht ?? totalHT(document);
   const tvaDetail = totaux?.tvaDetail ?? tvaParTaux(document);
@@ -242,7 +259,7 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
 
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COLORS.textSecondary);
-  doc.text(remise !== 0 ? "Total HT net" : "Total HT", recapLeft, recapY);
+  doc.text(config.libelleHt ?? (remise !== 0 ? "Total HT net" : "Total HT"), recapLeft, recapY);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...COLORS.textPrimary);
   doc.text(formatEuro(ht), recapRight, recapY, { align: "right" });
@@ -264,7 +281,7 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...COLORS.textPrimary);
-  doc.text("Total TTC", recapLeft, recapY);
+  doc.text(config.libelleTtc ?? "Total TTC", recapLeft, recapY);
   doc.text(formatEuro(ttc), recapRight, recapY, { align: "right" });
 
   let basContenu = recapY;
@@ -311,7 +328,7 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
 }
 
 // Facture émise : identités figées à la finalisation. Brouillon : présenté comme tel, sans numéro ni date d'émission.
-export function genererFacturePdf(facture, client, totaux, entreprise) {
+export function genererFacturePdf(facture, client, totaux, entreprise, devisOrigine = null) {
   const brouillon = facture.statut === "brouillon";
   if (facture.type === "avoir") {
     const dateOrigine = facture.origine_date ? ` du ${formatDate(facture.origine_date)}` : "";
@@ -330,11 +347,20 @@ export function genererFacturePdf(facture, client, totaux, entreprise) {
     });
     return;
   }
+  const estAcompte = facture.type === "acompte";
+  const estSolde = facture.type === "solde";
+  const refDevis = devisOrigine ? ` ${devisOrigine.numero} du ${formatDate(devisOrigine.date_emission)}` : "";
   genererDocumentPdf(facture, facture.client_fige ?? client, totaux, facture.emetteur_fige ?? entreprise, {
-    titre: brouillon ? "BROUILLON" : "FACTURE",
+    titre: brouillon
+      ? (estAcompte ? "BROUILLON D'ACOMPTE" : estSolde ? "BROUILLON DE SOLDE" : "BROUILLON")
+      : (estAcompte ? "FACTURE D'ACOMPTE" : estSolde ? "FACTURE DE SOLDE" : "FACTURE"),
     reference: brouillon ? "Sans valeur de facture" : undefined,
-    nomFichier: brouillon ? "brouillon-facture.pdf" : undefined,
+    nomFichier: brouillon ? `brouillon-${estAcompte ? "acompte" : estSolde ? "solde" : "facture"}.pdf` : undefined,
     destinataire: "FACTURÉ À",
+    mentions: estAcompte ? [`Acompte sur le devis${refDevis}`] : estSolde ? [`Solde du devis${refDevis}`] : undefined,
+    acomptes: estSolde ? facture.acomptes_deduits : undefined,
+    libelleHt: estSolde ? "Net HT" : undefined,
+    libelleTtc: estSolde ? "Net TTC" : undefined,
     dates: [
       ...(brouillon ? [] : [{ texte: `Émise le ${formatDate(facture.date_emission)}` }]),
       { texte: `Échéance le ${formatDate(facture.date_echeance)}` },

@@ -175,6 +175,15 @@ test("phrases d'activité", () => {
     "Devis D1 marqué envoyé");
 });
 
+test("journal : acompte et solde", () => {
+  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "acompte" } }), "Brouillon d'acompte créé");
+  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "solde" } }), "Brouillon de solde créé");
+  assert.equal(phraseActivite({ table_name: "factures", action: "update",
+    old_data: { numero: null, statut: "brouillon", type: "acompte" }, new_data: { numero: "FAC-2026-0001", statut: "finalisee", type: "acompte" } }), "Facture d'acompte FAC-2026-0001 finalisée");
+  assert.equal(phraseActivite({ table_name: "factures", action: "update",
+    old_data: { numero: null, statut: "brouillon", type: "solde" }, new_data: { numero: "FAC-2026-0002", statut: "finalisee", type: "solde" } }), "Facture de solde FAC-2026-0002 finalisée");
+});
+
 test("journal : avoir et remboursement", () => {
   assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "avoir" } }), "Brouillon d'avoir créé");
   assert.equal(phraseActivite({ table_name: "factures", action: "update",

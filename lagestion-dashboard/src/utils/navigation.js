@@ -15,6 +15,7 @@ const ROUTES = [
   { motif: "/devis", libelle: "Devis", parent: () => "/dashboard" },
   { motif: "/devis/nouveau", libelle: "Nouveau devis", parent: () => "/devis" },
   { motif: "/devis/:id/modifier", libelle: "Modifier le devis", parent: ({ id }) => `/devis/${id}` },
+  { motif: "/devis/:id/acompte", libelle: "Nouvel acompte", parent: ({ id }) => `/devis/${id}` },
   { motif: "/devis/:id", libelle: "Fiche devis", parent: () => "/devis" },
   { motif: "/factures", libelle: "Factures", parent: () => "/dashboard" },
   { motif: "/factures/nouvelle", libelle: "Nouvelle facture", parent: () => "/factures" },

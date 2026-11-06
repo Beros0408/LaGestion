@@ -6,8 +6,9 @@ import {
 import { C, alpha, euro } from "../theme";
 import { useDevis } from "../context/DevisContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
+import { useFactures } from "../context/FacturesContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
-import { STATUTS_DEVIS, LIBELLE_STATUT_DEVIS, devisModifiable, validiteDepassee } from "../data/devis";
+import { STATUTS_DEVIS, LIBELLE_STATUT_DEVIS, aAcompteActif, devisModifiable, validiteDepassee } from "../data/devis";
 import { totalTTC } from "../utils/facture";
 import BadgeStatutDevis from "../components/BadgeStatutDevis.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
@@ -47,6 +48,7 @@ export default function Devis() {
   const { devis, chargement, erreur, deleteDevis } = useDevis();
   const { clients, chargement: chargementClients } = useClients();
   const { peutEcrire, peutSupprimer } = useEntreprise();
+  const { factures } = useFactures();
 
   const [requete, setRequete] = useState("");
   const requeteDeb = useDebouncedValue(requete, 250);
@@ -265,7 +267,7 @@ export default function Devis() {
                         {peutEcrire && devisModifiable(d.statut) && (
                           <BoutonAction label={`Modifier ${d.numero}`} icon={Pencil} onClick={() => navigate(`/devis/${d.id}/modifier`)} />
                         )}
-                        {peutSupprimer && d.statut !== "converti" && (
+                        {peutSupprimer && d.statut !== "converti" && !aAcompteActif(factures, d.id) && (
                           <BoutonAction
                             label={`Supprimer ${d.numero}`}
                             icon={Trash2}

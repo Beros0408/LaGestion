@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import { resteAPayer, totalAvoirs, totalHT, totalPaye, totalTVA, totalTTC } from "./facture";
-import { LIBELLE_STATUT } from "../data/factures";
+import { LIBELLE_STATUT, LIBELLE_TYPE } from "../data/factures";
 
 const TYPE_LABEL = {
   particulier: "Particulier",
@@ -81,7 +81,7 @@ export function exporterFacturesExcel(factures, clients) {
   ];
   const rows = factures.map((f) => [
     f.numero ?? "",
-    f.type === "avoir" ? "Avoir" : "Facture",
+    LIBELLE_TYPE[f.type] ?? "Facture",
     f.origine_numero ?? "",
     clientsParId.get(f.client_id)?.nom ?? "",
     parseDate(f.date_emission),
@@ -98,7 +98,7 @@ export function exporterFacturesExcel(factures, clients) {
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows], { cellDates: true });
   ws["!cols"] = [
     { wch: 16 },
-    { wch: 10 },
+    { wch: 18 },
     { wch: 16 },
     { wch: 30 },
     { wch: 16 },

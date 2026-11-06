@@ -1,16 +1,18 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { List, Pencil, Download, Trash2, AlertCircle, FileOutput, Lock, ExternalLink } from "lucide-react";
-import { C, alpha } from "../theme";
+import { List, Pencil, Download, Trash2, AlertCircle, FileOutput, Lock, ExternalLink, HandCoins } from "lucide-react";
+import { C, alpha, euroCentimes } from "../theme";
 import { useDevis } from "../context/DevisContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
-import { totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTTC } from "../utils/facture";
+import { totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTTC, totalAvoirs } from "../utils/facture";
 import { genererDevisPdf } from "../utils/facturePdf";
-import { devisModifiable, LIBELLE_STATUT_DEVIS, statutsSuivants, validiteDepassee } from "../data/devis";
+import { acomptesDuDevis, devisModifiable, factureDuDevis, LIBELLE_STATUT_DEVIS, statutsSuivants, validiteDepassee } from "../data/devis";
 import BadgeStatutDevis from "../components/BadgeStatutDevis.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import { libelleNumero } from "../data/factures";
+import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import {
   BoutonSecondaire, CarteBloc, CarteClient, CarteLignes, CarteResume, MenuStatut, Panneau, Spinner,
 } from "../components/document/CartesDocument.jsx";
@@ -32,7 +34,8 @@ export default function DevisDetail() {
 
   const devis = useMemo(() => tous.find((d) => d.id === id), [tous, id]);
   const client = useMemo(() => (devis ? clients.find((c) => c.id === devis.client_id) : null), [clients, devis]);
-  const facture = useMemo(() => (devis ? factures.find((f) => f.devis_id === devis.id) : null), [factures, devis]);
+  const facture = useMemo(() => (devis ? factureDuDevis(factures, devis.id) : null), [factures, devis]);
+  const acomptes = useMemo(() => (devis ? acomptesDuDevis(factures, devis.id) : []), [factures, devis]);
   const recap = useMemo(() => {
     if (!devis) return null;
     return {
@@ -78,7 +81,12 @@ export default function DevisDetail() {
 
   const clientAbsent = !chargementClients && !client;
   const direction = peutSupprimer;
-  const optionsStatut = statutsSuivants(devis.statut, direction).map((s) => ({ value: s, label: LIBELLE_STATUT_DEVIS[s] }));
+  const acompteActif = acomptes.some((f) => f.statut !== "annulee");
+  // Avec un acompte actif, le devis reste accepté jusqu'à sa conversion.
+  const optionsStatut = (acompteActif ? [] : statutsSuivants(devis.statut, direction))
+    .map((s) => ({ value: s, label: LIBELLE_STATUT_DEVIS[s] }));
+  const acompteEnBrouillon = acomptes.some((f) => f.statut === "brouillon");
+  const seraSolde = acomptes.some((f) => f.statut !== "brouillon" && f.statut !== "annulee");
   const convertible = devis.statut === "accepte" && peutEcrire;
 
   const handleChangerStatut = async (nouveau) => {
@@ -173,7 +181,7 @@ export default function DevisDetail() {
           >
             Télécharger PDF
           </BoutonSecondaire>
-          {peutSupprimer && devis.statut !== "converti" && (
+          {peutSupprimer && devis.statut !== "converti" && !acompteActif && (
             <BoutonSecondaire
               onClick={(e) => setASupprimer({ element: e.currentTarget })}
               ariaLabel={`Supprimer le devis ${devis.numero}`}
@@ -194,15 +202,25 @@ export default function DevisDetail() {
             </Link>
           )}
           {convertible && (
+            <BoutonSecondaire
+              onClick={() => navigate(`/devis/${devis.id}/acompte`)}
+              ariaLabel="Créer un acompte"
+              icon={HandCoins}
+              disabled={clientAbsent}
+            >
+              Créer un acompte
+            </BoutonSecondaire>
+          )}
+          {convertible && (
             <button
               type="button"
               onClick={handleConvertir}
-              disabled={actionEnCours || clientAbsent}
+              disabled={actionEnCours || clientAbsent || acompteEnBrouillon}
               className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
               style={{ backgroundColor: C.primary }}
             >
               <FileOutput size={16} aria-hidden="true" />
-              {actionEnCours ? "Transformation…" : "Transformer en facture"}
+              {actionEnCours ? "Transformation…" : seraSolde ? "Transformer en facture de solde" : "Transformer en facture"}
             </button>
           )}
         </div>
@@ -218,7 +236,17 @@ export default function DevisDetail() {
           Validité dépassée : prolongez la date de validité avant d'accepter ce devis.
         </Bandeau>
       )}
-      {devis.statut === "accepte" && (
+      {acompteEnBrouillon && devis.statut === "accepte" && (
+        <Bandeau icone={AlertCircle} couleur={C.warning} couleurTexte={C.warningText}>
+          Un acompte est encore en brouillon : finalisez-le ou supprimez-le avant de transformer ce devis en facture.
+        </Bandeau>
+      )}
+      {devis.statut === "accepte" && acompteActif && (
+        <Bandeau icone={Lock} couleur={C.info} couleurTexte={C.infoText}>
+          Ce devis a des acomptes : il reste accepté jusqu'à sa transformation en facture de solde, et ne peut plus être supprimé.
+        </Bandeau>
+      )}
+      {devis.statut === "accepte" && !acompteActif && (
         <Bandeau icone={Lock} couleur={C.info} couleurTexte={C.infoText}>
           Ce devis accepté est verrouillé. Pour le corriger, un administrateur ou un manager doit le repasser en « Envoyé ».
         </Bandeau>
@@ -247,6 +275,7 @@ export default function DevisDetail() {
         <div className="space-y-5 xl:col-span-2">
           <CarteLignes lignes={devis.lignes} legende="Détail des lignes du devis" />
           <CarteResume recap={recap} />
+          {acomptes.length > 0 && <CarteAcomptes acomptes={acomptes} ttcDevis={recap.ttc} />}
         </div>
         <div className="space-y-5">
           <CarteClient client={client} chargement={chargementClients} messageAbsent="Client supprimé." />
@@ -268,6 +297,39 @@ export default function DevisDetail() {
         elementRetour={aSupprimer?.element}
       />
     </>
+  );
+}
+
+function CarteAcomptes({ acomptes, ttcDevis }) {
+  const factures = acomptes.filter((a) => a.statut !== "brouillon" && a.statut !== "annulee");
+  const cumul = factures.reduce((s, a) => s + Math.round((totalTTC(a) - totalAvoirs(a)) * 100), 0) / 100;
+  return (
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Acomptes</h3>
+      <ul className="space-y-2 text-sm">
+        {acomptes.map((a) => (
+          <li key={a.id} className="flex flex-wrap items-center justify-between gap-2">
+            <Link to={`/factures/${a.id}`} className="rounded font-medium underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
+              {libelleNumero(a)}
+            </Link>
+            <span className="flex items-center gap-3">
+              <span className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(a))}</span>
+              <BadgeStatutFacture statut={a.statut} />
+            </span>
+          </li>
+        ))}
+      </ul>
+      <dl className="mt-3 space-y-1 pt-3 text-sm" style={{ borderTop: `1px solid ${C.border}` }}>
+        <div className="flex items-center justify-between">
+          <dt style={{ color: C.textSecondary }}>Déjà facturé, net des avoirs</dt>
+          <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(cumul)}</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt style={{ color: C.textSecondary }}>Reste à facturer</dt>
+          <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(Math.round((ttcDevis - cumul) * 100) / 100)}</dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 -- seed.sql — Lagestion
 -- Données de démonstration pour UNE entreprise existante (créée depuis l'onboarding).
--- S'applique après 009_avoirs.sql, dans le SQL Editor (rôle postgres).
+-- S'applique après 010_acomptes.sql, dans le SQL Editor (rôle postgres).
 --
 -- Ce que fait le script :
 --   - ne crée aucune entreprise et ne touche ni à entreprises, ni à memberships, ni à profiles ;
@@ -17,9 +17,11 @@
 --     FAC-AAAA-NNNN et consomme la séquence : réservé à une base de test ;
 --   - avoirs : numéro « DEMO-AV-NNNN », hors de la série AV (1 total qui annule DEMO-0004, 1 partiel sur DEMO-0005,
 --     remboursé) ; un avoir créé dans l'application sur une facture de démo est de la démo et disparaît au rejeu ;
+--   - acomptes et soldes : numéros « DEMO-ACP-NNNN » et « DEMO-SLD-NNNN », hors série, rattachés à DEV-DEMO-0008
+--     (1 750 € TTC : acompte de 30 % à 525 €, solde à 1 225 €) ; DEV-DEMO-0009, accepté et libre, sert aux tests ;
 --   - opportunités : rattachées à un client de démo et portant un nom de la liste ci-dessous ;
 --   - catalogue : référence « DEMO-ART-NN » (10 articles, dont 1 inactif ; 9 lignes de facture y sont reliées) ;
---   - devis : numéro « DEV-DEMO-NNNN » (7 devis, 13 lignes) ; une facture issue d'un de ces devis est de la démo
+--   - devis : numéro « DEV-DEMO-NNNN » (9 devis, 17 lignes) ; une facture issue d'un de ces devis est de la démo
 --     et disparaît au rejeu, y compris celles créées depuis l'application par « Transformer en facture ».
 --
 -- Refus (rien n'est modifié) si l'entreprise n'existe pas, n'a pas d'admin, ou si une donnée
@@ -401,6 +403,54 @@ begin
   from public.factures f
   join public.factures a on a.facture_origine_id = f.id and a.numero = 'DEMO-AV-0002'
   where f.entreprise_id = v_ent and f.numero = 'DEMO-0005';
+
+  -- 8 quinquies. Acompte et solde sur DEV-DEMO-0008 (1 750 € TTC) ; DEV-DEMO-0009 reste accepté et libre.
+  insert into public.devis (entreprise_id, client_id, numero, date_emission, date_validite, statut)
+  select v_ent, c.id, v.numero, current_date - v.age, current_date - v.age + 60, 'accepte'
+  from (values
+    ('DEV-DEMO-0008', 'Bâtiments Rénov''Est', 30),
+    ('DEV-DEMO-0009', 'Hôtel des Remparts',    5)
+  ) as v(numero, client, age)
+  join public.clients c on c.entreprise_id = v_ent and c.nom = v.client and c.tags @> array['démo'];
+
+  insert into public.lignes_devis (entreprise_id, devis_id, position, description, quantite, prix_unitaire, taux_tva)
+  select v_ent, d.id, v.pos, v.description, 1, v.prix, v.tva
+  from (values
+    (0, 'Second œuvre — bâtiment professionnel', 1000.00, 20),
+    (1, 'Second œuvre — logements',               500.00, 10)
+  ) as v(pos, description, prix, tva)
+  join public.devis d on d.entreprise_id = v_ent and d.numero in ('DEV-DEMO-0008', 'DEV-DEMO-0009');
+
+  insert into public.factures (entreprise_id, client_id, numero, type, devis_id, acompte_mode, acompte_valeur, date_emission, date_echeance)
+  select v_ent, d.client_id, 'DEMO-ACP-0001', 'acompte', d.id, 'pourcentage', 30, d.date_emission + 2, current_date + 10
+  from public.devis d where d.entreprise_id = v_ent and d.numero = 'DEV-DEMO-0008';
+
+  insert into public.lignes_facture (entreprise_id, facture_id, position, description, quantite, prix_unitaire, taux_tva)
+  select v_ent, f.id, v.pos, v.description, 1, v.prix, v.tva
+  from (values
+    (0, 'Acompte de 30 % sur le devis DEV-DEMO-0008 (TVA 20 %)', 300.00, 20),
+    (1, 'Acompte de 30 % sur le devis DEV-DEMO-0008 (TVA 10 %)', 150.00, 10)
+  ) as v(pos, description, prix, tva)
+  join public.factures f on f.entreprise_id = v_ent and f.numero = 'DEMO-ACP-0001';
+
+  update public.factures set statut = 'envoyee' where entreprise_id = v_ent and numero = 'DEMO-ACP-0001';
+  update public.factures set statut = 'payee' where entreprise_id = v_ent and numero = 'DEMO-ACP-0001';
+  insert into public.paiements (entreprise_id, facture_id, date, montant, mode, reference)
+  select v_ent, f.id, f.date_emission + 3, 525.00, 'virement', 'VIR DEMO-ACP-0001'
+  from public.factures f where f.entreprise_id = v_ent and f.numero = 'DEMO-ACP-0001';
+
+  insert into public.factures (entreprise_id, client_id, numero, type, devis_id, date_emission, date_echeance)
+  select v_ent, d.client_id, 'DEMO-SLD-0001', 'solde', d.id, current_date - 5, current_date + 25
+  from public.devis d where d.entreprise_id = v_ent and d.numero = 'DEV-DEMO-0008';
+
+  insert into public.lignes_facture (entreprise_id, facture_id, position, description, quantite, prix_unitaire, taux_tva)
+  select v_ent, f.id, l.position, l.description, l.quantite, l.prix_unitaire, l.taux_tva
+  from public.factures f
+  join public.lignes_devis l on l.devis_id = f.devis_id
+  where f.entreprise_id = v_ent and f.numero = 'DEMO-SLD-0001';
+
+  update public.factures set statut = 'envoyee' where entreprise_id = v_ent and numero = 'DEMO-SLD-0001';
+  update public.devis set statut = 'converti' where entreprise_id = v_ent and numero = 'DEV-DEMO-0008';
 end $$;
 
 -- 9. Contrôles finaux (rôle postgres) : toute anomalie annule le seed
@@ -436,13 +486,22 @@ begin
 
   select count(*) into n from public.paiements p join public.factures f on f.id = p.facture_id
    where f.entreprise_id = v_ent and f.numero like 'DEMO-%';
-  if n <> 9 then raise exception 'Contrôle seed : % paiement(s) au lieu de 9', n; end if;
+  if n <> 10 then raise exception 'Contrôle seed : % paiement(s) au lieu de 10', n; end if;
 
-  -- Totaux figés sur les 11 factures émises et les 2 avoirs, égaux à la vue ; un seul brouillon, sans totaux figés
+  -- Acompte et solde : 525 + 1 225 = 1 750, au centime
+  select count(*) into n
+    from public.factures a
+    join public.factures s on s.devis_id = a.devis_id and s.numero = 'DEMO-SLD-0001' and s.type = 'solde' and s.statut = 'envoyee'
+    join public.devis_totaux t on t.devis_id = a.devis_id
+   where a.entreprise_id = v_ent and a.numero = 'DEMO-ACP-0001' and a.type = 'acompte' and a.statut = 'payee'
+     and a.total_ttc = 525 and s.total_ttc = 1225 and t.total_ttc = 1750 and jsonb_array_length(s.acomptes_deduits) = 1;
+  if n <> 1 then raise exception 'Contrôle seed : acompte et solde de démo incohérents'; end if;
+
+  -- Totaux figés sur les 11 factures émises, les 2 avoirs, l'acompte et le solde, égaux à la vue ; un seul brouillon
   select count(*) into n from public.factures f join public.factures_totaux t on t.facture_id = f.id
    where f.entreprise_id = v_ent and f.numero like 'DEMO-%' and f.statut <> 'brouillon'
      and f.total_ttc = t.total_ttc and f.tva_detail is not null and f.client_fige is not null and f.emetteur_fige is not null;
-  if n <> 13 then raise exception 'Contrôle seed : % document(s) émis figé(s) au lieu de 13', n; end if;
+  if n <> 15 then raise exception 'Contrôle seed : % document(s) émis figé(s) au lieu de 15', n; end if;
   select count(*) into n from public.factures
    where entreprise_id = v_ent and numero like 'DEMO-%' and statut = 'brouillon' and total_ttc is null;
   if n <> 1 then raise exception 'Contrôle seed : % brouillon(s) de démo au lieu de 1', n; end if;
@@ -456,18 +515,18 @@ begin
   if n <> 9 then raise exception 'Contrôle seed : % ligne(s) reliée(s) à un article actif au lieu de 9', n; end if;
 
   select count(*) into n from public.devis where entreprise_id = v_ent and numero like 'DEV-DEMO-%';
-  if n <> 7 then raise exception 'Contrôle seed : % devis de démo au lieu de 7', n; end if;
+  if n <> 9 then raise exception 'Contrôle seed : % devis de démo au lieu de 9', n; end if;
 
   select count(*) into n from public.lignes_devis l join public.devis d on d.id = l.devis_id
    where d.entreprise_id = v_ent and d.numero like 'DEV-DEMO-%';
-  if n <> 13 then raise exception 'Contrôle seed : % ligne(s) de devis au lieu de 13', n; end if;
+  if n <> 17 then raise exception 'Contrôle seed : % ligne(s) de devis au lieu de 17', n; end if;
 
   select count(distinct statut) into n from public.devis where entreprise_id = v_ent and numero like 'DEV-DEMO-%';
   if n <> 6 then raise exception 'Contrôle seed : % statut(s) de devis au lieu de 6', n; end if;
 
   -- Devis converti : relié à sa facture, totaux identiques ; aucun autre devis de démo relié
   select count(*) into n from public.factures f join public.devis d on d.id = f.devis_id
-   where d.entreprise_id = v_ent and d.numero like 'DEV-DEMO-%';
+   where d.entreprise_id = v_ent and d.numero like 'DEV-DEMO-%' and f.type = 'facture';
   if n <> 1 then raise exception 'Contrôle seed : % devis de démo relié(s) à une facture au lieu de 1', n; end if;
   select count(*) into n
     from public.devis d
@@ -517,7 +576,7 @@ begin
 
   -- Statut « en retard » : échéance dépassée ; « envoyée » et « brouillon » : échéance à venir
   select count(*) into n from public.factures
-   where entreprise_id = v_ent and numero like 'DEMO-%' and type = 'facture'
+   where entreprise_id = v_ent and numero like 'DEMO-%' and type <> 'avoir'
      and ((statut = 'en_retard' and date_echeance >= current_date)
        or (statut in ('envoyee', 'brouillon') and date_echeance < current_date));
   if n > 0 then raise exception 'Contrôle seed : % facture(s) au statut incohérent avec l''échéance', n; end if;
@@ -543,7 +602,7 @@ begin
   ) s where s.entreprise_id is distinct from s.fe;
   if n > 0 then raise exception 'Contrôle seed : % ligne(s) ou paiement(s) hors de l''entreprise', n; end if;
 
-  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes), 2 avoirs, 9 paiements dont 1 remboursement, 10 articles, 7 devis (13 lignes).';
+  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes), 2 avoirs, 1 acompte, 1 solde, 10 paiements dont 1 remboursement, 10 articles, 9 devis (17 lignes).';
 end $$;
 
 commit;

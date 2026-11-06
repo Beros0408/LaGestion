@@ -9,7 +9,7 @@ import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import {
-  STATUTS, LIBELLE_STATUT, STATUTS_IMPAYES, factureModifiable, libelleNumero, statutsSuivantsFacture,
+  STATUTS, LIBELLE_STATUT, LIBELLE_TYPE, STATUTS_IMPAYES, factureModifiable, factureSupprimable, libelleNumero, statutsSuivantsFacture,
 } from "../data/factures";
 import { estComptabilisee, resteAPayer, totalAvoirs, totalTTC } from "../utils/facture";
 import { exporterFacturesExcel } from "../utils/excel";
@@ -23,6 +23,8 @@ const STATUT_OPTIONS = [
 const TYPE_OPTIONS = [
   { id: "tous", label: "Tous" },
   { id: "facture", label: "Factures" },
+  { id: "acompte", label: "Acomptes" },
+  { id: "solde", label: "Soldes" },
   { id: "avoir", label: "Avoirs" },
 ];
 
@@ -135,7 +137,7 @@ export default function Factures() {
   const handleView = (f) => navigate(`/factures/${f.id}`);
   const handleEdit = (f) => navigate(`/factures/${f.id}/modifier`);
   const handleDelete = (f) => {
-    const ok = window.confirm(`Supprimer le brouillon ${f.type === "avoir" ? "d'avoir" : "de facture"} de ${f.clientNom} ? Il ne sera plus visible.`);
+    const ok = window.confirm(`Supprimer le brouillon ${f.type === "avoir" ? "d'avoir" : f.type === "acompte" ? "d'acompte" : "de facture"} de ${f.clientNom} ? Il ne sera plus visible.`);
     if (!ok) return;
     deleteFacture(f.id);
   };
@@ -293,7 +295,7 @@ export default function Factures() {
                     facture={f}
                     onView={() => handleView(f)}
                     onEdit={peutEcrire && factureModifiable(f.statut) ? () => handleEdit(f) : null}
-                    onDelete={peutSupprimer && factureModifiable(f.statut) ? () => handleDelete(f) : null}
+                    onDelete={peutSupprimer && factureSupprimable(f) ? () => handleDelete(f) : null}
                     // Refus affiché par le bandeau d'erreur de la liste
                     onChangerStatut={peutEcrire && statutsSuivantsFacture(f.statut, f.type).length > 0
                       ? (s) => { changerStatut(f.id, s).catch(() => {}); }
@@ -347,7 +349,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
   const [sousMenuOuvert, setSousMenuOuvert] = useState(false);
   const conteneurRef = useRef(null);
   const boutonRef = useRef(null);
-  const nom = facture.numero ?? `brouillon ${facture.type === "avoir" ? "d'avoir" : ""} de ${facture.clientNom}`.replace("  ", " ");
+  const nom = facture.numero ?? `${libelleNumero(facture).toLowerCase()} de ${facture.clientNom}`;
   const avoirs = totalAvoirs(facture);
 
   useEffect(() => {
@@ -382,8 +384,8 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
     >
       <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>
         {libelleNumero(facture)}
-        {facture.type === "avoir" && facture.numero && (
-          <span className="ml-2 text-xs font-normal" style={{ color: C.textSecondary }}>Avoir</span>
+        {facture.type !== "facture" && facture.numero && (
+          <span className="ml-2 text-xs font-normal" style={{ color: C.textSecondary }}>{LIBELLE_TYPE[facture.type]}</span>
         )}
       </td>
       <td className="px-3 py-3" style={{ color: C.textSecondary }}>{facture.clientNom}</td>

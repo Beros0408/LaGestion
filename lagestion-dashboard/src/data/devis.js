@@ -28,6 +28,17 @@ export function statutsSuivants(statut, direction) {
 
 export const devisModifiable = (statut) => statut !== "accepte" && statut !== "converti";
 
+// Acomptes d'un devis, annulés compris ; un acompte actif bloque le devis dans « accepté » (migration 010).
+export const acomptesDuDevis = (factures, devisId) =>
+  factures.filter((f) => f.type === "acompte" && f.devis_id === devisId);
+
+export const aAcompteActif = (factures, devisId) =>
+  acomptesDuDevis(factures, devisId).some((f) => f.statut !== "annulee");
+
+// Facture ou solde issu de la conversion : un acompte n'en est pas un.
+export const factureDuDevis = (factures, devisId) =>
+  factures.find((f) => f.devis_id === devisId && (f.type === "facture" || f.type === "solde")) ?? null;
+
 // Date du jour au format AAAA-MM-JJ (fuseau de l'utilisateur).
 export function aujourdhui(date = new Date()) {
   const mois = String(date.getMonth() + 1).padStart(2, "0");

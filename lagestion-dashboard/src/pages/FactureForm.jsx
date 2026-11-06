@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Lock } from "lucide-react";
-import { C, alpha } from "../theme";
+import { C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { factureModifiable } from "../data/factures";
+import { totalAcomptesDeduits } from "../utils/facture";
 import {
   LIGNE_VIDE,
   MESSAGE_REMISE_PLAFOND,
@@ -147,6 +148,9 @@ export default function FactureForm() {
     );
   }
 
+  const estAcompte = existant?.type === "acompte";
+  const estSolde = existant?.type === "solde";
+
   const definir = (cle) => (valeur) => {
     setForm((prev) => ({ ...prev, [cle]: valeur }));
     setErrors((prev) => {
@@ -177,15 +181,15 @@ export default function FactureForm() {
     if (Object.keys(errs).length > 0) return;
 
     const payload = {
-      client_id: form.client_id,
+      ...(estAcompte || estSolde ? {} : { client_id: form.client_id }),
       date_emission: form.date_emission || null,
       date_echeance: form.date_echeance || null,
-      remise: Number(form.remise) || 0,
+      ...(estAcompte ? {} : { remise: Number(form.remise) || 0 }),
       mode_paiement: form.mode_paiement || null,
       conditions_paiement: form.conditions_paiement,
       notes_internes: form.notes_internes,
       message_client: form.message_client,
-      lignes: form.lignes.map(ligneDepuisFormulaire),
+      ...(estAcompte ? {} : { lignes: form.lignes.map(ligneDepuisFormulaire) }),
     };
 
     setErreurSoumission(null);
@@ -208,10 +212,12 @@ export default function FactureForm() {
     <>
       <div className="mb-5">
         <h2 className="text-[28px] font-semibold leading-tight" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
-          {modeEdition ? "Modifier le brouillon" : "Nouvelle facture"}
+          {!modeEdition ? "Nouvelle facture" : estAcompte ? "Modifier le brouillon d'acompte" : estSolde ? "Modifier le brouillon de solde" : "Modifier le brouillon"}
         </h2>
         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-          Brouillon modifiable. Le numéro définitif et la date d'émission seront attribués à la finalisation.
+          {estAcompte
+            ? "Le montant de l'acompte est calculé depuis le devis : pour le changer, supprimez ce brouillon et recréez l'acompte."
+            : "Brouillon modifiable. Le numéro définitif et la date d'émission seront attribués à la finalisation."}
         </p>
       </div>
 
@@ -236,6 +242,7 @@ export default function FactureForm() {
             <Select
               label="Client"
               required
+              disabled={estAcompte || estSolde}
               value={form.client_id}
               onChange={(e) => definir("client_id")(e.target.value)}
               options={clientOptions}
@@ -268,9 +275,17 @@ export default function FactureForm() {
           </div>
         </div>
 
-        <LignesDocument lignes={form.lignes} errors={errors} setForm={setForm} setErrors={setErrors} />
-
-        <RecapitulatifDocument remise={form.remise} onRemise={definir("remise")} erreurRemise={erreurRemise} recap={recap} />
+        {!estAcompte && (
+          <>
+            <LignesDocument lignes={form.lignes} errors={errors} setForm={setForm} setErrors={setErrors} />
+            <RecapitulatifDocument remise={form.remise} onRemise={definir("remise")} erreurRemise={erreurRemise} recap={recap} />
+          </>
+        )}
+        {estSolde && (
+          <p role="status" className="mt-4 rounded-2xl p-5 text-sm" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}`, color: C.textPrimary }}>
+            {`Acomptes déduits : ${euroCentimes(totalAcomptesDeduits(existant))}. Net à payer après déduction : ${euroCentimes(Math.round((recap.ttc - totalAcomptesDeduits(existant)) * 100) / 100)}.`}
+          </p>
+        )}
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>

@@ -6,6 +6,7 @@
 // Arrondi au centime, moitié éloignée de zéro (comme round() de Postgres).
 // Une facture émise porte ses totaux figés (migration 008) : ils priment sur tout calcul.
 // Un avoir (migration 009) a des lignes positives et des totaux négatifs : le signe est porté par le document.
+// Une facture de solde (migration 010) déduit ses acomptes taux par taux, par soustraction, jamais par recalcul.
 
 const enCentimes = (euros) => BigInt(Math.round((Number(euros) || 0) * 100));
 const enEuros = (c) => Number(c) / 100;
@@ -24,7 +25,7 @@ function ligneHTCentimes(ligne) {
 
 function totauxFiges(f) {
   const c = (euros) => Number(enCentimes(euros));
-  return {
+  const figes = {
     htBrutC: c(f.total_ht_brut),
     remiseC: c(f.remise_appliquee),
     htC: c(f.total_ht),
@@ -32,6 +33,30 @@ function totauxFiges(f) {
     tvaC: c(f.total_tva),
     ttcC: c(f.total_ttc),
   };
+  return f.type === "solde" ? { ...figes, acomptesC: acomptesDeduitsC(f) } : figes;
+}
+
+// Cumul TTC des acomptes déduits d'une facture de solde, en centimes.
+function acomptesDeduitsC(f) {
+  return (f?.acomptes_deduits ?? []).reduce((s, a) => s + Number(enCentimes(a.total_ttc)), 0);
+}
+
+// Soustraction taux par taux : mêmes valeurs que totaux_solde (migration 010).
+function deduireAcomptes(totaux, f) {
+  const parTaux = new Map(totaux.tva.map((d) => [d.taux, { ...d }]));
+  for (const a of f.acomptes_deduits ?? []) {
+    for (const d of a.detail ?? []) {
+      const taux = Number(d.taux);
+      const g = parTaux.get(taux) ?? { taux, baseC: 0, tvaC: 0 };
+      g.baseC -= Number(enCentimes(d.base));
+      g.tvaC -= Number(enCentimes(d.tva));
+      parTaux.set(taux, g);
+    }
+  }
+  const tva = [...parTaux.values()].filter((d) => d.baseC !== 0 || d.tvaC !== 0).sort((a, b) => b.taux - a.taux);
+  const htC = tva.reduce((s, d) => s + d.baseC, 0);
+  const tvaC = tva.reduce((s, d) => s + d.tvaC, 0);
+  return { ...totaux, tva, htC, tvaC, ttcC: htC + tvaC, acomptesC: acomptesDeduitsC(f) };
 }
 
 export function calculerTotaux(facture) {
@@ -67,7 +92,7 @@ export function calculerTotaux(facture) {
   const ht = htBrut - remise;
   const signe = (c) => (facture?.type === "avoir" && c !== 0n ? -Number(c) : Number(c));
 
-  return {
+  const totaux = {
     htBrutC: signe(htBrut),
     remiseC: signe(remise),
     htC: signe(ht),
@@ -75,6 +100,7 @@ export function calculerTotaux(facture) {
     tvaC: signe(tvaTotal),
     ttcC: signe(ht + tvaTotal),
   };
+  return facture?.type === "solde" ? deduireAcomptes(totaux, facture) : totaux;
 }
 
 export function ligneHT(ligne) {
@@ -148,16 +174,29 @@ export function resteCreditable(facture) {
     .filter((d) => d.base > 0 || d.tva > 0);
 }
 
-// Rattache à chaque facture ses avoirs finalisés et à chaque avoir sa facture d'origine (numéro et date).
+// Cumul TTC des acomptes déduits d'une facture de solde, en euros.
+export const totalAcomptesDeduits = (facture) => acomptesDeduitsC(facture) / 100;
+
+// Rattache à chaque facture ses avoirs finalisés, à chaque avoir sa facture d'origine (numéro et date),
+// et à chaque acompte la facture ou le solde issu de son devis (acompte déduit : plus d'avoir).
 export function lierAvoirs(factures) {
   const parId = new Map(factures.map((f) => [f.id, f]));
+  const conversions = new Map(
+    factures.filter((f) => f.devis_id && (f.type === "solde" || f.type === "facture")).map((f) => [f.devis_id, f.id])
+  );
   const avoirs = new Map();
   factures
     .filter((f) => f.type === "avoir" && f.statut !== "brouillon")
     .forEach((a) => avoirs.set(a.facture_origine_id, [...(avoirs.get(a.facture_origine_id) ?? []), a]));
   return factures.map((f) => {
     const origine = f.facture_origine_id ? parId.get(f.facture_origine_id) : null;
-    return { ...f, avoirs: avoirs.get(f.id) ?? [], origine_numero: origine?.numero ?? null, origine_date: origine?.date_emission ?? null };
+    return {
+      ...f,
+      avoirs: avoirs.get(f.id) ?? [],
+      origine_numero: origine?.numero ?? null,
+      origine_date: origine?.date_emission ?? null,
+      solde_id: f.type === "acompte" ? conversions.get(f.devis_id) ?? null : null,
+    };
   });
 }
 

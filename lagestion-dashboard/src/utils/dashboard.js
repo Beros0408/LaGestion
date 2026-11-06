@@ -2,7 +2,7 @@
 // Les totaux d'une facture viennent exclusivement de utils/facture.js.
 // Dates au format ISO « AAAA-MM-JJ » ; « aujourdhui » est passé en paramètre (déterminisme, tests).
 import { estComptabilisee, montantSigne, totalAvoirs, totalHT, totalTTC, totalPaye, resteAPayer } from "./facture.js";
-import { STATUTS_IMPAYES, LIBELLE_STATUT, libelleNumero } from "../data/factures.js";
+import { STATUTS_IMPAYES, LIBELLE_STATUT, LIBELLE_TYPE, libelleNumero } from "../data/factures.js";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis.js";
 import { ETAPES } from "../data/opportunites.js";
 import { SECTEUR_NON_RENSEIGNE, SECTEUR_AUTRES } from "../data/secteurs.js";
@@ -363,7 +363,9 @@ export function phraseActivite(evt, facturesParId = new Map()) {
     case "factures": {
       // Un brouillon n'a pas de numéro ; « Facture … » au féminin, « Avoir … » et « Brouillon … » au masculin.
       const avoir = d.type === "avoir";
-      const nom = d.numero ? `${avoir ? "Avoir" : "Facture"} ${d.numero}` : `Brouillon ${avoir ? "d'avoir" : "de facture"}`;
+      const nom = d.numero
+        ? `${LIBELLE_TYPE[d.type] ?? "Facture"} ${d.numero}`
+        : `Brouillon ${avoir ? "d'avoir" : d.type === "acompte" ? "d'acompte" : d.type === "solde" ? "de solde" : "de facture"}`;
       const e = d.numero && !avoir ? "e" : "";
       if (evt.action === "insert") return `${nom} créé${e}`;
       if (evt.action === "delete") return `${nom} supprimé${e} définitivement`;

@@ -147,9 +147,27 @@ export function DevisProvider({ children }) {
     [chargerDevis, rechargerFactures]
   );
 
+  // Calcul côté base (fonction apercu_acompte), sans écriture : le montant réel avant création.
+  const apercuAcompte = useCallback(async (id, mode, valeur) => {
+    const { data, error } = await supabase.rpc("apercu_acompte", { p_devis_id: id, p_mode: mode, p_valeur: valeur });
+    if (error) throw erreurFrancaise(error);
+    return data;
+  }, []);
+
+  // Transaction côté base (fonction creer_acompte) ; renvoie l'identifiant du brouillon d'acompte.
+  const creerAcompte = useCallback(
+    async (id, mode, valeur) => {
+      const { data: acompteId, error } = await supabase.rpc("creer_acompte", { p_devis_id: id, p_mode: mode, p_valeur: valeur });
+      if (error) throw erreurFrancaise(error);
+      await rechargerFactures();
+      return acompteId;
+    },
+    [rechargerFactures]
+  );
+
   const value = useMemo(
-    () => ({ devis, chargement, erreur, addDevis, updateDevis, deleteDevis, changerStatutDevis, convertirDevis }),
-    [devis, chargement, erreur, addDevis, updateDevis, deleteDevis, changerStatutDevis, convertirDevis]
+    () => ({ devis, chargement, erreur, addDevis, updateDevis, deleteDevis, changerStatutDevis, convertirDevis, apercuAcompte, creerAcompte }),
+    [devis, chargement, erreur, addDevis, updateDevis, deleteDevis, changerStatutDevis, convertirDevis, apercuAcompte, creerAcompte]
   );
 
   return <DevisContext.Provider value={value}>{children}</DevisContext.Provider>;

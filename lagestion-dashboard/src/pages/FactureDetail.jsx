@@ -18,7 +18,7 @@ import {
   BoutonSecondaire, CarteBloc, CarteClient, CarteLignes, CarteResume, MenuStatut, Panneau, Spinner,
 } from "../components/document/CartesDocument.jsx";
 import {
-  LIBELLE_STATUT, ROLES_FINALISATION_AVOIR, factureModifiable, libelleNumero, paiementPossible, peutCreerAvoir,
+  LIBELLE_STATUT, LIBELLE_TYPE, ROLES_FINALISATION_AVOIR, factureModifiable, libelleNumero, paiementPossible, peutCreerAvoir,
   statutsSuivantsFacture,
 } from "../data/factures";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
@@ -83,7 +83,8 @@ export default function FactureDetail() {
     if (!facture) return null;
     return {
       htBrut: totalHTBrut(facture),
-      remise: remiseGlobale(facture),
+      // Un solde affiche son net : la remise est déjà dans le total du devis.
+      remise: facture.type === "solde" ? 0 : remiseGlobale(facture),
       ht: totalHT(facture),
       tvaDetail: tvaParTaux(facture),
       ttc: totalTTC(facture),
@@ -134,10 +135,16 @@ export default function FactureDetail() {
 
   const modifiable = factureModifiable(facture.statut);
   const estAvoir = facture.type === "avoir";
+  const estAcompte = facture.type === "acompte";
+  const estSolde = facture.type === "solde";
+  const issueDevis = estAcompte || estSolde;
+  const libelleDocument = LIBELLE_TYPE[facture.type] ?? "Facture";
   const optionsStatut = statutsSuivantsFacture(facture.statut, facture.type).map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
   const nomFacture = estAvoir
     ? (facture.numero ? `l'avoir ${facture.numero}` : "ce brouillon d'avoir")
-    : (facture.numero ? `la facture ${facture.numero}` : "ce brouillon de facture");
+    : (facture.numero
+      ? `la ${libelleDocument.toLowerCase()} ${facture.numero}`
+      : `ce brouillon ${estAcompte ? "d'acompte" : estSolde ? "de solde" : "de facture"}`);
   const peutFinaliser = !estAvoir || ROLES_FINALISATION_AVOIR.includes(role);
   const creditable = peutCreerAvoir(facture) && resteCreditable(facture).length > 0;
   const origineFacture = estAvoir ? factures.find((f) => f.id === facture.facture_origine_id) : null;
@@ -230,6 +237,7 @@ export default function FactureDetail() {
             )}
           </div>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+            {issueDevis && <span className="font-medium" style={{ color: C.textPrimary }}>{libelleDocument} · </span>}
             {modifiable
               ? (estAvoir
                 ? "Sans valeur d'avoir tant qu'il n'est pas finalisé"
@@ -256,7 +264,7 @@ export default function FactureDetail() {
           )}
           {devisOrigine && (
             <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-              Issue du devis{" "}
+              {estAcompte ? "Acompte sur le devis" : estSolde ? "Solde du devis" : "Issue du devis"}{" "}
               <Link
                 to={`/devis/${devisOrigine.id}`}
                 className="rounded font-medium underline focus:outline-none focus-visible:ring-2"
@@ -277,7 +285,7 @@ export default function FactureDetail() {
             Toutes les factures
           </Link>
           <BoutonSecondaire
-            onClick={() => genererFacturePdf(facture, client, recap, entreprise)}
+            onClick={() => genererFacturePdf(facture, client, recap, entreprise, devisOrigine)}
             ariaLabel={`Télécharger ${nomFacture} en PDF`}
             icon={Download}
           >
@@ -292,7 +300,7 @@ export default function FactureDetail() {
           </BoutonSecondaire>
           {peutEcrire && (
             <>
-              {!estAvoir && (
+              {!estAvoir && !issueDevis && (
                 <BoutonSecondaire
                   onClick={handleDupliquer}
                   ariaLabel={`Dupliquer ${nomFacture}`}
@@ -365,6 +373,21 @@ export default function FactureDetail() {
         </div>
       )}
 
+      {estAcompte && facture.solde_id && (
+        <div
+          role="status"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{ backgroundColor: alpha(C.info, 0.08), color: C.infoText, border: `1px solid ${C.info}` }}
+        >
+          <Lock size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span>
+            Cet acompte est déduit de la{" "}
+            <Link to={`/factures/${facture.solde_id}`} className="rounded font-semibold underline focus:outline-none focus-visible:ring-2">facture de solde</Link>
+            {" : sa correction passe par le solde."}
+          </span>
+        </div>
+      )}
+
       {estAvoir && modifiable && peutEcrire && !peutFinaliser && (
         <div
           role="status"
@@ -379,6 +402,7 @@ export default function FactureDetail() {
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           <CarteLignes lignes={facture.lignes} legende={estAvoir ? "Détail des lignes de l'avoir" : "Détail des lignes de la facture"} negatif={estAvoir} />
+          {estSolde && <CarteAcomptesDeduits acomptes={facture.acomptes_deduits ?? []} net={recap.ttc} />}
           <CarteResume recap={recap}>
             {!estAvoir && (
               <>
@@ -456,6 +480,54 @@ export default function FactureDetail() {
         elementRetour={aFinaliser?.element}
       />
     </>
+  );
+}
+
+function CarteAcomptesDeduits({ acomptes, net }) {
+  const cumul = acomptes.reduce((s, a) => s + Math.round(Number(a.total_ttc) * 100), 0) / 100;
+  return (
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Acomptes déduits</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <caption className="sr-only">Acomptes déduits de cette facture de solde</caption>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+              {["Facture", "Date", "HT", "TVA", "TTC"].map((h, i) => (
+                <th key={h} scope="col" className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${i < 2 ? "text-left" : "text-right"}`} style={{ color: C.textSecondary }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {acomptes.map((a) => (
+              <tr key={a.facture_id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <td className="whitespace-nowrap px-3 py-2 tabular-nums">
+                  <Link to={`/factures/${a.facture_id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>{a.numero}</Link>
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 tabular-nums" style={{ color: C.textSecondary }}>{formaterDateCourte(a.date)}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(Number(a.total_ht))}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(Number(a.total_tva))}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(Number(a.total_ttc))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <dl className="mt-3 space-y-1 text-sm">
+        <div className="flex items-center justify-between">
+          <dt style={{ color: C.textSecondary }}>Total des lignes TTC</dt>
+          <dd className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(Math.round((cumul + net) * 100) / 100)}</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt style={{ color: C.textSecondary }}>Acomptes déduits</dt>
+          <dd className="tabular-nums" style={{ color: C.textPrimary }}>− {euroCentimes(cumul)}</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt className="font-semibold" style={{ color: C.textPrimary }}>Net TTC de cette facture</dt>
+          <dd className="font-bold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(net)}</dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 
