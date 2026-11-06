@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  STATUTS, STATUTS_IMPAYES, factureModifiable, libelleNumero, paiementPossible, statutsSuivantsFacture,
+  STATUTS, factureModifiable, libelleNumero, paiementPossible, statutsSuivantsFacture,
 } from "../src/data/factures.js";
 
 test("un brouillon ne change de statut que par la finalisation", () => {
@@ -18,10 +18,9 @@ test("aucun statut proposé ne mène à brouillon, finalisée ou annulée", () =
   assert.deepEqual(statutsSuivantsFacture("annulee"), []);
 });
 
-test("en_attente est retiré ; finalisée compte dans les impayés", () => {
+test("en_attente est retiré ; seul « envoyée » reste un choix manuel", () => {
   assert.ok(!STATUTS.includes("en_attente"));
-  assert.ok(!STATUTS_IMPAYES.includes("en_attente"));
-  assert.ok(STATUTS_IMPAYES.includes("finalisee"));
+  for (const s of STATUTS) assert.deepEqual(statutsSuivantsFacture(s), s === "finalisee" ? ["envoyee"] : [], s);
 });
 
 test("seul un brouillon est modifiable", () => {

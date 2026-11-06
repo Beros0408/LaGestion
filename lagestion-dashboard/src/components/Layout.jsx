@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Briefcase, FileText, Package, Mail, BarChart3, Bot,
   FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut, ArrowLeft, Boxes, FileSignature,
+  Clock,
 } from "lucide-react";
 import { C, AVATARS, VOILE, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -16,6 +17,7 @@ const navItems = [
   { id: "opportunites", label: "Opportunités", icon: Briefcase, to: "/opportunites" },
   { id: "devis", label: "Devis", icon: FileSignature, to: "/devis" },
   { id: "factures", label: "Factures", icon: FileText, to: "/factures" },
+  { id: "impayes", label: "Impayés", icon: Clock, to: "/impayes" },
   { id: "catalogue", label: "Catalogue", icon: Boxes, to: "/catalogue" },
   { id: "stock", label: "Stock", icon: Package, soon: true },
   { id: "campagnes", label: "Campagnes", icon: Mail, soon: true },

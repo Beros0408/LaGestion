@@ -59,10 +59,10 @@ insert into public.devis (id, entreprise_id, client_id, numero) values
 -- Numéros anciens de la série de l'année, dont un supprimé logiquement : la séquence reprend après le plus grand.
 -- DEMO-NNNN et un format libre restent hors séquence.
 insert into public.factures (entreprise_id, client_id, numero, statut, deleted_at) values
-  ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'FAC-' || to_char(public.date_du_jour_paris(), 'YYYY') || '-0040', 'payee', null),
+  ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'FAC-' || to_char(public.date_du_jour_paris(), 'YYYY') || '-0040', 'envoyee', null),
   ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'FAC-' || to_char(public.date_du_jour_paris(), 'YYYY') || '-0041', 'envoyee', now()),
-  ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'DEMO-9000', 'payee', null),
-  ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'ANCIEN-777', 'payee', null);
+  ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'DEMO-9000', 'envoyee', null),
+  ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'ANCIEN-777', 'envoyee', null);
 
 -- Helpers de test, retirés par le rollback final
 create function public._t008_refuse(p_sql text, p_extrait text) returns void
@@ -331,7 +331,6 @@ begin
   perform public._t008_refuse(
     $q$update public.factures set statut = 'finalisee' where id = 'a0080000-0000-4000-8000-000000000f02'$q$,
     'n''est pas autorisé');
-  update public.factures set statut = 'en_retard' where id = 'a0080000-0000-4000-8000-000000000f02';
   perform public._t008_refuse(
     $q$update public.factures set statut = 'annulee' where id = 'a0080000-0000-4000-8000-000000000f02'$q$,
     'passe par un avoir');
@@ -342,13 +341,11 @@ begin
   -- Paiements sur une facture émise
   insert into public.paiements (entreprise_id, facture_id, montant, mode) values
     ('a0080000-0000-4000-8000-0000000000e1', 'a0080000-0000-4000-8000-000000000f02', 50, 'virement');
-  update public.factures set statut = 'partiellement_payee' where id = 'a0080000-0000-4000-8000-000000000f02';
   insert into public.paiements (entreprise_id, facture_id, montant) values
     ('a0080000-0000-4000-8000-0000000000e1', 'a0080000-0000-4000-8000-000000000f02', 113.34);
-  update public.factures set statut = 'payee' where id = 'a0080000-0000-4000-8000-000000000f02';
-  select count(*) into n from public.factures fa join public.factures_totaux t on t.facture_id = fa.id
-   where fa.id = 'a0080000-0000-4000-8000-000000000f02' and fa.statut = 'payee' and t.total_ttc = 163.34;
-  if n <> 1 then raise exception 'ÉCHEC : le statut payée a modifié les totaux'; end if;
+  select count(*) into n from public.factures_soldes t
+   where t.facture_id = 'a0080000-0000-4000-8000-000000000f02' and t.statut_calcule = 'payee' and t.total_ttc = 163.34;
+  if n <> 1 then raise exception 'ÉCHEC : le règlement a modifié les totaux ou le statut calculé'; end if;
   perform public._t008_refuse(
     $q$update public.factures set deleted_at = now() where id = 'a0080000-0000-4000-8000-000000000f02'$q$,
     'ne peut pas être supprimée');
@@ -627,7 +624,7 @@ begin
     $q$insert into public.factures (entreprise_id, client_id, numero) select 'a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', public._t008_numero(41)$q$,
     'uniq_factures_numero');
   perform public._t008_refuse(
-    $q$insert into public.factures (entreprise_id, client_id, statut) values ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'payee')$q$,
+    $q$insert into public.factures (entreprise_id, client_id, statut) values ('a0080000-0000-4000-8000-0000000000e5', 'a0080000-0000-4000-8000-0000000000c6', 'envoyee')$q$,
     'factures_emise_avec_numero');
 
   -- Facture annulée (état ancien, seul le rôle postgres peut encore le poser)

@@ -148,6 +148,10 @@ export function totalAvoirs(facture) {
   return (facture?.avoirs ?? []).reduce((s, a) => s - centimes(totalTTC(a)), 0) / 100;
 }
 
+// Date du jour à Paris (AAAA-MM-JJ) : même référence que date_du_jour_paris en base.
+export const jourParis = (d = new Date()) =>
+  new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris" }).format(d);
+
 // Mêmes règles que la vue SQL public.factures_soldes. Un avoir n'a ni reste à payer ni trop-perçu.
 export function resteAPayer(facture) {
   if (facture?.type === "avoir") return 0;
@@ -157,6 +161,27 @@ export function resteAPayer(facture) {
 export function tropPercu(facture) {
   if (facture?.type === "avoir") return 0;
   return Math.max(0, centimes(totalPaye(facture)) - (centimes(totalTTC(facture)) - centimes(totalAvoirs(facture)))) / 100;
+}
+
+// Statut affiché : même règle que statut_paiement (migration 011). Le retard arrive sans aucune écriture,
+// il se calcule donc à la lecture. La colonne statut ne garde que le cycle de vie.
+export function statutCalcule(facture, jour = jourParis()) {
+  const statut = facture?.statut;
+  if (facture?.type === "avoir" || statut === "brouillon" || statut === "annulee") return statut;
+  if (resteAPayer(facture) <= 0) return "payee";
+  if (facture?.date_echeance && facture.date_echeance < jour) return "en_retard";
+  if (totalPaye(facture) > 0) return "partiellement_payee";
+  return statut;
+}
+
+// Document à encaisser : émis, non annulé, pas un avoir, avec un reste à payer.
+export const estImpayee = (facture) =>
+  facture?.type !== "avoir" && facture?.statut !== "brouillon" && facture?.statut !== "annulee" && resteAPayer(facture) > 0;
+
+// Jours de retard : 0 tant que l'échéance n'est pas dépassée ou s'il ne reste rien à payer.
+export function joursDeRetard(facture, jour = jourParis()) {
+  if (!facture?.date_echeance || resteAPayer(facture) <= 0) return 0;
+  return Math.max(0, Math.round((Date.parse(jour) - Date.parse(facture.date_echeance)) / 86400000));
 }
 
 // Ce qu'il reste à créditer sur une facture, par taux (base HT et TVA, en euros).

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  List, Pencil, Download, Printer, Copy, CreditCard, Trash2, AlertCircle, Plus, Lock, FileMinus,
+  List, Pencil, Download, Printer, Copy, CreditCard, Trash2, AlertCircle, Plus, Lock, FileMinus, Send,
 } from "lucide-react";
 import { C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -10,8 +10,10 @@ import { useDevis } from "../context/DevisContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import {
   totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTTC, totalPaye, totalAvoirs, resteAPayer, tropPercu, resteCreditable,
-  montantSigne,
+  montantSigne, jourParis, statutCalcule,
 } from "../utils/facture";
+import { LIBELLE_NIVEAU, niveauSuivant, peutRelancer } from "../data/relances";
+import FenetreRelance from "../components/FenetreRelance.jsx";
 import { genererFacturePdf } from "../utils/facturePdf";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import {
@@ -104,6 +106,8 @@ export default function FactureDetail() {
   const [actionEnCours, setActionEnCours] = useState(false);
   const [erreurAction, setErreurAction] = useState(null);
   const [aFinaliser, setAFinaliser] = useState(null);
+  const [aRelancer, setARelancer] = useState(null);
+  const jour = useMemo(() => jourParis(), []);
 
   if (chargement && !facture) {
     return <Panneau centre>
@@ -139,7 +143,9 @@ export default function FactureDetail() {
   const estSolde = facture.type === "solde";
   const issueDevis = estAcompte || estSolde;
   const libelleDocument = LIBELLE_TYPE[facture.type] ?? "Facture";
-  const optionsStatut = statutsSuivantsFacture(facture.statut, facture.type).map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
+  const optionsStatut = statutsSuivantsFacture(facture.statut).map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
+  const statutAffiche = statutCalcule(facture, jour);
+  const relancable = peutEcrire && peutRelancer(facture, jour);
   const nomFacture = estAvoir
     ? (facture.numero ? `l'avoir ${facture.numero}` : "ce brouillon d'avoir")
     : (facture.numero
@@ -222,7 +228,7 @@ export default function FactureDetail() {
             </h2>
             {peutEcrire && optionsStatut.length > 0 ? (
               <MenuStatut
-                badge={<BadgeStatutFacture statut={facture.statut} />}
+                badge={<BadgeStatutFacture statut={statutAffiche} />}
                 ariaLabel="Changer le statut de la facture"
                 statutActuel={facture.statut}
                 options={optionsStatut}
@@ -233,7 +239,10 @@ export default function FactureDetail() {
                 disabled={actionEnCours}
               />
             ) : (
-              <BadgeStatutFacture statut={facture.statut} />
+              <BadgeStatutFacture statut={statutAffiche} />
+            )}
+            {facture.statut === "envoyee" && statutAffiche !== "envoyee" && (
+              <span className="text-xs" style={{ color: C.textSecondary }}>Envoyée au client</span>
             )}
           </div>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
@@ -319,7 +328,16 @@ export default function FactureDetail() {
                   Créer un avoir
                 </BoutonSecondaire>
               )}
-              {paiementPossible(facture.statut, facture.type) && (
+              {relancable && (
+                <BoutonSecondaire
+                  onClick={(e) => setARelancer({ element: e.currentTarget })}
+                  ariaLabel={`Préparer une relance : ${LIBELLE_NIVEAU[niveauSuivant(facture)]}`}
+                  icon={Send}
+                >
+                  Préparer une relance
+                </BoutonSecondaire>
+              )}
+              {paiementPossible(facture.statut, facture.type) && recap.reste > 0 && (
                 <BoutonSecondaire
                   onClick={() => setPaiementFormOuvert("encaissement")}
                   ariaLabel="Enregistrer un paiement"
@@ -435,6 +453,7 @@ export default function FactureDetail() {
             )}
           </CarteResume>
           {avoirsLies.length > 0 && <CarteAvoirs avoirs={avoirsLies} />}
+          {(facture.relances ?? []).length > 0 && <CarteRelances relances={facture.relances} />}
           {!estAvoir && (
             <CartePaiements
               facture={facture}
@@ -443,7 +462,8 @@ export default function FactureDetail() {
               onFermerForm={() => setPaiementFormOuvert(false)}
               ajouterPaiement={ajouterPaiement}
               supprimerPaiement={supprimerPaiement}
-              peutEcrire={peutEcrire && paiementPossible(facture.statut, facture.type)}
+              peutEcrire={peutEcrire && paiementPossible(facture.statut, facture.type) && recap.reste > 0}
+              reste={recap.reste}
               peutRembourser={peutEcrire && recap.trop > 0}
               tropPercu={recap.trop}
               peutSupprimer={peutSupprimer}
@@ -466,6 +486,17 @@ export default function FactureDetail() {
           )}
         </div>
       </div>
+
+      {aRelancer && (
+        <FenetreRelance
+          facture={facture}
+          client={client}
+          entreprise={entreprise}
+          role={role}
+          elementRetour={aRelancer.element}
+          onFermer={() => setARelancer(null)}
+        />
+      )}
 
       <ConfirmDialog
         ouvert={Boolean(aFinaliser)}
@@ -531,6 +562,31 @@ function CarteAcomptesDeduits({ acomptes, net }) {
   );
 }
 
+function CarteRelances({ relances }) {
+  const triees = [...relances].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+  return (
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Relances préparées</h3>
+      <ul className="space-y-3 text-sm">
+        {triees.map((r) => (
+          <li key={r.id}>
+            <p style={{ color: C.textPrimary }}>
+              <span className="font-medium">{LIBELLE_NIVEAU[r.niveau]}</span>
+              <span style={{ color: C.textSecondary }}>{` · ${formaterDateCourte(r.created_at)} · ${r.auteur_nom} · reste ${euroCentimes(Number(r.reste_a_payer))}`}</span>
+            </p>
+            <details className="mt-1">
+              <summary className="cursor-pointer text-xs" style={{ color: C.primary }}>Voir le texte préparé</summary>
+              <p className="mt-1 whitespace-pre-line rounded-xl p-3 text-xs" style={{ backgroundColor: C.bgMain, color: C.textPrimary }}>
+                {`${r.destinataire ? `À : ${r.destinataire}\n` : ""}Objet : ${r.objet}\n\n${r.corps}`}
+              </p>
+            </details>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function CarteAvoirs({ avoirs }) {
   return (
     <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
@@ -547,7 +603,7 @@ function CarteAvoirs({ avoirs }) {
             </Link>
             <span className="flex items-center gap-3">
               <span className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(a))}</span>
-              <BadgeStatutFacture statut={a.statut} />
+              <BadgeStatutFacture statut={statutCalcule(a)} />
             </span>
           </li>
         ))}
@@ -558,7 +614,7 @@ function CarteAvoirs({ avoirs }) {
 
 function CartePaiements({
   facture, paiementFormOuvert, onOuvrirForm, onFermerForm, ajouterPaiement, supprimerPaiement,
-  peutEcrire, peutRembourser, tropPercu: trop, peutSupprimer,
+  peutEcrire, peutRembourser, tropPercu: trop, reste, peutSupprimer,
 }) {
   const paiements = facture.paiements ?? [];
   return (
@@ -595,7 +651,7 @@ function CartePaiements({
         <FormulairePaiement
           factureId={facture.id}
           sens={paiementFormOuvert}
-          plafond={paiementFormOuvert === "remboursement" ? trop : null}
+          plafond={paiementFormOuvert === "remboursement" ? trop : reste}
           onAnnuler={onFermerForm}
           onEnregistrer={async (data) => {
             await ajouterPaiement(facture.id, data);
@@ -642,7 +698,7 @@ function CartePaiements({
 function FormulairePaiement({ sens = "encaissement", plafond = null, onAnnuler, onEnregistrer }) {
   const [form, setForm] = useState({
     date: new Date().toISOString().slice(0, 10),
-    montant: plafond != null ? String(plafond) : "",
+    montant: plafond != null && sens === "remboursement" ? String(plafond) : "",
     mode: "",
     reference: "",
   });
@@ -668,7 +724,7 @@ function FormulairePaiement({ sens = "encaissement", plafond = null, onAnnuler, 
     if (form.montant === "" || Number.isNaN(m) || m <= 0) {
       errs.montant = "Le montant doit être positif.";
     } else if (plafond != null && Math.round(m * 100) > Math.round(plafond * 100)) {
-      errs.montant = `Au plus ${euroCentimes(plafond)} (trop-perçu).`;
+      errs.montant = `Au plus ${euroCentimes(plafond)} (${sens === "remboursement" ? "trop-perçu" : "reste à payer"}).`;
     }
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;

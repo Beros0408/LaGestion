@@ -308,7 +308,6 @@ begin
   perform public._t009_facture('a0090000-0000-4000-8000-000000000f03', 'a0090000-0000-4000-8000-0000000000e1', 'a0090000-0000-4000-8000-0000000000c1');
   insert into public.paiements (entreprise_id, facture_id, montant) values
     ('a0090000-0000-4000-8000-0000000000e1', 'a0090000-0000-4000-8000-000000000f03', 1750);
-  update public.factures set statut = 'payee' where id = 'a0090000-0000-4000-8000-000000000f03';
 
   -- Sans avoir : aucun trop-perçu, remboursement refusé
   perform public._t009_refuse(

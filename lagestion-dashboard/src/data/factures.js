@@ -8,6 +8,7 @@ export const STATUTS = [
   "annulee",
 ];
 
+// Statuts affichés. Payée, partiellement payée et en retard sont calculés (statutCalcule), jamais stockés.
 // en_attente : statut retiré par la migration 008, conservé pour le libellé du journal d'activité.
 export const LIBELLE_STATUT = {
   brouillon: "Brouillon",
@@ -20,8 +21,6 @@ export const LIBELLE_STATUT = {
   annulee: "Annulée",
 };
 
-export const STATUTS_IMPAYES = ["finalisee", "envoyee", "partiellement_payee", "en_retard"];
-
 export const TAUX_TVA = [20, 10, 5.5, 0];
 
 export const LIBELLE_TYPE = {
@@ -31,19 +30,8 @@ export const LIBELLE_TYPE = {
   avoir: "Avoir",
 };
 
-// Mêmes règles que verifier_facture (migration 008). Un brouillon passe par la finalisation ;
-// l'annulation d'une facture finalisée attend l'étape des avoirs.
-const STATUTS_SUIVANTS = {
-  finalisee: ["envoyee", "partiellement_payee", "payee", "en_retard"],
-  envoyee: ["partiellement_payee", "payee", "en_retard"],
-  partiellement_payee: ["payee", "en_retard", "envoyee"],
-  payee: ["partiellement_payee", "envoyee"],
-  en_retard: ["partiellement_payee", "payee", "envoyee"],
-};
-
-// Un avoir finalisé ne peut que passer à « envoyé ».
-export const statutsSuivantsFacture = (statut, type = "facture") =>
-  type === "avoir" ? (statut === "finalisee" ? ["envoyee"] : []) : STATUTS_SUIVANTS[statut] ?? [];
+// Seul choix encore manuel, purement informatif et sans retour (verifier_facture, migration 011).
+export const statutsSuivantsFacture = (statut) => (statut === "finalisee" ? ["envoyee"] : []);
 
 export const factureModifiable = (statut) => statut === "brouillon";
 

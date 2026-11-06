@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { resteAPayer, totalAvoirs, totalHT, totalPaye, totalTVA, totalTTC } from "./facture";
+import { resteAPayer, statutCalcule, totalAvoirs, totalHT, totalPaye, totalTVA, totalTTC } from "./facture";
 import { LIBELLE_STATUT, LIBELLE_TYPE } from "../data/factures";
 
 const TYPE_LABEL = {
@@ -86,7 +86,7 @@ export function exporterFacturesExcel(factures, clients) {
     clientsParId.get(f.client_id)?.nom ?? "",
     parseDate(f.date_emission),
     parseDate(f.date_echeance),
-    LIBELLE_STATUT[f.statut] ?? f.statut ?? "",
+    LIBELLE_STATUT[statutCalcule(f)] ?? f.statut ?? "",
     totalHT(f),
     totalTVA(f),
     totalTTC(f),

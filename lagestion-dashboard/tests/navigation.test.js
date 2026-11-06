@@ -22,6 +22,7 @@ test("page parente de chaque écran", () => {
     ["/factures/f-7", "/factures"],
     ["/factures/f-7/modifier", "/factures/f-7"],
     ["/factures/f-7/avoir", "/factures/f-7"],
+    ["/impayes", "/dashboard"],
     ["/devis/d-7/acompte", "/devis/d-7"],
     ["/factures/f-7/avoir/modifier", "/factures/f-7"],
     ["/catalogue", "/dashboard"],

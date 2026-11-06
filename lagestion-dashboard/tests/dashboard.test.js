@@ -129,7 +129,7 @@ test("opportunités prioritaires : 5 ouvertes au plus fort montant pondéré", (
 test("actions suggérées", () => {
   const [relances, brouillons, inactives] = tdb("30j").actions;
   assert.deepEqual(relances.elements.map((a) => [a.titre, a.jours, a.lien]),
-    [["Relancer la facture F5", 113, "/factures/f5"], ["Relancer la facture F2", 26, "/factures/f2"]]);
+    [["Relancer la facture F5\u00a0: 1re relance", 113, "/factures/f5"], ["Relancer la facture F2\u00a0: 1re relance", 26, "/factures/f2"]]);
   assert.deepEqual(brouillons.elements.map((a) => a.lien), ["/factures/f3"]);
   assert.deepEqual(inactives.elements.map((a) => [a.titre, a.jours, a.lien]),
     [["Relancer « Projet B »", 65, "/opportunites/o2/modifier"]]);
@@ -173,6 +173,20 @@ test("phrases d'activité", () => {
   assert.equal(phraseActivite({ table_name: "devis", action: "update",
     old_data: { numero: "D1", statut: "accepte" }, new_data: { numero: "D1", statut: "envoye" } }),
     "Devis D1 marqué envoyé");
+});
+
+test("relances au tableau de bord : niveau proposé, délai de 15 jours", () => {
+  const base = factures.find((f) => f.id === "f2");
+  const avec = (r) => calculerTableauDeBord({ factures: [{ ...base, relances: r }], clients, opportunites: [], periode: "12m", aujourdhui: AUJOURDHUI }).actions[0].elements.map((a) => a.titre);
+  assert.deepEqual(avec([{ niveau: 1, created_at: "2026-10-01T10:00:00Z" }]), ["Relancer la facture F2\u00a0: 2e relance"]);
+  const jour = new Date(Date.parse(AUJOURDHUI) - 5 * 86400000).toISOString();
+  assert.deepEqual(avec([{ niveau: 1, created_at: jour }]), []);
+  assert.deepEqual(avec([{ niveau: 1, created_at: "2026-09-01T10:00:00Z" }, { niveau: 2, created_at: "2026-09-15T10:00:00Z" }, { niveau: 3, created_at: "2026-10-01T10:00:00Z" }]), []);
+});
+
+test("journal : relance préparée", () => {
+  const facturesParId = new Map([["f9", { numero: "DEMO-0009" }]]);
+  assert.equal(phraseActivite({ table_name: "relances", action: "insert", new_data: { niveau: 3, facture_id: "f9" } }, facturesParId), "Mise en demeure préparée sur la facture DEMO-0009");
 });
 
 test("journal : acompte et solde", () => {

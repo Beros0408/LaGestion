@@ -1,6 +1,6 @@
 -- seed.sql — Lagestion
 -- Données de démonstration pour UNE entreprise existante (créée depuis l'onboarding).
--- S'applique après 010_acomptes.sql, dans le SQL Editor (rôle postgres).
+-- S'applique après 011_reglements_relances.sql, dans le SQL Editor (rôle postgres).
 --
 -- Ce que fait le script :
 --   - ne crée aucune entreprise et ne touche ni à entreprises, ni à memberships, ni à profiles ;
@@ -19,6 +19,8 @@
 --     remboursé) ; un avoir créé dans l'application sur une facture de démo est de la démo et disparaît au rejeu ;
 --   - acomptes et soldes : numéros « DEMO-ACP-NNNN » et « DEMO-SLD-NNNN », hors série, rattachés à DEV-DEMO-0008
 --     (1 750 € TTC : acompte de 30 % à 525 €, solde à 1 225 €) ; DEV-DEMO-0009, accepté et libre, sert aux tests ;
+--   - relances : suivent la facture à sa suppression en rôle postgres ; 1 relance sur DEMO-0008, il y a 20 jours ;
+--   - statuts : payée, partiellement payée et en retard sont calculés ; le seed ne pose que le cycle de vie ;
 --   - opportunités : rattachées à un client de démo et portant un nom de la liste ci-dessous ;
 --   - catalogue : référence « DEMO-ART-NN » (10 articles, dont 1 inactif ; 9 lignes de facture y sont reliées) ;
 --   - devis : numéro « DEV-DEMO-NNNN » (9 devis, 17 lignes) ; une facture issue d'un de ces devis est de la démo
@@ -273,16 +275,16 @@ begin
   perform set_config('request.jwt.claims', '{}', true);
   update public.factures f set statut = v.statut
     from (values
-      ('DEMO-0001', 'payee'),
-      ('DEMO-0002', 'payee'),
-      ('DEMO-0003', 'payee'),
+      ('DEMO-0001', 'envoyee'),
+      ('DEMO-0002', 'envoyee'),
+      ('DEMO-0003', 'envoyee'),
       ('DEMO-0004', 'envoyee'),
-      ('DEMO-0005', 'payee'),
-      ('DEMO-0006', 'payee'),
-      ('DEMO-0007', 'partiellement_payee'),
-      ('DEMO-0008', 'en_retard'),
-      ('DEMO-0009', 'payee'),
-      ('DEMO-0010', 'en_retard'),
+      ('DEMO-0005', 'envoyee'),
+      ('DEMO-0006', 'envoyee'),
+      ('DEMO-0007', 'envoyee'),
+      ('DEMO-0008', 'envoyee'),
+      ('DEMO-0009', 'envoyee'),
+      ('DEMO-0010', 'envoyee'),
       ('DEMO-0011', 'envoyee')
     ) as v(numero, statut)
    where f.entreprise_id = v_ent and f.numero = v.numero;
@@ -290,7 +292,7 @@ begin
     json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
 
-  -- 8. Paiements (8) : payée = TTC réglé ; partiellement payée = acompte
+  -- 8. Paiements (9) : TTC réglé, acompte en retard (DEMO-0007), acompte à échoir (DEMO-0011)
   insert into public.paiements (entreprise_id, facture_id, date, montant, mode, reference)
   select v_ent, f.id, f.date_emission + v.jours, v.montant, v.mode, v.reference
   from (values
@@ -301,7 +303,8 @@ begin
     ('DEMO-0006',  0, 1738.11, 'cheque',   'Acompte 30 %'),
     ('DEMO-0006', 25, 4055.59, 'virement', 'Solde'),
     ('DEMO-0007', 10, 5000.00, 'virement', 'Acompte'),
-    ('DEMO-0009', 18, 4654.56, 'carte',    'CB 0918')
+    ('DEMO-0009', 18, 4654.56, 'carte',    'CB 0918'),
+    ('DEMO-0011',  5, 1000.00, 'virement', 'Acompte')
   ) as v(numero, jours, montant, mode, reference)
   join public.factures f on f.entreprise_id = v_ent and f.numero = v.numero;
 
@@ -434,7 +437,6 @@ begin
   join public.factures f on f.entreprise_id = v_ent and f.numero = 'DEMO-ACP-0001';
 
   update public.factures set statut = 'envoyee' where entreprise_id = v_ent and numero = 'DEMO-ACP-0001';
-  update public.factures set statut = 'payee' where entreprise_id = v_ent and numero = 'DEMO-ACP-0001';
   insert into public.paiements (entreprise_id, facture_id, date, montant, mode, reference)
   select v_ent, f.id, f.date_emission + 3, 525.00, 'virement', 'VIR DEMO-ACP-0001'
   from public.factures f where f.entreprise_id = v_ent and f.numero = 'DEMO-ACP-0001';
@@ -451,6 +453,14 @@ begin
 
   update public.factures set statut = 'envoyee' where entreprise_id = v_ent and numero = 'DEMO-SLD-0001';
   update public.devis set statut = 'converti' where entreprise_id = v_ent and numero = 'DEV-DEMO-0008';
+
+  -- 8 sexies. Une relance déjà préparée sur DEMO-0008 : le niveau 2 est proposé, 15 jours étant passés
+  insert into public.relances (entreprise_id, facture_id, niveau, objet, corps, destinataire, reste_a_payer, auteur, auteur_nom, created_at)
+  select v_ent, f.id, 1, 'Rappel de paiement : facture DEMO-0008',
+         'Bonjour, sauf erreur de notre part, le règlement de la facture DEMO-0008 ne nous est pas encore parvenu.',
+         c.email, f.total_ttc, v_admin, 'Démonstration', now() - interval '20 days'
+  from public.factures f join public.clients c on c.id = f.client_id
+  where f.entreprise_id = v_ent and f.numero = 'DEMO-0008';
 end $$;
 
 -- 9. Contrôles finaux (rôle postgres) : toute anomalie annule le seed
@@ -474,7 +484,7 @@ begin
   select count(*) into n from public.factures a join public.factures o on o.id = a.facture_origine_id
    where a.entreprise_id = v_ent and a.type = 'avoir' and a.statut = 'envoyee'
      and ((a.numero = 'DEMO-AV-0001' and a.avoir_total and o.numero = 'DEMO-0004' and o.statut = 'annulee' and a.total_ttc = -o.total_ttc)
-       or (a.numero = 'DEMO-AV-0002' and not a.avoir_total and o.numero = 'DEMO-0005' and o.statut = 'payee' and a.total_ttc = -240));
+       or (a.numero = 'DEMO-AV-0002' and not a.avoir_total and o.numero = 'DEMO-0005' and o.statut = 'envoyee' and a.total_ttc = -240));
   if n <> 2 then raise exception 'Contrôle seed : % avoir(s) de démo cohérent(s) au lieu de 2', n; end if;
   select count(*) into n from public.factures_soldes s join public.factures f on f.id = s.facture_id
    where f.entreprise_id = v_ent and f.numero in ('DEMO-0004', 'DEMO-0005') and s.reste_a_payer = 0 and s.trop_percu = 0;
@@ -486,14 +496,29 @@ begin
 
   select count(*) into n from public.paiements p join public.factures f on f.id = p.facture_id
    where f.entreprise_id = v_ent and f.numero like 'DEMO-%';
-  if n <> 10 then raise exception 'Contrôle seed : % paiement(s) au lieu de 10', n; end if;
+  if n <> 11 then raise exception 'Contrôle seed : % paiement(s) au lieu de 11', n; end if;
+
+  -- Statuts calculés : un cas de chaque, au jour du seed
+  select count(*) into n from public.factures f join public.factures_soldes s on s.facture_id = f.id
+   where f.entreprise_id = v_ent
+     and ((f.numero in ('DEMO-0001', 'DEMO-0002', 'DEMO-0003', 'DEMO-0005', 'DEMO-0006', 'DEMO-0009', 'DEMO-ACP-0001') and s.statut_calcule = 'payee')
+       or (f.numero in ('DEMO-0007', 'DEMO-0008', 'DEMO-0010') and s.statut_calcule = 'en_retard' and s.jours_retard > 0)
+       or (f.numero = 'DEMO-0011' and s.statut_calcule = 'partiellement_payee')
+       or (f.numero = 'DEMO-SLD-0001' and s.statut_calcule = 'envoyee')
+       or (f.numero = 'DEMO-0004' and s.statut_calcule = 'annulee')
+       or (f.numero = 'DEMO-0012' and s.statut_calcule = 'brouillon'));
+  if n <> 14 then raise exception 'Contrôle seed : % statut(s) calculé(s) attendu(s) au lieu de 14', n; end if;
+
+  select count(*) into n from public.relances rel join public.factures f on f.id = rel.facture_id
+   where f.entreprise_id = v_ent and f.numero = 'DEMO-0008' and rel.niveau = 1;
+  if n <> 1 then raise exception 'Contrôle seed : % relance(s) de démo au lieu de 1', n; end if;
 
   -- Acompte et solde : 525 + 1 225 = 1 750, au centime
   select count(*) into n
     from public.factures a
     join public.factures s on s.devis_id = a.devis_id and s.numero = 'DEMO-SLD-0001' and s.type = 'solde' and s.statut = 'envoyee'
     join public.devis_totaux t on t.devis_id = a.devis_id
-   where a.entreprise_id = v_ent and a.numero = 'DEMO-ACP-0001' and a.type = 'acompte' and a.statut = 'payee'
+   where a.entreprise_id = v_ent and a.numero = 'DEMO-ACP-0001' and a.type = 'acompte' and a.statut = 'envoyee'
      and a.total_ttc = 525 and s.total_ttc = 1225 and t.total_ttc = 1750 and jsonb_array_length(s.acomptes_deduits) = 1;
   if n <> 1 then raise exception 'Contrôle seed : acompte et solde de démo incohérents'; end if;
 
@@ -553,7 +578,7 @@ begin
 
   -- Cohérence paiements / statut, au centime
   for r in
-    select f.numero, f.statut, s.total_ttc - s.avoirs_ttc as total_ttc, s.encaisse_net as paye
+    select f.numero, s.statut_calcule as statut, s.total_ttc - s.avoirs_ttc as total_ttc, s.encaisse_net as paye
     from public.factures f join public.factures_soldes s on s.facture_id = f.id
     where f.entreprise_id = v_ent and f.numero like 'DEMO-%'
   loop
@@ -569,17 +594,15 @@ begin
     if r.statut = 'partiellement_payee' and not (r.paye > 0 and r.paye < r.total_ttc) then
       raise exception 'Contrôle seed : % partiellement payée incohérente (% sur %)', r.numero, r.paye, r.total_ttc;
     end if;
-    if r.statut not in ('payee', 'partiellement_payee') and r.paye > 0 then
+    if r.statut in ('finalisee', 'envoyee') and r.paye > 0 then
       raise exception 'Contrôle seed : % au statut % porte des paiements', r.numero, r.statut;
     end if;
   end loop;
 
-  -- Statut « en retard » : échéance dépassée ; « envoyée » et « brouillon » : échéance à venir
+  -- Brouillon de démo : échéance à venir, pour pouvoir le finaliser
   select count(*) into n from public.factures
-   where entreprise_id = v_ent and numero like 'DEMO-%' and type <> 'avoir'
-     and ((statut = 'en_retard' and date_echeance >= current_date)
-       or (statut in ('envoyee', 'brouillon') and date_echeance < current_date));
-  if n > 0 then raise exception 'Contrôle seed : % facture(s) au statut incohérent avec l''échéance', n; end if;
+   where entreprise_id = v_ent and numero like 'DEMO-%' and type <> 'avoir' and statut = 'brouillon' and date_echeance < current_date;
+  if n > 0 then raise exception 'Contrôle seed : % brouillon(s) déjà échu(s)', n; end if;
 
   -- Chronologie : aucune facture ni opportunité antérieure à la création de son client
   select count(*) into n from (
@@ -602,7 +625,7 @@ begin
   ) s where s.entreprise_id is distinct from s.fe;
   if n > 0 then raise exception 'Contrôle seed : % ligne(s) ou paiement(s) hors de l''entreprise', n; end if;
 
-  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes), 2 avoirs, 1 acompte, 1 solde, 10 paiements dont 1 remboursement, 10 articles, 9 devis (17 lignes).';
+  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes), 2 avoirs, 1 acompte, 1 solde, 11 paiements dont 1 remboursement, 1 relance, 10 articles, 9 devis (17 lignes).';
 end $$;
 
 commit;

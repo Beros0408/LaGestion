@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { ligneHT, remiseGlobale, totalHTBrut, totalHT, tvaParTaux, totalTTC } from "./facture";
+import { ligneHT, remiseGlobale, statutCalcule, totalHTBrut, totalHT, tvaParTaux, totalTTC } from "./facture";
 import { LIBELLE_STATUT } from "../data/factures";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis";
 
@@ -343,7 +343,7 @@ export function genererFacturePdf(facture, client, totaux, entreprise, devisOrig
         `Motif : ${facture.motif ?? ""}`,
       ],
       lignesNegatives: true,
-      statut: LIBELLE_STATUT[facture.statut] ?? facture.statut ?? "—",
+      statut: LIBELLE_STATUT[statutCalcule(facture)] ?? facture.statut ?? "—",
     });
     return;
   }
@@ -365,7 +365,7 @@ export function genererFacturePdf(facture, client, totaux, entreprise, devisOrig
       ...(brouillon ? [] : [{ texte: `Émise le ${formatDate(facture.date_emission)}` }]),
       { texte: `Échéance le ${formatDate(facture.date_echeance)}` },
     ],
-    statut: LIBELLE_STATUT[facture.statut] ?? facture.statut ?? "—",
+    statut: LIBELLE_STATUT[statutCalcule(facture)] ?? facture.statut ?? "—",
     mentionPied: "En cas de retard de paiement, des pénalités seront exigibles au taux légal en vigueur.",
   });
 }

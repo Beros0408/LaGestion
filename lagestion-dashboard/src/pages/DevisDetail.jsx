@@ -6,7 +6,7 @@ import { useDevis } from "../context/DevisContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
-import { totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTTC, totalAvoirs } from "../utils/facture";
+import { totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTTC, totalAvoirs, statutCalcule } from "../utils/facture";
 import { genererDevisPdf } from "../utils/facturePdf";
 import { acomptesDuDevis, devisModifiable, factureDuDevis, LIBELLE_STATUT_DEVIS, statutsSuivants, validiteDepassee } from "../data/devis";
 import BadgeStatutDevis from "../components/BadgeStatutDevis.jsx";
@@ -314,7 +314,7 @@ function CarteAcomptes({ acomptes, ttcDevis }) {
             </Link>
             <span className="flex items-center gap-3">
               <span className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(a))}</span>
-              <BadgeStatutFacture statut={a.statut} />
+              <BadgeStatutFacture statut={statutCalcule(a)} />
             </span>
           </li>
         ))}

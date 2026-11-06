@@ -64,7 +64,7 @@ function normaliserFacture(row) {
     .slice()
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
   const { lignes_facture: _l, paiements: _p, ...entete } = row;
-  return { ...entete, lignes, paiements };
+  return { ...entete, lignes, paiements, relances: row.relances ?? [] };
 }
 
 export function FacturesProvider({ children }) {
@@ -78,7 +78,7 @@ export function FacturesProvider({ children }) {
     setErreur(null);
     const { data, error } = await supabase
       .from("factures")
-      .select("*, lignes_facture(*), paiements(*)")
+      .select("*, lignes_facture(*), paiements(*), relances(*)")
       .eq("entreprise_id", entrepriseId)
       .is("deleted_at", null)
       .order("date_emission", { ascending: false });
@@ -171,6 +171,22 @@ export function FacturesProvider({ children }) {
       return avoirId;
     },
     [entrepriseId, chargerFactures]
+  );
+
+  // Trace la relance (fonction preparer_relance) ; aucun envoi.
+  const preparerRelance = useCallback(
+    async (factureId, niveau, objet, corps, destinataire) => {
+      const { error } = await supabase.rpc("preparer_relance", {
+        p_facture_id: factureId,
+        p_niveau: niveau,
+        p_objet: objet,
+        p_corps: corps,
+        p_destinataire: destinataire || null,
+      });
+      if (error) throw erreurFrancaise(error);
+      await chargerFactures();
+    },
+    [chargerFactures]
   );
 
   const deleteFacture = useCallback(async (id) => {
@@ -274,6 +290,7 @@ export function FacturesProvider({ children }) {
       updateFacture,
       finaliserFacture,
       creerAvoir,
+      preparerRelance,
       deleteFacture,
       changerStatut,
       ajouterPaiement,
@@ -289,6 +306,7 @@ export function FacturesProvider({ children }) {
       updateFacture,
       finaliserFacture,
       creerAvoir,
+      preparerRelance,
       deleteFacture,
       changerStatut,
       ajouterPaiement,

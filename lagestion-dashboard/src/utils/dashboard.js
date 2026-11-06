@@ -1,8 +1,10 @@
 // Calculs du tableau de bord : fonctions pures, montants additionnés en centimes entiers.
 // Les totaux d'une facture viennent exclusivement de utils/facture.js.
 // Dates au format ISO « AAAA-MM-JJ » ; « aujourdhui » est passé en paramètre (déterminisme, tests).
-import { estComptabilisee, montantSigne, totalAvoirs, totalHT, totalTTC, totalPaye, resteAPayer } from "./facture.js";
-import { STATUTS_IMPAYES, LIBELLE_STATUT, LIBELLE_TYPE, libelleNumero } from "../data/factures.js";
+import { estComptabilisee, estImpayee, montantSigne, statutCalcule, totalAvoirs, totalHT, totalTTC, totalPaye, resteAPayer } from "./facture.js";
+import { LIBELLE_STATUT, LIBELLE_TYPE, libelleNumero } from "../data/factures.js";
+import { LIBELLE_NIVEAU, niveauSuivant, relanceAProposer } from "../data/relances.js";
+const N = "\u00a0";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis.js";
 import { ETAPES } from "../data/opportunites.js";
 import { SECTEUR_NON_RENSEIGNE, SECTEUR_AUTRES } from "../data/secteurs.js";
@@ -110,7 +112,6 @@ export function variation(courant, precedent) {
   return Math.round(((courant - precedent) / precedent) * 1000) / 10;
 }
 
-const estImpayee = (f) => STATUTS_IMPAYES.includes(f.statut) && centimes(resteAPayer(f)) > 0;
 
 function nomClient(clientsParId, id) {
   return clientsParId.get(id)?.nom ?? "Client supprimé";
@@ -265,10 +266,10 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
 
   // Actions suggérées (règles déterministes)
   const relances = impayees
-    .filter((f) => f.statut === "en_retard" || (f.date_echeance && f.date_echeance < aujourdhui))
+    .filter((f) => relanceAProposer(f, aujourdhui))
     .map((f) => ({
       id: f.id,
-      titre: `Relancer la facture ${f.numero}`,
+      titre: `Relancer la facture ${f.numero}${N}: ${LIBELLE_NIVEAU[niveauSuivant(f)]}`,
       detail: `${nomClient(clientsParId, f.client_id)} · reste ${fmtEuro(euros(centimes(resteAPayer(f))))}`,
       jours: f.date_echeance ? Math.max(0, joursEntre(f.date_echeance, aujourdhui)) : null,
       lien: `/factures/${f.id}`,
@@ -314,7 +315,7 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
       client: nomClient(clientsParId, f.client_id),
       montantTTC: euros(centimes(totalTTC(f))),
       echeance: f.date_echeance,
-      statut: f.statut,
+      statut: statutCalcule(f, aujourdhui),
     }));
 
   return {
@@ -391,6 +392,11 @@ export function phraseActivite(evt, facturesParId = new Map()) {
       if (restauree) return `Opportunité « ${d.nom} » restaurée`;
       if (o.etape !== n.etape) return `Opportunité « ${d.nom} » passée en ${n.etape}`;
       return `Opportunité « ${d.nom} » modifiée`;
+    }
+    case "relances": {
+      const numero = facturesParId.get(d.facture_id)?.numero;
+      const niveau = LIBELLE_NIVEAU[d.niveau] ?? "Relance";
+      return `${niveau} préparée${numero ? ` sur la facture ${numero}` : ""}`;
     }
     case "paiements": {
       const numero = facturesParId.get(d.facture_id)?.numero;

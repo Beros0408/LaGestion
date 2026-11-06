@@ -113,8 +113,8 @@ test("solde d'un client", () => {
 });
 
 test("règles d'interface d'un avoir", () => {
-  assert.deepEqual(statutsSuivantsFacture("finalisee", "avoir"), ["envoyee"]);
-  assert.deepEqual(statutsSuivantsFacture("envoyee", "avoir"), []);
+  assert.deepEqual(statutsSuivantsFacture("finalisee"), ["envoyee"]);
+  assert.deepEqual(statutsSuivantsFacture("envoyee"), []);
   assert.equal(paiementPossible("finalisee", "avoir"), false);
   assert.equal(paiementPossible("finalisee"), true);
   assert.equal(peutCreerAvoir(facture()), true);

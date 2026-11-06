@@ -9,9 +9,9 @@ import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import {
-  STATUTS, LIBELLE_STATUT, LIBELLE_TYPE, STATUTS_IMPAYES, factureModifiable, factureSupprimable, libelleNumero, statutsSuivantsFacture,
+  STATUTS, LIBELLE_STATUT, LIBELLE_TYPE, factureModifiable, factureSupprimable, libelleNumero, statutsSuivantsFacture,
 } from "../data/factures";
-import { estComptabilisee, resteAPayer, totalAvoirs, totalTTC } from "../utils/facture";
+import { estComptabilisee, estImpayee, jourParis, resteAPayer, statutCalcule, totalAvoirs, totalTTC } from "../utils/facture";
 import { exporterFacturesExcel } from "../utils/excel";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 
@@ -34,7 +34,7 @@ const COLUMNS = [
   { id: "date_emission",  label: "Émission",     sortable: true,  align: "left" },
   { id: "date_echeance",  label: "Échéance",     sortable: true,  align: "left" },
   { id: "montantTTC",     label: "Montant TTC",  sortable: true,  align: "right" },
-  { id: "statut",         label: "Statut",       sortable: true,  align: "left" },
+  { id: "statutAffiche",  label: "Statut",       sortable: true,  align: "left" },
   { id: "actions",        label: "",             sortable: false, align: "right" },
 ];
 
@@ -72,18 +72,21 @@ export default function Factures() {
     return map;
   }, [clients]);
 
+  const jour = useMemo(() => jourParis(), []);
+
   const enrichies = useMemo(() => {
     return factures.map((f) => ({
       ...f,
       clientNom: clientsParId.get(f.client_id)?.nom ?? "Client inconnu",
       montantTTC: totalTTC(f),
+      statutAffiche: statutCalcule(f, jour),
     }));
-  }, [factures, clientsParId]);
+  }, [factures, clientsParId, jour]);
 
   const filtrees = useMemo(() => {
     const q = requeteDeb.trim().toLowerCase();
     return enrichies.filter((f) => {
-      if (statut !== "tous" && f.statut !== statut) return false;
+      if (statut !== "tous" && f.statutAffiche !== statut) return false;
       if (type !== "tous" && f.type !== type) return false;
       if (q) {
         const hay = `${libelleNumero(f)} ${f.clientNom}`.toLowerCase();
@@ -115,7 +118,7 @@ export default function Factures() {
       if (f.type === "avoir") avoirs += 1;
       else nombre += 1;
       if (estComptabilisee(f)) totalTotal += totalTTC(f);
-      if (STATUTS_IMPAYES.includes(f.statut)) impaye += resteAPayer(f);
+      if (estImpayee(f)) impaye += resteAPayer(f);
     });
     return { nombre, avoirs, totalTotal, impaye };
   }, [factures]);
@@ -297,7 +300,7 @@ export default function Factures() {
                     onEdit={peutEcrire && factureModifiable(f.statut) ? () => handleEdit(f) : null}
                     onDelete={peutSupprimer && factureSupprimable(f) ? () => handleDelete(f) : null}
                     // Refus affiché par le bandeau d'erreur de la liste
-                    onChangerStatut={peutEcrire && statutsSuivantsFacture(f.statut, f.type).length > 0
+                    onChangerStatut={peutEcrire && statutsSuivantsFacture(f.statut).length > 0
                       ? (s) => { changerStatut(f.id, s).catch(() => {}); }
                       : null}
                   />
@@ -397,7 +400,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
           <span className="block text-xs font-normal" style={{ color: C.textSecondary }}>dont avoirs − {euro(avoirs)}</span>
         )}
       </td>
-      <td className="px-3 py-3"><BadgeStatutFacture statut={facture.statut} /></td>
+      <td className="px-3 py-3"><BadgeStatutFacture statut={facture.statutAffiche} /></td>
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <BoutonAction label={`Voir ${nom}`} icon={Eye} onClick={onView} />
@@ -462,7 +465,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                         boxShadow: OMBRE.lg,
                       }}
                     >
-                      {statutsSuivantsFacture(facture.statut, facture.type).map((s) => (
+                      {statutsSuivantsFacture(facture.statut).map((s) => (
                         <button
                           key={s}
                           type="button"

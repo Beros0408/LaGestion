@@ -6,7 +6,7 @@ import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { libelleNumero } from "../data/factures";
-import { resteAPayer, soldeClient, totalTTC } from "../utils/facture";
+import { resteAPayer, soldeClient, statutCalcule, totalTTC } from "../utils/facture";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 
 const AVATAR_PALETTE = Object.values(AVATARS);
@@ -370,7 +370,7 @@ function CarteFacturesClient({ clientId }) {
                 </td>
                 <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(f))}</td>
                 <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(resteAPayer(f))}</td>
-                <td className="px-2 py-2"><BadgeStatutFacture statut={f.statut} /></td>
+                <td className="px-2 py-2"><BadgeStatutFacture statut={statutCalcule(f)} /></td>
               </tr>
             ))}
           </tbody>
