@@ -7,12 +7,11 @@ import { preparerLignes } from "../utils/lignesDocument";
 
 const FacturesContext = createContext(null);
 
+// Numéro et statut absents : la base attribue le numéro à la finalisation, le statut change par changerStatut.
 const CHAMPS_FACTURE = [
   "client_id",
-  "numero",
   "date_emission",
   "date_echeance",
-  "statut",
   "remise",
   "conditions_paiement",
   "mode_paiement",
@@ -66,18 +65,6 @@ function normaliserFacture(row) {
   return { ...entete, lignes, paiements };
 }
 
-function prochainNumero(existants) {
-  const annee = new Date().getFullYear();
-  const prefix = `FAC-${annee}-`;
-  const max = existants
-    .filter((f) => typeof f.numero === "string" && f.numero.startsWith(prefix))
-    .reduce((m, f) => {
-      const n = parseInt(f.numero.slice(prefix.length), 10);
-      return Number.isNaN(n) ? m : Math.max(m, n);
-    }, 0);
-  return `${prefix}${String(max + 1).padStart(4, "0")}`;
-}
-
 export function FacturesProvider({ children }) {
   const { entrepriseId } = useEntreprise();
   const [factures, setFactures] = useState([]);
@@ -115,8 +102,7 @@ export function FacturesProvider({ children }) {
   const addFacture = useCallback(
     async (data) => {
       const { lignes = [], ...entete } = data;
-      const numero = entete.numero || prochainNumero(factures);
-      const payload = { ...preparerEnteteFacture({ ...entete, numero }), entreprise_id: entrepriseId };
+      const payload = { ...preparerEnteteFacture(entete), entreprise_id: entrepriseId };
       const { data: cree, error } = await supabase
         .from("factures")
         .insert(payload)
@@ -131,30 +117,39 @@ export function FacturesProvider({ children }) {
       await chargerFactures();
       return cree;
     },
-    [entrepriseId, factures, chargerFactures]
+    [entrepriseId, chargerFactures]
   );
 
+  // Transaction côté base (fonction enregistrer_facture) : en-tête et lignes réussissent ou échouent ensemble.
   const updateFacture = useCallback(
     async (id, patch) => {
       const { lignes, ...entete } = patch;
-      const payload = preparerEnteteFacture(entete);
-      if (Object.keys(payload).length > 0) {
-        const { data, error } = await supabase.from("factures").update(payload).eq("id", id).select("id");
-        if (error) throw erreurFrancaise(error);
-        if (data.length === 0) throw new Error(MESSAGE_REFUS);
-      }
-      if (Array.isArray(lignes)) {
-        const { error: e1 } = await supabase.from("lignes_facture").delete().eq("facture_id", id);
-        if (e1) throw erreurFrancaise(e1);
-        if (lignes.length > 0) {
-          const rows = preparerLignes(lignes, "facture_id", id, entrepriseId);
-          const { error: e2 } = await supabase.from("lignes_facture").insert(rows);
-          if (e2) throw erreurFrancaise(e2);
-        }
+      const { error } = await supabase.rpc("enregistrer_facture", {
+        p_id: id,
+        p_entete: preparerEnteteFacture(entete),
+        p_lignes: Array.isArray(lignes) ? preparerLignes(lignes, "facture_id", id, entrepriseId) : null,
+      });
+      if (error) {
+        await chargerFactures();
+        throw erreurFrancaise(error);
       }
       await chargerFactures();
     },
     [entrepriseId, chargerFactures]
+  );
+
+  // Transaction côté base (fonction finaliser_facture) : numéro, date, totaux et identités figés.
+  const finaliserFacture = useCallback(
+    async (id) => {
+      const { data: numero, error } = await supabase.rpc("finaliser_facture", { p_facture_id: id });
+      if (error) {
+        await chargerFactures();
+        throw erreurFrancaise(error);
+      }
+      await chargerFactures();
+      return numero;
+    },
+    [chargerFactures]
   );
 
   const deleteFacture = useCallback(async (id) => {
@@ -172,6 +167,7 @@ export function FacturesProvider({ children }) {
     return true;
   }, []);
 
+  // Un refus est affiché par la liste (erreur) et renvoyé à la fiche, qui a son propre message.
   const changerStatut = useCallback(async (id, nouveauStatut) => {
     if (!STATUTS.includes(nouveauStatut)) return null;
     setErreur(null);
@@ -183,7 +179,7 @@ export function FacturesProvider({ children }) {
       .single();
     if (error) {
       setErreur(messageErreur(error));
-      return null;
+      throw erreurFrancaise(error);
     }
     setFactures((prev) => prev.map((f) => (f.id === id ? { ...f, statut: maj.statut } : f)));
     return maj;
@@ -221,10 +217,8 @@ export function FacturesProvider({ children }) {
       if (!source) throw new Error("Facture source introuvable.");
       const payload = {
         client_id: source.client_id,
-        numero: prochainNumero(factures),
         date_emission: new Date().toISOString().slice(0, 10),
         date_echeance: null,
-        statut: "brouillon",
         remise: Number(source.remise) || 0,
         conditions_paiement: source.conditions_paiement ?? null,
         mode_paiement: source.mode_paiement ?? null,
@@ -257,6 +251,7 @@ export function FacturesProvider({ children }) {
       rechargerFactures: chargerFactures,
       addFacture,
       updateFacture,
+      finaliserFacture,
       deleteFacture,
       changerStatut,
       ajouterPaiement,
@@ -270,6 +265,7 @@ export function FacturesProvider({ children }) {
       chargerFactures,
       addFacture,
       updateFacture,
+      finaliserFacture,
       deleteFacture,
       changerStatut,
       ajouterPaiement,

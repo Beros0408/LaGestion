@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  List, Pencil, Download, Printer, Copy, CreditCard, Trash2, AlertCircle, Plus,
+  List, Pencil, Download, Printer, Copy, CreditCard, Trash2, AlertCircle, Plus, Lock,
 } from "lucide-react";
 import { C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -16,7 +16,10 @@ import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import {
   BoutonSecondaire, CarteBloc, CarteClient, CarteLignes, CarteResume, MenuStatut, Panneau, Spinner,
 } from "../components/document/CartesDocument.jsx";
-import { STATUTS, LIBELLE_STATUT } from "../data/factures";
+import {
+  LIBELLE_STATUT, factureModifiable, libelleNumero, paiementPossible, statutsSuivantsFacture,
+} from "../data/factures";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
 
@@ -37,7 +40,8 @@ const MODE_PAIEMENT_OPTIONS = [
   { value: "autre", label: "Autre" },
 ];
 
-const OPTIONS_STATUT = STATUTS.map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
+const dateDuJourParis = () =>
+  new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric", timeZone: "Europe/Paris" });
 
 function formaterDateLongue(iso) {
   if (!iso) return "—";
@@ -57,7 +61,7 @@ export default function FactureDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const {
-    factures, chargement, changerStatut, ajouterPaiement, supprimerPaiement, dupliquerFacture,
+    factures, chargement, changerStatut, finaliserFacture, ajouterPaiement, supprimerPaiement, dupliquerFacture,
   } = useFactures();
   const { clients, chargement: chargementClients } = useClients();
   const { peutEcrire, peutSupprimer, entreprise } = useEntreprise();
@@ -90,6 +94,7 @@ export default function FactureDetail() {
   const [paiementFormOuvert, setPaiementFormOuvert] = useState(false);
   const [actionEnCours, setActionEnCours] = useState(false);
   const [erreurAction, setErreurAction] = useState(null);
+  const [aFinaliser, setAFinaliser] = useState(null);
 
   if (chargement && !facture) {
     return <Panneau centre>
@@ -119,11 +124,26 @@ export default function FactureDetail() {
     );
   }
 
-  const handleChangerStatut = async (nouveau) => {
-    if (nouveau === facture.statut) {
-      setStatutMenuOuvert(false);
-      return;
+  const modifiable = factureModifiable(facture.statut);
+  const optionsStatut = statutsSuivantsFacture(facture.statut).map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
+  const nomFacture = facture.numero ? `la facture ${facture.numero}` : "ce brouillon de facture";
+  // Facture émise : identité figée ; le lien vers la fiche n'apparaît que si le client existe encore.
+  const clientAffiche = facture.client_fige ? { ...facture.client_fige, id: client?.id } : client;
+
+  const confirmerFinalisation = async () => {
+    setAFinaliser(null);
+    setErreurAction(null);
+    setActionEnCours(true);
+    try {
+      await finaliserFacture(facture.id);
+    } catch (err) {
+      setErreurAction(err?.message ?? "Finalisation impossible.");
+    } finally {
+      setActionEnCours(false);
     }
+  };
+
+  const handleChangerStatut = async (nouveau) => {
     setErreurAction(null);
     setActionEnCours(true);
     try {
@@ -174,22 +194,28 @@ export default function FactureDetail() {
               className="text-[28px] font-semibold leading-tight tabular-nums"
               style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
             >
-              {facture.numero}
+              {libelleNumero(facture)}
             </h2>
-            <MenuStatut
-              badge={<BadgeStatutFacture statut={facture.statut} />}
-              ariaLabel="Changer le statut de la facture"
-              statutActuel={facture.statut}
-              options={OPTIONS_STATUT}
-              ouvert={statutMenuOuvert}
-              onOuvrir={() => setStatutMenuOuvert((v) => !v)}
-              onFermer={() => setStatutMenuOuvert(false)}
-              onSelectionner={handleChangerStatut}
-              disabled={actionEnCours || !peutEcrire}
-            />
+            {peutEcrire && optionsStatut.length > 0 ? (
+              <MenuStatut
+                badge={<BadgeStatutFacture statut={facture.statut} />}
+                ariaLabel="Changer le statut de la facture"
+                statutActuel={facture.statut}
+                options={optionsStatut}
+                ouvert={statutMenuOuvert}
+                onOuvrir={() => setStatutMenuOuvert((v) => !v)}
+                onFermer={() => setStatutMenuOuvert(false)}
+                onSelectionner={handleChangerStatut}
+                disabled={actionEnCours}
+              />
+            ) : (
+              <BadgeStatutFacture statut={facture.statut} />
+            )}
           </div>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-            Émise le {formaterDateLongue(facture.date_emission)} · Échéance le {formaterDateLongue(facture.date_echeance)}
+            {modifiable
+              ? `Sans valeur de facture tant qu'il n'est pas finalisé · Échéance le ${formaterDateLongue(facture.date_echeance)}`
+              : `Émise le ${formaterDateLongue(facture.date_emission)} · Échéance le ${formaterDateLongue(facture.date_echeance)}`}
           </p>
           {devisOrigine && (
             <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
@@ -215,14 +241,14 @@ export default function FactureDetail() {
           </Link>
           <BoutonSecondaire
             onClick={() => genererFacturePdf(facture, client, recap, entreprise)}
-            ariaLabel={`Télécharger la facture ${facture.numero} en PDF`}
+            ariaLabel={`Télécharger ${nomFacture} en PDF`}
             icon={Download}
           >
             Télécharger PDF
           </BoutonSecondaire>
           <BoutonSecondaire
             onClick={handleImprimer}
-            ariaLabel={`Imprimer la facture ${facture.numero}`}
+            ariaLabel={`Imprimer ${nomFacture}`}
             icon={Printer}
           >
             Imprimer
@@ -231,31 +257,57 @@ export default function FactureDetail() {
             <>
               <BoutonSecondaire
                 onClick={handleDupliquer}
-                ariaLabel={`Dupliquer la facture ${facture.numero}`}
+                ariaLabel={`Dupliquer ${nomFacture}`}
                 icon={Copy}
                 disabled={actionEnCours}
               >
                 Dupliquer
               </BoutonSecondaire>
-              <BoutonSecondaire
-                onClick={() => setPaiementFormOuvert(true)}
-                ariaLabel="Enregistrer un paiement"
-                icon={CreditCard}
-              >
-                Enregistrer un paiement
-              </BoutonSecondaire>
-              <Link
-                to={`/factures/${facture.id}/modifier`}
-                className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-                style={{ backgroundColor: C.primary }}
-              >
-                <Pencil size={16} aria-hidden="true" />
-                Modifier
-              </Link>
+              {paiementPossible(facture.statut) && (
+                <BoutonSecondaire
+                  onClick={() => setPaiementFormOuvert(true)}
+                  ariaLabel="Enregistrer un paiement"
+                  icon={CreditCard}
+                >
+                  Enregistrer un paiement
+                </BoutonSecondaire>
+              )}
+              {modifiable && (
+                <>
+                  <BoutonSecondaire
+                    onClick={() => navigate(`/factures/${facture.id}/modifier`)}
+                    ariaLabel="Modifier ce brouillon de facture"
+                    icon={Pencil}
+                  >
+                    Modifier
+                  </BoutonSecondaire>
+                  <button
+                    type="button"
+                    onClick={(e) => setAFinaliser({ element: e.currentTarget })}
+                    disabled={actionEnCours}
+                    className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ backgroundColor: C.primary }}
+                  >
+                    <Lock size={16} aria-hidden="true" />
+                    {actionEnCours ? "Finalisation…" : "Finaliser"}
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {!modifiable && (
+        <div
+          role="status"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{ backgroundColor: alpha(C.info, 0.08), color: C.infoText, border: `1px solid ${C.info}` }}
+        >
+          <Lock size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span>Cette facture est verrouillée : ni modification, ni suppression. Sa correction passera par un avoir.</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
@@ -282,13 +334,13 @@ export default function FactureDetail() {
             onFermerForm={() => setPaiementFormOuvert(false)}
             ajouterPaiement={ajouterPaiement}
             supprimerPaiement={supprimerPaiement}
-            peutEcrire={peutEcrire}
+            peutEcrire={peutEcrire && paiementPossible(facture.statut)}
             peutSupprimer={peutSupprimer}
           />
         </div>
 
         <div className="space-y-5">
-          <CarteClient client={client} chargement={chargementClients} />
+          <CarteClient client={clientAffiche} chargement={chargementClients} />
           <CarteMetaFacture facture={facture} />
           {facture.message_client && (
             <CarteBloc titre="Message client" contenu={facture.message_client} />
@@ -302,6 +354,17 @@ export default function FactureDetail() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        ouvert={Boolean(aFinaliser)}
+        titre="Finaliser cette facture ?"
+        message={`Elle recevra son numéro définitif et sera datée du ${dateDuJourParis()}. Cette action est irréversible : la facture ne pourra plus être modifiée ni supprimée, sa correction passera par un avoir.`}
+        libelleAnnuler="Annuler"
+        libelleConfirmer="Finaliser"
+        onAnnuler={() => setAFinaliser(null)}
+        onConfirmer={confirmerFinalisation}
+        elementRetour={aFinaliser?.element}
+      />
     </>
   );
 }

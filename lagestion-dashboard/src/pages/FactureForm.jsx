@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { AlertCircle, Lock } from "lucide-react";
 import { C, alpha } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
-import { STATUTS, LIBELLE_STATUT } from "../data/factures";
+import { factureModifiable } from "../data/factures";
 import {
   LIGNE_VIDE,
   MESSAGE_REMISE_PLAFOND,
@@ -24,7 +24,6 @@ const VIDE = {
   client_id: "",
   date_emission: new Date().toISOString().slice(0, 10),
   date_echeance: "",
-  statut: "brouillon",
   remise: "0",
   mode_paiement: "",
   conditions_paiement: "",
@@ -32,8 +31,6 @@ const VIDE = {
   message_client: "",
   lignes: [{ ...LIGNE_VIDE }],
 };
-
-const STATUT_OPTIONS = STATUTS.map((s) => ({ value: s, label: LIBELLE_STATUT[s] }));
 
 const MODE_PAIEMENT_OPTIONS = [
   { value: "", label: "— Non précisé —" },
@@ -49,7 +46,6 @@ function normaliser(existant) {
     client_id: existant.client_id != null ? String(existant.client_id) : "",
     date_emission: existant.date_emission ?? "",
     date_echeance: existant.date_echeance ?? "",
-    statut: existant.statut ?? "brouillon",
     remise: existant.remise != null ? String(existant.remise) : "0",
     mode_paiement: existant.mode_paiement ?? "",
     conditions_paiement: existant.conditions_paiement ?? "",
@@ -122,6 +118,28 @@ export default function FactureForm() {
     );
   }
 
+  // Lien direct vers le formulaire d'une facture finalisée : la base refuserait de toute façon l'écriture.
+  if (existant && !factureModifiable(existant.statut)) {
+    return (
+      <div
+        className="rounded-2xl p-8 text-center"
+        style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+      >
+        <Lock size={24} aria-hidden="true" className="mx-auto" style={{ color: C.textSecondary }} />
+        <p className="mt-3 text-sm" style={{ color: C.textPrimary }}>
+          {`La facture ${existant.numero} est finalisée : elle ne peut plus être modifiée. Sa correction passera par un avoir.`}
+        </p>
+        <Link
+          to={`/factures/${existant.id}`}
+          className="mt-4 inline-block rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
+          style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+        >
+          Retour à la fiche
+        </Link>
+      </div>
+    );
+  }
+
   const definir = (cle) => (valeur) => {
     setForm((prev) => ({ ...prev, [cle]: valeur }));
     setErrors((prev) => {
@@ -155,7 +173,6 @@ export default function FactureForm() {
       client_id: form.client_id,
       date_emission: form.date_emission || null,
       date_echeance: form.date_echeance || null,
-      statut: form.statut,
       remise: Number(form.remise) || 0,
       mode_paiement: form.mode_paiement || null,
       conditions_paiement: form.conditions_paiement,
@@ -184,12 +201,10 @@ export default function FactureForm() {
     <>
       <div className="mb-5">
         <h2 className="text-[28px] font-semibold leading-tight" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
-          {modeEdition ? "Modifier la facture" : "Nouvelle facture"}
+          {modeEdition ? "Modifier le brouillon" : "Nouvelle facture"}
         </h2>
         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-          {modeEdition
-            ? `Facture ${existant?.numero ?? ""} — mettez à jour son contenu.`
-            : "Le numéro sera généré automatiquement à l'enregistrement."}
+          Brouillon modifiable. Le numéro définitif et la date d'émission seront attribués à la finalisation.
         </p>
       </div>
 
@@ -219,15 +234,8 @@ export default function FactureForm() {
               options={clientOptions}
               error={errors.client_id}
             />
-            <Select
-              label="Statut"
-              required
-              value={form.statut}
-              onChange={(e) => definir("statut")(e.target.value)}
-              options={STATUT_OPTIONS}
-            />
             <Input
-              label="Date d'émission"
+              label="Date d'émission prévue"
               type="date"
               value={form.date_emission}
               onChange={(e) => definir("date_emission")(e.target.value)}
@@ -299,7 +307,7 @@ export default function FactureForm() {
               ? "Enregistrement…"
               : modeEdition
                 ? "Enregistrer les modifications"
-                : "Créer la facture"}
+                : "Créer le brouillon"}
           </button>
         </div>
       </form>

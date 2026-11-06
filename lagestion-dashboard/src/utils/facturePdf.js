@@ -104,7 +104,7 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text(document.numero, pageW - margin, 32, { align: "right" });
+  doc.text(config.reference ?? document.numero, pageW - margin, 32, { align: "right" });
 
   let basTitre = 32;
   config.dates.forEach(({ texte, important }) => {
@@ -296,15 +296,19 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
     doc.text(config.mentionPied, pageW - margin, footerY, { align: "right" });
   }
 
-  doc.save(`${document.numero}.pdf`);
+  doc.save(config.nomFichier ?? `${document.numero}.pdf`);
 }
 
+// Facture émise : identités figées à la finalisation. Brouillon : présenté comme tel, sans numéro ni date d'émission.
 export function genererFacturePdf(facture, client, totaux, entreprise) {
-  genererDocumentPdf(facture, client, totaux, entreprise, {
-    titre: "FACTURE",
+  const brouillon = facture.statut === "brouillon";
+  genererDocumentPdf(facture, facture.client_fige ?? client, totaux, facture.emetteur_fige ?? entreprise, {
+    titre: brouillon ? "BROUILLON" : "FACTURE",
+    reference: brouillon ? "Sans valeur de facture" : undefined,
+    nomFichier: brouillon ? "brouillon-facture.pdf" : undefined,
     destinataire: "FACTURÉ À",
     dates: [
-      { texte: `Émise le ${formatDate(facture.date_emission)}` },
+      ...(brouillon ? [] : [{ texte: `Émise le ${formatDate(facture.date_emission)}` }]),
       { texte: `Échéance le ${formatDate(facture.date_echeance)}` },
     ],
     statut: LIBELLE_STATUT[facture.statut] ?? facture.statut ?? "—",

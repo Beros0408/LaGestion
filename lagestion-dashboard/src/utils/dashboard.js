@@ -2,7 +2,7 @@
 // Les totaux d'une facture viennent exclusivement de utils/facture.js.
 // Dates au format ISO « AAAA-MM-JJ » ; « aujourdhui » est passé en paramètre (déterminisme, tests).
 import { totalHT, totalTTC, totalPaye, resteAPayer } from "./facture.js";
-import { STATUTS_IMPAYES, LIBELLE_STATUT } from "../data/factures.js";
+import { STATUTS_IMPAYES, LIBELLE_STATUT, libelleNumero } from "../data/factures.js";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis.js";
 import { ETAPES } from "../data/opportunites.js";
 import { SECTEUR_NON_RENSEIGNE, SECTEUR_AUTRES } from "../data/secteurs.js";
@@ -276,7 +276,7 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
     .filter((f) => f.statut === "brouillon")
     .map((f) => ({
       id: f.id,
-      titre: `Envoyer le brouillon ${f.numero}`,
+      titre: `Finaliser le brouillon de ${nomClient(clientsParId, f.client_id)}`,
       detail: nomClient(clientsParId, f.client_id),
       jours: Math.max(0, joursEntre(f.date_emission, aujourdhui)),
       lien: `/factures/${f.id}`,
@@ -299,7 +299,7 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
   const groupe = (cle, libelle, liste) => ({ cle, libelle, total: liste.length, elements: liste.slice(0, MAX_PAR_ACTION) });
   const actions = [
     groupe("relances", "Factures en retard à relancer", relances),
-    groupe("brouillons", "Brouillons non envoyés", brouillons),
+    groupe("brouillons", "Brouillons à finaliser", brouillons),
     groupe("inactives", `Opportunités sans mouvement depuis ${JOURS_SANS_MOUVEMENT} jours`, inactives),
   ];
 
@@ -308,7 +308,7 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
     .slice(0, 5)
     .map((f) => ({
       id: f.id,
-      numero: f.numero,
+      numero: libelleNumero(f),
       client: nomClient(clientsParId, f.client_id),
       montantTTC: euros(centimes(totalTTC(f))),
       echeance: f.date_echeance,
@@ -359,12 +359,15 @@ export function phraseActivite(evt, facturesParId = new Map()) {
       return `Fiche client ${d.nom} modifiée`;
     }
     case "factures": {
-      if (evt.action === "insert") return `Facture ${d.numero} créée`;
-      if (evt.action === "delete") return `Facture ${d.numero} supprimée définitivement`;
-      if (supprimee) return `Facture ${d.numero} supprimée`;
-      if (restauree) return `Facture ${d.numero} restaurée`;
-      if (o.statut !== n.statut) return `Facture ${d.numero} marquée ${statutMinuscule(n.statut)}`;
-      return `Facture ${d.numero} modifiée`;
+      // Un brouillon n'a pas de numéro
+      const nom = d.numero ? `Facture ${d.numero}` : "Brouillon de facture";
+      if (evt.action === "insert") return `${nom} ${d.numero ? "créée" : "créé"}`;
+      if (evt.action === "delete") return `${nom} ${d.numero ? "supprimée définitivement" : "supprimé définitivement"}`;
+      if (supprimee) return `${nom} ${d.numero ? "supprimée" : "supprimé"}`;
+      if (restauree) return `${nom} ${d.numero ? "restaurée" : "restauré"}`;
+      if (o.statut !== n.statut && n.statut === "finalisee") return `${nom} finalisée`;
+      if (o.statut !== n.statut) return `${nom} marquée ${statutMinuscule(n.statut)}`;
+      return `${nom} ${d.numero ? "modifiée" : "modifié"}`;
     }
     case "devis": {
       if (evt.action === "insert") return `Devis ${d.numero} créé`;

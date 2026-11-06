@@ -336,19 +336,20 @@ select set_config('request.jwt.claims', '{"sub":"a0070000-0000-4000-8000-0000000
 do $$
 declare
   v_facture uuid; f record; n int;
-  v_prefixe constant text := 'FAC-' || to_char(current_date, 'YYYY') || '-';
 begin
   v_facture := public.convertir_devis('a0070000-0000-4000-8000-000000000d01');
 
+  -- Depuis la migration 008 : brouillon sans numéro, échéance à émission + 30 jours
   select * into f from public.factures where id = v_facture;
   if f.statut <> 'brouillon' or f.devis_id <> 'a0070000-0000-4000-8000-000000000d01'
      or f.client_id <> 'a0070000-0000-4000-8000-0000000000c1' or f.remise <> 12.34
      or f.entreprise_id <> 'a0070000-0000-4000-8000-0000000000e1'
-     or f.date_emission <> current_date or f.date_echeance is not null then
+     or f.date_emission <> public.date_du_jour_paris()
+     or f.date_echeance <> public.date_du_jour_paris() + 30 then
     raise exception 'ÉCHEC conversion : en-tête de facture incorrect (%)', to_jsonb(f);
   end if;
-  if f.numero !~ ('^' || v_prefixe || '[0-9]{4}$') then
-    raise exception 'ÉCHEC conversion : numéro de facture % inattendu', f.numero;
+  if f.numero is not null then
+    raise exception 'ÉCHEC conversion : le brouillon a reçu le numéro %', f.numero;
   end if;
   if f.notes_internes is not null or f.message_client is not null then
     raise exception 'ÉCHEC conversion : notes ou message du devis copiés sur la facture';

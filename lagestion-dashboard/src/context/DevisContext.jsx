@@ -87,23 +87,18 @@ export function DevisProvider({ children }) {
     [entrepriseId, chargerDevis]
   );
 
+  // Transaction côté base (fonction enregistrer_devis) : en-tête et lignes réussissent ou échouent ensemble.
   const updateDevis = useCallback(
     async (id, patch) => {
       const { lignes, ...entete } = patch;
-      const payload = preparerEntete(entete);
-      if (Object.keys(payload).length > 0) {
-        const { data, error } = await supabase.from("devis").update(payload).eq("id", id).select("id");
-        if (error) throw erreurFrancaise(error);
-        if (data.length === 0) throw new Error(MESSAGE_REFUS);
-      }
-      if (Array.isArray(lignes)) {
-        const { error: e1 } = await supabase.from("lignes_devis").delete().eq("devis_id", id);
-        if (e1) throw erreurFrancaise(e1);
-        if (lignes.length > 0) {
-          const rows = preparerLignes(lignes, "devis_id", id, entrepriseId);
-          const { error: e2 } = await supabase.from("lignes_devis").insert(rows);
-          if (e2) throw erreurFrancaise(e2);
-        }
+      const { error } = await supabase.rpc("enregistrer_devis", {
+        p_id: id,
+        p_entete: preparerEntete(entete),
+        p_lignes: Array.isArray(lignes) ? preparerLignes(lignes, "devis_id", id, entrepriseId) : null,
+      });
+      if (error) {
+        await chargerDevis();
+        throw erreurFrancaise(error);
       }
       await chargerDevis();
     },

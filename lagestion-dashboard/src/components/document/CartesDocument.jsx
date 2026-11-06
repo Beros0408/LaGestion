@@ -233,15 +233,17 @@ export function CarteClient({ client, chargement, messageAbsent = "Client introu
             </p>
           )}
 
-          <Link
-            to={`/clients/${client.id}`}
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2"
-            style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
-            aria-label={`Voir la fiche de ${client.nom}`}
-          >
-            <ExternalLink size={12} aria-hidden="true" />
-            Voir la fiche client
-          </Link>
+          {client.id && (
+            <Link
+              to={`/clients/${client.id}`}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2"
+              style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+              aria-label={`Voir la fiche de ${client.nom}`}
+            >
+              <ExternalLink size={12} aria-hidden="true" />
+              Voir la fiche client
+            </Link>
+          )}
         </div>
       ) : chargement ? (
         <p className="text-sm" role="status" aria-live="polite" style={{ color: C.textSecondary }}>

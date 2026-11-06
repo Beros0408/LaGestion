@@ -232,7 +232,7 @@ export default function DevisDetail() {
                 to={`/factures/${facture.id}`}
                 className="inline-flex items-center gap-1 rounded font-semibold underline focus:outline-none focus-visible:ring-2"
               >
-                {facture.numero}
+                {facture.numero ?? "brouillon sans numéro"}
                 <ExternalLink size={12} aria-hidden="true" />
               </Link>
               . Il ne peut plus être modifié.

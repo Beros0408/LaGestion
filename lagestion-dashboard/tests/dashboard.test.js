@@ -174,3 +174,11 @@ test("phrases d'activité", () => {
     old_data: { numero: "D1", statut: "accepte" }, new_data: { numero: "D1", statut: "envoye" } }),
     "Devis D1 marqué envoyé");
 });
+
+test("journal : brouillon sans numéro et finalisation", () => {
+  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null } }), "Brouillon de facture créé");
+  assert.equal(phraseActivite({ table_name: "factures", action: "update",
+    old_data: { numero: null, statut: "brouillon" }, new_data: { numero: null, statut: "brouillon" } }), "Brouillon de facture modifié");
+  assert.equal(phraseActivite({ table_name: "factures", action: "update",
+    old_data: { numero: null, statut: "brouillon" }, new_data: { numero: "FAC-2026-0001", statut: "finalisee" } }), "Facture FAC-2026-0001 finalisée");
+});

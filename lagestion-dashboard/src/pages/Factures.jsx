@@ -8,7 +8,9 @@ import { C, OMBRE, alpha, euro } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
-import { STATUTS, LIBELLE_STATUT, STATUTS_IMPAYES } from "../data/factures";
+import {
+  STATUTS, LIBELLE_STATUT, STATUTS_IMPAYES, factureModifiable, libelleNumero, statutsSuivantsFacture,
+} from "../data/factures";
 import { totalTTC } from "../utils/facture";
 import { exporterFacturesExcel } from "../utils/excel";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
@@ -74,7 +76,7 @@ export default function Factures() {
     return enrichies.filter((f) => {
       if (statut !== "tous" && f.statut !== statut) return false;
       if (q) {
-        const hay = `${f.numero} ${f.clientNom}`.toLowerCase();
+        const hay = `${libelleNumero(f)} ${f.clientNom}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -88,7 +90,7 @@ export default function Factures() {
       const bv = b[tri.col];
       let r;
       if (typeof av === "number" && typeof bv === "number") r = av - bv;
-      else r = String(av).localeCompare(String(bv), "fr", { sensitivity: "base" });
+      else r = String(av ?? "").localeCompare(String(bv ?? ""), "fr", { sensitivity: "base" });
       return tri.dir === "asc" ? r : -r;
     });
     return arr;
@@ -123,7 +125,7 @@ export default function Factures() {
   const handleView = (f) => navigate(`/factures/${f.id}`);
   const handleEdit = (f) => navigate(`/factures/${f.id}/modifier`);
   const handleDelete = (f) => {
-    const ok = window.confirm(`Supprimer définitivement « ${f.numero} » ? Cette action est irréversible.`);
+    const ok = window.confirm(`Supprimer le brouillon de facture de ${f.clientNom} ? Il ne sera plus visible.`);
     if (!ok) return;
     deleteFacture(f.id);
   };
@@ -272,9 +274,12 @@ export default function Factures() {
                     key={f.id}
                     facture={f}
                     onView={() => handleView(f)}
-                    onEdit={peutEcrire ? () => handleEdit(f) : null}
-                    onDelete={peutSupprimer ? () => handleDelete(f) : null}
-                    onChangerStatut={peutEcrire ? (s) => changerStatut(f.id, s) : null}
+                    onEdit={peutEcrire && factureModifiable(f.statut) ? () => handleEdit(f) : null}
+                    onDelete={peutSupprimer && factureModifiable(f.statut) ? () => handleDelete(f) : null}
+                    // Refus affiché par le bandeau d'erreur de la liste
+                    onChangerStatut={peutEcrire && statutsSuivantsFacture(f.statut).length > 0
+                      ? (s) => { changerStatut(f.id, s).catch(() => {}); }
+                      : null}
                   />
                 ))}
               </tbody>
@@ -324,6 +329,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
   const [sousMenuOuvert, setSousMenuOuvert] = useState(false);
   const conteneurRef = useRef(null);
   const boutonRef = useRef(null);
+  const nom = facture.numero ?? `brouillon de ${facture.clientNom}`;
 
   useEffect(() => {
     if (!menuOuvert) return;
@@ -355,7 +361,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
       className="cursor-pointer transition-colors hover:bg-lg-hover"
       style={{ borderBottom: `1px solid ${C.border}` }}
     >
-      <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>{facture.numero}</td>
+      <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>{libelleNumero(facture)}</td>
       <td className="px-3 py-3" style={{ color: C.textSecondary }}>{facture.clientNom}</td>
       <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{formaterDate(facture.date_emission)}</td>
       <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{formaterDate(facture.date_echeance)}</td>
@@ -363,15 +369,15 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
       <td className="px-3 py-3"><BadgeStatutFacture statut={facture.statut} /></td>
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <BoutonAction label={`Voir ${facture.numero}`} icon={Eye} onClick={onView} />
-          {onEdit && <BoutonAction label={`Modifier ${facture.numero}`} icon={Pencil} onClick={onEdit} />}
+          <BoutonAction label={`Voir ${nom}`} icon={Eye} onClick={onView} />
+          {onEdit && <BoutonAction label={`Modifier ${nom}`} icon={Pencil} onClick={onEdit} />}
 
           {(onChangerStatut || onDelete) && (
           <div ref={conteneurRef} className="relative">
             <button
               ref={boutonRef}
               type="button"
-              aria-label={`Autres actions pour ${facture.numero}`}
+              aria-label={`Autres actions pour ${nom}`}
               aria-haspopup="menu"
               aria-expanded={menuOuvert}
               onClick={() => {
@@ -387,7 +393,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
             {menuOuvert && (
               <div
                 role="menu"
-                aria-label={`Actions pour ${facture.numero}`}
+                aria-label={`Actions pour ${nom}`}
                 className="absolute right-0 top-8 z-20 w-48 overflow-hidden rounded-xl"
                 style={{
                   backgroundColor: C.bgCard,
@@ -425,26 +431,22 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
                         boxShadow: OMBRE.lg,
                       }}
                     >
-                      {STATUTS.map((s) => {
-                        const actif = s === facture.statut;
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            role="menuitem"
-                            aria-current={actif || undefined}
-                            onClick={() => {
-                              if (!actif) onChangerStatut(s);
-                              setMenuOuvert(false);
-                              setSousMenuOuvert(false);
-                            }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
-                            style={{ color: actif ? C.primary : C.textPrimary, fontWeight: actif ? 600 : 400 }}
-                          >
-                            {LIBELLE_STATUT[s]}
-                          </button>
-                        );
-                      })}
+                      {statutsSuivantsFacture(facture.statut).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            onChangerStatut(s);
+                            setMenuOuvert(false);
+                            setSousMenuOuvert(false);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
+                          style={{ color: C.textPrimary }}
+                        >
+                          {LIBELLE_STATUT[s]}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>

@@ -52,6 +52,7 @@ Référence fonctionnelle : docs/LaGestion_Cahier_des_charges_V2.md.
 - Clé d'isolation : entreprise_id (et non tenant_id).
 - Rôles : admin, manager, commercial, comptable, lecture.
 - Palette : à trancher entre #2D5B7F (actuel) et #489AF0 (V2) ; #2D5B7F reste en vigueur en attendant.
+- Factures (migration 008) : brouillon sans numéro → finalisée (numéro FAC-AAAA-NNNN par entreprise, remise à zéro annuelle, date d'émission = jour de finalisation, totaux, TVA par taux et identités client / émetteur figés) ; ni modification ni suppression ensuite. SIRET et adresse de l'entreprise obligatoires pour finaliser. Statut « annulée » inaccessible jusqu'à l'étape des avoirs (annulation par avoir total). Mentions légales à ajouter et à faire valider par un expert-comptable avant toute vraie facture.
 - Tuiles KPI colorées autorisées sur le tableau de bord uniquement (exception à la section 1) : dégradé léger entre deux teintes soutenues (TUILES dans src/theme.js), texte blanc ≥ 4,5:1 sur les deux teintes, sans halo, lueur ni ombre colorée. Le reste de l'application garde le thème gris perle.
 
 # CLAUDE.md — Lagestion

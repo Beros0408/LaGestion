@@ -4,6 +4,7 @@
 //    (méthode du plus fort reste ; à reste égal, le taux le plus élevé reçoit le centime).
 // 3. TVA arrondie par taux sur la base remisée ; TTC = HT net + TVA.
 // Arrondi au centime, moitié éloignée de zéro (comme round() de Postgres).
+// Une facture émise porte ses totaux figés (migration 008) : ils priment sur tout calcul.
 
 const enCentimes = (euros) => BigInt(Math.round((Number(euros) || 0) * 100));
 const enEuros = (c) => Number(c) / 100;
@@ -20,7 +21,20 @@ function ligneHTCentimes(ligne) {
   return ht > 0n ? ht : 0n;
 }
 
+function totauxFiges(f) {
+  const c = (euros) => Number(enCentimes(euros));
+  return {
+    htBrutC: c(f.total_ht_brut),
+    remiseC: c(f.remise_appliquee),
+    htC: c(f.total_ht),
+    tva: (f.tva_detail ?? []).map((d) => ({ taux: Number(d.taux), baseC: c(d.base), tvaC: c(d.tva) })),
+    tvaC: c(f.total_tva),
+    ttcC: c(f.total_ttc),
+  };
+}
+
 export function calculerTotaux(facture) {
+  if (facture?.total_ttc != null) return totauxFiges(facture);
   const groupes = new Map();
   for (const l of facture?.lignes ?? []) {
     const taux = Number(l?.taux_tva) || 0;

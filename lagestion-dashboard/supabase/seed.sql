@@ -1,17 +1,20 @@
 -- seed.sql — Lagestion
 -- Données de démonstration pour UNE entreprise existante (créée depuis l'onboarding).
--- S'applique après 007_devis.sql, dans le SQL Editor (rôle postgres).
+-- S'applique après 008_factures_legales.sql, dans le SQL Editor (rôle postgres).
 --
 -- Ce que fait le script :
 --   - ne crée aucune entreprise et ne touche ni à entreprises, ni à memberships, ni à profiles ;
 --   - écrit en se faisant passer pour un admin de l'entreprise : RLS et triggers des migrations 002/003 s'appliquent ;
---     seules exceptions, en rôle postgres : la suppression de la démo de devis précédente et la pose des statuts
---     des devis (un devis accepté puis converti ne peut pas être créé tel quel par un utilisateur) ;
+--     seules exceptions, en rôle postgres : la suppression de la démo précédente (une facture émise ne peut pas être
+--     supprimée par un utilisateur) et la pose des statuts des factures et des devis (ils ne peuvent pas être créés
+--     tels quels par un utilisateur) ;
 --   - rejouable : supprime puis recrée les seules données de démonstration de l'entreprise.
 --
 -- Marquage des données de démonstration :
 --   - clients : tag « démo » ;
---   - factures : numéro « DEMO-NNNN » (lignes et paiements suivent la facture) ;
+--   - factures : numéro « DEMO-NNNN », hors de la séquence légale ; totaux figés dès la pose du statut
+--     (lignes et paiements suivent la facture). Une finalisation dans l'application attribue un vrai numéro
+--     FAC-AAAA-NNNN et consomme la séquence : réservé à une base de test ;
 --   - opportunités : rattachées à un client de démo et portant un nom de la liste ci-dessous ;
 --   - catalogue : référence « DEMO-ART-NN » (10 articles, dont 1 inactif ; 9 lignes de facture y sont reliées) ;
 --   - devis : numéro « DEV-DEMO-NNNN » (7 devis, 13 lignes) ; une facture issue d'un de ces devis est de la démo
@@ -64,10 +67,10 @@ begin
 
   select count(*) into n from public.factures f
    join public.clients c on c.id = f.client_id
-   where f.entreprise_id = v_ent and c.tags @> array['démo'] and f.numero not like 'DEMO-%'
+   where f.entreprise_id = v_ent and c.tags @> array['démo'] and coalesce(f.numero, '') not like 'DEMO-%'
      and not exists (select 1 from public.devis d where d.id = f.devis_id and d.numero like 'DEV-DEMO-%');
   if n > 0 then
-    raise exception 'Seed interrompu : % facture(s) saisie(s) à la main référence(nt) un client de démo. Rattachez-la(les) à un autre client ou retirez le tag « démo » de ce client.', n;
+    raise exception 'Seed interrompu : % facture(s) hors démonstration référence(nt) un client de démo. Base de test uniquement : supprimez-la(les) dans le SQL Editor avec « delete from public.factures f using public.clients c where c.id = f.client_id and c.tags @> array[''démo''] and coalesce(f.numero, '''') not like ''DEMO-%%'' ; » puis relancez.', n;
   end if;
 
   select count(*) into n from public.devis d
@@ -94,7 +97,7 @@ begin
   select count(*) into n from public.lignes_facture l
    join public.produits p on p.id = l.produit_id
    join public.factures f on f.id = l.facture_id
-   where p.entreprise_id = v_ent and p.reference like 'DEMO-ART-%' and f.numero not like 'DEMO-%'
+   where p.entreprise_id = v_ent and p.reference like 'DEMO-ART-%' and coalesce(f.numero, '') not like 'DEMO-%'
      and not exists (select 1 from public.devis d where d.id = f.devis_id and d.numero like 'DEV-DEMO-%');
   if n > 0 then
     raise exception 'Seed interrompu : % ligne(s) de facture saisie(s) à la main sont reliée(s) à un article de démo.', n;
@@ -108,11 +111,13 @@ begin
     raise exception 'Seed interrompu : % ligne(s) de devis saisie(s) à la main sont reliée(s) à un article de démo.', n;
   end if;
 
-  -- 1 bis. Suppression de la démo de devis précédente (rôle postgres : un devis converti ne peut pas être
-  -- supprimé par un utilisateur). Les factures issues de ces devis partent avec eux.
+  -- 1 bis. Suppression de la démo de factures et de devis précédente (rôle postgres : une facture émise ou un
+  -- devis converti ne peut pas être supprimé par un utilisateur). Les factures issues de ces devis partent avec eux.
   delete from public.factures f
    using public.devis d
    where d.id = f.devis_id and d.entreprise_id = v_ent and d.numero like 'DEV-DEMO-%';
+  delete from public.factures
+   where entreprise_id = v_ent and numero like 'DEMO-%';
   delete from public.devis
    where entreprise_id = v_ent and numero like 'DEV-DEMO-%';
 
@@ -125,9 +130,7 @@ begin
     raise exception 'Seed interrompu : impossible d''agir au nom de l''administrateur.';
   end if;
 
-  -- 3. Suppression de la démo précédente (lignes et paiements suivent la facture)
-  delete from public.factures
-   where entreprise_id = v_ent and numero like 'DEMO-%';
+  -- 3. Suppression de la démo précédente
   delete from public.opportunites o
    using public.clients c
    where c.id = o.client_id and o.entreprise_id = v_ent and c.tags @> array['démo'];
@@ -197,25 +200,26 @@ begin
   join public.clients c
     on c.entreprise_id = v_ent and c.nom = v.client and c.tags @> array['démo'];
 
-  -- 6. Factures (12) : émise il y a k mois (et 3 jours), échéance à émission + délai
+  -- 6. Factures (12), créées brouillons : statuts posés à l'étape 7 bis, une fois les lignes en place
+  --    Émise il y a k mois (et 3 jours), échéance à émission + délai
   insert into public.factures (entreprise_id, client_id, numero, date_emission, date_echeance,
-                               statut, conditions_paiement, mode_paiement)
+                               conditions_paiement, mode_paiement)
   select v_ent, c.id, v.numero, e.emission, e.emission + v.delai,
-         v.statut, v.delai || ' jours', 'virement'
+         v.delai || ' jours', 'virement'
   from (values
-    ('DEMO-0001', 'Librairie Les Mots Passants',   11, 'payee',               30),
-    ('DEMO-0002', 'Agence immobilière Delmas',     10, 'payee',               30),
-    ('DEMO-0003', 'Le Comptoir des Halles',         9, 'payee',               30),
-    ('DEMO-0004', 'Pharmacie du Marché',            8, 'annulee',             30),
-    ('DEMO-0005', 'Cabinet dentaire Lemoine',       7, 'payee',               30),
-    ('DEMO-0006', 'Claire Bonnet',                  6, 'payee',               30),
-    ('DEMO-0007', 'Morel Conseil & Stratégie',      5, 'partiellement_payee', 30),
-    ('DEMO-0008', 'Transports Guérin',              4, 'en_retard',           30),
-    ('DEMO-0009', 'Boulangerie Fournier',           3, 'payee',               30),
-    ('DEMO-0010', 'Mécanique de précision Arnaud',  2, 'en_retard',           30),
-    ('DEMO-0011', 'Agence immobilière Delmas',      1, 'envoyee',             45),
-    ('DEMO-0012', 'Le Comptoir des Halles',         0, 'brouillon',           30)
-  ) as v(numero, client, k, statut, delai)
+    ('DEMO-0001', 'Librairie Les Mots Passants',   11, 30),
+    ('DEMO-0002', 'Agence immobilière Delmas',     10, 30),
+    ('DEMO-0003', 'Le Comptoir des Halles',         9, 30),
+    ('DEMO-0004', 'Pharmacie du Marché',            8, 30),
+    ('DEMO-0005', 'Cabinet dentaire Lemoine',       7, 30),
+    ('DEMO-0006', 'Claire Bonnet',                  6, 30),
+    ('DEMO-0007', 'Morel Conseil & Stratégie',      5, 30),
+    ('DEMO-0008', 'Transports Guérin',              4, 30),
+    ('DEMO-0009', 'Boulangerie Fournier',           3, 30),
+    ('DEMO-0010', 'Mécanique de précision Arnaud',  2, 30),
+    ('DEMO-0011', 'Agence immobilière Delmas',      1, 45),
+    ('DEMO-0012', 'Le Comptoir des Halles',         0, 30)
+  ) as v(numero, client, k, delai)
   cross join lateral (select (current_date - make_interval(months => v.k) - interval '3 days')::date as emission) e
   join public.clients c
     on c.entreprise_id = v_ent and c.nom = v.client and c.tags @> array['démo'];
@@ -251,6 +255,29 @@ begin
   ) as v(numero, pos, description, unite, quantite, prix, tva, article)
   join public.factures f on f.entreprise_id = v_ent and f.numero = v.numero
   left join public.produits p on p.entreprise_id = v_ent and p.reference = v.article and p.deleted_at is null;
+
+  -- 7 bis. Statuts des factures (rôle postgres, sans utilisateur) : le trigger fige totaux et identités ;
+  -- DEMO-NNNN reste hors séquence, seule une vraie finalisation attribue un numéro.
+  execute 'reset role';
+  perform set_config('request.jwt.claims', '{}', true);
+  update public.factures f set statut = v.statut
+    from (values
+      ('DEMO-0001', 'payee'),
+      ('DEMO-0002', 'payee'),
+      ('DEMO-0003', 'payee'),
+      ('DEMO-0004', 'annulee'),
+      ('DEMO-0005', 'payee'),
+      ('DEMO-0006', 'payee'),
+      ('DEMO-0007', 'partiellement_payee'),
+      ('DEMO-0008', 'en_retard'),
+      ('DEMO-0009', 'payee'),
+      ('DEMO-0010', 'en_retard'),
+      ('DEMO-0011', 'envoyee')
+    ) as v(numero, statut)
+   where f.entreprise_id = v_ent and f.numero = v.numero;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
 
   -- 8. Paiements (8) : payée = TTC réglé ; partiellement payée = acompte
   insert into public.paiements (entreprise_id, facture_id, date, montant, mode, reference)
@@ -316,15 +343,15 @@ begin
   join public.factures f on f.id = l.facture_id and f.entreprise_id = v_ent and f.numero = 'DEMO-0009'
   join public.devis d on d.entreprise_id = v_ent and d.numero = 'DEV-DEMO-0006';
 
+  execute 'reset role';
+
+  -- 8 ter. Lien de la facture émise et statuts des devis (rôle postgres, sans utilisateur : règles non appliquées)
+  perform set_config('request.jwt.claims', '{}', true);
   update public.factures f set devis_id = d.id
     from public.devis d
    where d.entreprise_id = v_ent and d.numero = 'DEV-DEMO-0006'
      and f.entreprise_id = v_ent and f.numero = 'DEMO-0009';
 
-  execute 'reset role';
-
-  -- 8 ter. Statuts des devis (rôle postgres, sans utilisateur : les règles de statut ne s'appliquent pas)
-  perform set_config('request.jwt.claims', '{}', true);
   update public.devis d set statut = v.statut
     from (values
       ('DEV-DEMO-0002', 'envoye'),
@@ -361,6 +388,15 @@ begin
   select count(*) into n from public.paiements p join public.factures f on f.id = p.facture_id
    where f.entreprise_id = v_ent and f.numero like 'DEMO-%';
   if n <> 8 then raise exception 'Contrôle seed : % paiement(s) au lieu de 8', n; end if;
+
+  -- Totaux figés sur les 11 factures émises, égaux à la vue ; un seul brouillon, sans totaux figés
+  select count(*) into n from public.factures f join public.factures_totaux t on t.facture_id = f.id
+   where f.entreprise_id = v_ent and f.numero like 'DEMO-%' and f.statut <> 'brouillon'
+     and f.total_ttc = t.total_ttc and f.tva_detail is not null and f.client_fige is not null and f.emetteur_fige is not null;
+  if n <> 11 then raise exception 'Contrôle seed : % facture(s) émise(s) figée(s) au lieu de 11', n; end if;
+  select count(*) into n from public.factures
+   where entreprise_id = v_ent and numero like 'DEMO-%' and statut = 'brouillon' and total_ttc is null;
+  if n <> 1 then raise exception 'Contrôle seed : % brouillon(s) de démo au lieu de 1', n; end if;
 
   select count(*) into n from public.produits where entreprise_id = v_ent and reference like 'DEMO-ART-%' and deleted_at is null;
   if n <> 10 then raise exception 'Contrôle seed : % article(s) de démo au lieu de 10', n; end if;
