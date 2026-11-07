@@ -233,3 +233,14 @@ test("journal : brouillon sans numéro et finalisation", () => {
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
     old_data: { numero: null, statut: "brouillon" }, new_data: { numero: "FAC-2026-0001", statut: "finalisee" } }), "Facture FAC-2026-0001 finalisée");
 });
+
+test("suggestion de relance : niveau de niveauPropose selon le rôle (mise en demeure jamais proposée au commercial)", () => {
+  // F2 échue, déjà relancée aux niveaux 1 et 2 il y a plus de 15 jours : niveau suivant = mise en demeure
+  const f2 = { ...factures[1], statut: "envoyee", relances: [{ niveau: 1, created_at: "2026-10-01T09:00:00Z" }, { niveau: 2, created_at: "2026-10-15T09:00:00Z" }] };
+  const titre = (role) => calculerTableauDeBord({ factures: [f2], clients, aujourdhui: AUJOURDHUI, role })
+    .actions.find((g) => g.cle === "relances").elements[0].titre;
+  assert.match(titre(undefined), /Mise en demeure$/);
+  assert.match(titre("admin"), /Mise en demeure$/);
+  assert.match(titre("comptable"), /Mise en demeure$/);
+  assert.match(titre("commercial"), /2e relance$/);
+});

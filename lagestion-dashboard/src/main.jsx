@@ -9,6 +9,8 @@ import { OpportunitesProvider } from "./context/OpportunitesContext.jsx";
 import { FacturesProvider } from "./context/FacturesContext.jsx";
 import { DevisProvider } from "./context/DevisContext.jsx";
 import { ProduitsProvider } from "./context/ProduitsContext.jsx";
+import { TachesProvider } from "./context/TachesContext.jsx";
+import { ActivitesProvider } from "./context/ActivitesContext.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -21,7 +23,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <FacturesProvider>
                 <DevisProvider>
                   <ProduitsProvider>
-                    <App />
+                    <TachesProvider>
+                      <ActivitesProvider>
+                        <App />
+                      </ActivitesProvider>
+                    </TachesProvider>
                   </ProduitsProvider>
                 </DevisProvider>
               </FacturesProvider>

@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, List, Pencil, Phone, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, List, Pencil, Phone, Mail, MapPin, CalendarDays, StickyNote, Send, Plus, Trash2 } from "lucide-react";
 import { C, AVATARS, alpha, euroCentimes, couleurEtat } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -9,6 +9,13 @@ import { libelleNumero } from "../data/factures";
 import { estImpayee, etatEcheance, reglementAffichable, resteAPayer, soldeClient, statutCalcule, totalTTC } from "../utils/facture";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import BarreReglement from "../components/BarreReglement.jsx";
+import FenetreActivite from "../components/FenetreActivite.jsx";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import { useActivites } from "../context/ActivitesContext.jsx";
+import { useOpportunites } from "../context/OpportunitesContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { LIBELLE_NIVEAU } from "../data/relances";
+import { LIBELLE_TYPE_ACTIVITE, historiqueClient, peutModifierActivite } from "../utils/taches";
 
 const AVATAR_PALETTE = Object.values(AVATARS);
 
@@ -241,7 +248,7 @@ export default function ClientDetail() {
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Colonne principale */}
         <div className="space-y-5 lg:col-span-2">
-          <CarteVide titre="Historique des interactions" message="Aucune interaction enregistrée." />
+          <CarteHistorique clientId={client.id} />
 
           <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
             <h3
@@ -393,6 +400,126 @@ function CarteFacturesClient({ clientId }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+const ICONES_HISTORIQUE = { appel: Phone, rendez_vous: CalendarDays, email: Mail, note: StickyNote, relance: Send };
+const dateHeure = (iso) => (iso ? new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+
+// Activités du client et de ses opportunités, relances de ses factures (lecture seule), de la plus récente à la plus ancienne.
+function CarteHistorique({ clientId }) {
+  const { activites, supprimerActivite } = useActivites();
+  const { opportunites } = useOpportunites();
+  const { factures } = useFactures();
+  const { peutEcrire, role } = useEntreprise();
+  const { user } = useAuth();
+  const [fenetre, setFenetre] = useState(null);
+  const [aSupprimer, setASupprimer] = useState(null);
+  const [erreur, setErreur] = useState(null);
+  const elements = useMemo(
+    () => historiqueClient({ clientId, activites, opportunites, factures }),
+    [clientId, activites, opportunites, factures]
+  );
+
+  const confirmerSuppression = async () => {
+    const cible = aSupprimer;
+    setASupprimer(null);
+    setErreur(null);
+    try {
+      await supprimerActivite(cible.activite.id);
+    } catch (e) {
+      setErreur(e.message);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-base font-semibold" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
+          Historique des interactions
+        </h3>
+        {peutEcrire && (
+          <button
+            type="button"
+            onClick={(e) => setFenetre({ activite: null, element: e.currentTarget })}
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2"
+            style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+          >
+            <Plus size={14} aria-hidden="true" />
+            Ajouter une activité
+          </button>
+        )}
+      </div>
+      {erreur && <p role="alert" className="mb-3 text-sm" style={{ color: C.errorText }}>{erreur}</p>}
+      {elements.length === 0 ? (
+        <p className="text-sm" style={{ color: C.textSecondary }}>Aucune interaction enregistrée.</p>
+      ) : (
+        <ol className="space-y-3">
+          {elements.map((e) => {
+            const Icone = ICONES_HISTORIQUE[e.type] ?? StickyNote;
+            const modifiable = e.sorte === "activite" && peutModifierActivite(e.activite, user?.id, role);
+            const libelle = e.sorte === "relance" ? LIBELLE_NIVEAU[e.niveau] : LIBELLE_TYPE_ACTIVITE[e.type];
+            return (
+              <li key={e.cle} className="flex gap-3">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: C.bgMain, color: C.textSecondary }}>
+                  <Icone size={15} aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm" style={{ color: C.textPrimary }}>
+                    <span className="font-semibold">{libelle}</span>
+                    {e.sorte === "relance" && (
+                      <> · <Link to={`/factures/${e.facture.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>{libelleNumero(e.facture)}</Link></>
+                    )}
+                    {e.opportunite && <span style={{ color: C.textSecondary }}> · {e.opportunite}</span>}
+                  </p>
+                  <p className="text-xs tabular-nums" style={{ color: C.textSecondary }}>
+                    {dateHeure(e.date)} · {e.auteur}{e.sorte === "relance" ? " · relance préparée, lecture seule" : ""}
+                  </p>
+                  <p className="mt-1 whitespace-pre-line break-words text-sm" style={{ color: C.textPrimary }}>{e.texte}</p>
+                </div>
+                {modifiable && (
+                  <div className="flex shrink-0 items-start gap-1">
+                    <button
+                      type="button"
+                      onClick={(ev) => setFenetre({ activite: e.activite, element: ev.currentTarget })}
+                      aria-label={`Modifier : ${libelle} du ${dateHeure(e.date)}`}
+                      title="Modifier"
+                      className="rounded-lg p-2 focus:outline-none focus-visible:ring-2"
+                      style={{ color: C.textSecondary }}
+                    >
+                      <Pencil size={15} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(ev) => setASupprimer({ activite: e.activite, libelle, element: ev.currentTarget })}
+                      aria-label={`Supprimer : ${libelle} du ${dateHeure(e.date)}`}
+                      title="Supprimer"
+                      className="rounded-lg p-2 focus:outline-none focus-visible:ring-2"
+                      style={{ color: C.errorText }}
+                    >
+                      <Trash2 size={15} aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {fenetre && (
+        <FenetreActivite clientId={clientId} activite={fenetre.activite} elementRetour={fenetre.element} onFermer={() => setFenetre(null)} />
+      )}
+      <ConfirmDialog
+        ouvert={Boolean(aSupprimer)}
+        titre="Supprimer cette activité ?"
+        message={aSupprimer ? `L'activité « ${aSupprimer.libelle} » disparaîtra de l'historique.` : ""}
+        libelleAnnuler="Annuler"
+        libelleConfirmer="Supprimer"
+        onAnnuler={() => setASupprimer(null)}
+        onConfirmer={confirmerSuppression}
+        elementRetour={aSupprimer?.element}
+      />
     </div>
   );
 }

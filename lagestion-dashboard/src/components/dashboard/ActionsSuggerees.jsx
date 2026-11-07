@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, AlertTriangle, FileEdit, Clock } from "lucide-react";
+import { ArrowRight, AlertTriangle, FileEdit, Clock, ListPlus, Check } from "lucide-react";
 import { C, alpha } from "../../theme";
+import { tacheDeSuggestion } from "../../utils/taches";
 
 const ICONES = { relances: AlertTriangle, brouillons: FileEdit, inactives: Clock };
 const COULEURS = { relances: C.chart7, brouillons: C.chart4, inactives: C.chart6 };
@@ -11,7 +12,8 @@ const jours = (n) => {
   return n === 0 ? " · aujourd'hui" : ` · ${n} jour${n > 1 ? "s" : ""}`;
 };
 
-function ActionsSuggerees({ groupes }) {
+// peutCreer : rôle qui écrit ; une seule tâche à faire par suggestion (sinon lien « Tâche créée »).
+function ActionsSuggerees({ groupes, taches = [], peutCreer = false, enCours = null, onCreerTache }) {
   if (groupes.every((g) => g.total === 0)) {
     return <p className="text-sm" style={{ color: C.textSecondary }}>Aucune action en attente : tout est à jour.</p>;
   }
@@ -35,14 +37,37 @@ function ActionsSuggerees({ groupes }) {
                     <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>{a.titre}</p>
                     <p className="truncate text-xs" style={{ color: C.textSecondary }}>{a.detail}{jours(a.jours)}</p>
                   </div>
-                  <Link
-                    to={a.lien}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2"
-                    style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
-                    aria-label={`Ouvrir : ${a.titre}`}
-                  >
-                    Ouvrir <ArrowRight size={12} aria-hidden="true" />
-                  </Link>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Link
+                      to={a.lien}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2"
+                      style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+                      aria-label={`Ouvrir : ${a.titre}`}
+                    >
+                      Ouvrir <ArrowRight size={12} aria-hidden="true" />
+                    </Link>
+                    {tacheDeSuggestion(taches, g.cle, a) ? (
+                      <Link
+                        to="/taches"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2"
+                        style={{ color: C.successText }}
+                        aria-label={`Tâche créée, voir mes tâches : ${a.titre}`}
+                      >
+                        <Check size={12} aria-hidden="true" /> Tâche créée
+                      </Link>
+                    ) : peutCreer && (
+                      <button
+                        type="button"
+                        onClick={() => onCreerTache(g.cle, a)}
+                        disabled={enCours === a.id}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2 disabled:cursor-wait disabled:opacity-60"
+                        style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+                        aria-label={`Créer une tâche : ${a.titre}`}
+                      >
+                        <ListPlus size={12} aria-hidden="true" /> Tâche
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

@@ -1,6 +1,6 @@
 -- seed.sql — Lagestion
 -- Données de démonstration pour UNE entreprise existante (créée depuis l'onboarding).
--- S'applique après 011_reglements_relances.sql, dans le SQL Editor (rôle postgres).
+-- S'applique après 012_taches_activites.sql, dans le SQL Editor (rôle postgres).
 --
 -- Ce que fait le script :
 --   - ne crée aucune entreprise et ne touche ni à entreprises, ni à memberships, ni à profiles ;
@@ -20,6 +20,10 @@
 --   - acomptes et soldes : numéros « DEMO-ACP-NNNN » et « DEMO-SLD-NNNN », hors série, rattachés à DEV-DEMO-0008
 --     (1 750 € TTC : acompte de 30 % à 525 €, solde à 1 225 €) ; DEV-DEMO-0009, accepté et libre, sert aux tests ;
 --   - relances : suivent la facture à sa suppression en rôle postgres ; 1 relance sur DEMO-0008, il y a 20 jours ;
+--   - activités et tâches (migration 012) : rattachées à un client, une opportunité, un devis ou une facture de démo,
+--     elles disparaissent avec eux au rejeu (suppression en cascade), y compris celles créées dans l'application ;
+--     4 activités (Delmas, Transports Guérin) et 4 tâches à dates relatives : en retard (hier), aujourd'hui,
+--     à venir (dans 3 jours), faite ;
 --   - statuts : payée, partiellement payée et en retard sont calculés ; le seed ne pose que le cycle de vie ;
 --   - opportunités : rattachées à un client de démo et portant un nom de la liste ci-dessous ;
 --   - catalogue : référence « DEMO-ART-NN » (10 articles, dont 1 inactif ; 9 lignes de facture y sont reliées) ;
@@ -461,6 +465,40 @@ begin
          c.email, f.total_ttc, v_admin, 'Démonstration', now() - interval '20 days'
   from public.factures f join public.clients c on c.id = f.client_id
   where f.entreprise_id = v_ent and f.numero = 'DEMO-0008';
+
+  -- 8 septies. Activités et tâches (migration 012), au nom de l'admin : RLS et triggers s'appliquent.
+  -- Dates relatives : les quatre états d'une tâche (en retard, aujourd'hui, à venir, faite) restent visibles à chaque rejeu.
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+
+  insert into public.activites (entreprise_id, type, client_id, opportunite_id, date_activite, commentaire)
+  select v_ent, v.type, c.id, o.id, now() - make_interval(days => v.jours), v.commentaire
+  from (values
+    ('Agence immobilière Delmas', 'appel',       null::text,                            2, 'Point sur le paiement de DEMO-0011 : virement du solde annoncé pour la fin du mois.'),
+    ('Agence immobilière Delmas', 'rendez_vous', 'Rénovation de 3 logements locatifs', 10, 'Visite des trois logements avec le gestionnaire ; métrés relevés.'),
+    ('Agence immobilière Delmas', 'email',       null,                                  5, 'Envoi du devis DEV-DEMO-0007 pour les trois logements.'),
+    ('Transports Guérin',         'note',        null,                                  1, 'Comptabilité du client injoignable ; rappeler en début de semaine.')
+  ) as v(client, type, opportunite, jours, commentaire)
+  join public.clients c on c.entreprise_id = v_ent and c.nom = v.client and c.tags @> array['démo']
+  left join public.opportunites o on o.entreprise_id = v_ent and o.client_id = c.id and o.nom = v.opportunite;
+
+  insert into public.taches (entreprise_id, titre, echeance, responsable, statut, client_id, opportunite_id, devis_id, facture_id, origine)
+  select v_ent, v.titre, public.date_du_jour_paris() + v.jours, v_admin, v.statut,
+         c.id, o.id, d.id, f.id, v.origine
+  from (values
+    ('Relancer la facture DEMO-0008 (2e relance)',             -1, 'a_faire', null::text,                  null::text,                      null::text,      'DEMO-0008', 'relance'),
+    ('Appeler l''agence Delmas pour le solde de DEMO-0011',    0, 'a_faire', 'Agence immobilière Delmas', null,                            null,            null,        null),
+    ('Préparer le chiffrage de la terrasse couverte',          3, 'a_faire', null,                         'Terrasse couverte et chauffée', null,            null,        null),
+    ('Envoyer le devis DEV-DEMO-0003',                        -4, 'faite',   null,                         null,                            'DEV-DEMO-0003', null,        null)
+  ) as v(titre, jours, statut, client, opportunite, devis, facture, origine)
+  left join public.clients c on c.entreprise_id = v_ent and c.nom = v.client and c.tags @> array['démo']
+  left join public.opportunites o on o.entreprise_id = v_ent and o.nom = v.opportunite
+  left join public.devis d on d.entreprise_id = v_ent and d.numero = v.devis
+  left join public.factures f on f.entreprise_id = v_ent and f.numero = v.facture;
+
+  execute 'reset role';
+  perform set_config('request.jwt.claims', '{}', true);
 end $$;
 
 -- 9. Contrôles finaux (rôle postgres) : toute anomalie annule le seed
@@ -625,7 +663,19 @@ begin
   ) s where s.entreprise_id is distinct from s.fe;
   if n > 0 then raise exception 'Contrôle seed : % ligne(s) ou paiement(s) hors de l''entreprise', n; end if;
 
-  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes), 2 avoirs, 1 acompte, 1 solde, 11 paiements dont 1 remboursement, 1 relance, 10 articles, 9 devis (17 lignes).';
+  -- Activités et tâches : auteur figé, quatre états de tâche au jour du seed, tous liés à la démo
+  select count(*) into n from public.activites a join public.clients c on c.id = a.client_id
+   where a.entreprise_id = v_ent and c.tags @> array['démo'] and a.auteur is not null and a.deleted_at is null;
+  if n <> 4 then raise exception 'Contrôle seed : % activité(s) de démo au lieu de 4', n; end if;
+  select count(*) into n from public.taches t
+   where t.entreprise_id = v_ent and t.deleted_at is null
+     and ((t.statut = 'a_faire' and t.echeance = public.date_du_jour_paris() - 1 and t.origine = 'relance')
+       or (t.statut = 'a_faire' and t.echeance = public.date_du_jour_paris() and t.client_id is not null)
+       or (t.statut = 'a_faire' and t.echeance = public.date_du_jour_paris() + 3 and t.opportunite_id is not null)
+       or (t.statut = 'faite' and t.faite_le is not null and t.devis_id is not null));
+  if n <> 4 then raise exception 'Contrôle seed : % tâche(s) de démo dans les états attendus au lieu de 4', n; end if;
+
+  raise notice 'Seed terminé : 15 clients, 10 opportunités, 12 factures (23 lignes), 2 avoirs, 1 acompte, 1 solde, 11 paiements dont 1 remboursement, 1 relance, 10 articles, 9 devis (17 lignes), 4 activités, 4 tâches.';
 end $$;
 
 commit;

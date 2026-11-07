@@ -15,6 +15,10 @@ import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { calculerTableauDeBord, aujourdhuiLocal, PERIODES } from "../utils/dashboard";
+import { useTaches } from "../context/TachesContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { jourParis } from "../utils/facture";
+import { peutChangerStatut, tacheDepuisSuggestion } from "../utils/taches";
 
 const BarresMensuelles = lazy(() => import("../components/charts/BarresMensuelles"));
 const DonutSecteurs = lazy(() => import("../components/charts/DonutSecteurs"));
@@ -74,12 +78,29 @@ export default function Dashboard() {
   const { factures, chargement: chFac, erreur: errFac } = useFactures();
   const { clients, chargement: chCli, erreur: errCli } = useClients();
   const { entrepriseId, role } = useEntreprise();
+  const { taches, addTache } = useTaches();
+  const { user } = useAuth();
+  const [tacheEnCours, setTacheEnCours] = useState(null);
+  const [erreurTache, setErreurTache] = useState(null);
+
+  // Suggestion → tâche en un clic : responsable moi, échéance aujourd'hui ; la base refuse un doublon.
+  const creerTache = async (groupe, element) => {
+    setErreurTache(null);
+    setTacheEnCours(element.id);
+    try {
+      await addTache(tacheDepuisSuggestion(groupe, element, user?.id, jourParis()));
+    } catch (e) {
+      setErreurTache(e.message);
+    } finally {
+      setTacheEnCours(null);
+    }
+  };
   const chargement = chOpp || chFac || chCli;
   const erreur = errOpp || errFac || errCli;
 
   const t = useMemo(
-    () => calculerTableauDeBord({ factures, clients, opportunites, periode, aujourdhui: aujourdhuiLocal() }),
-    [factures, clients, opportunites, periode]
+    () => calculerTableauDeBord({ factures, clients, opportunites, periode, aujourdhui: aujourdhuiLocal(), role }),
+    [factures, clients, opportunites, periode, role]
   );
   const { kpi } = t;
   const libellePeriode = PERIODES.find((p) => p.cle === periode).libelle;
@@ -235,7 +256,8 @@ export default function Dashboard() {
         {/* Colonne latérale */}
         <div className="grid min-w-0 grid-cols-1 content-start gap-5 md:grid-cols-2 xl:grid-cols-1">
           <Bloc titre="Actions suggérées" index={4} chargement={chargement} hauteur={180}>
-            <ActionsSuggerees groupes={t.actions} />
+            {erreurTache && <p role="alert" className="mb-3 text-sm" style={{ color: C.errorText }}>{erreurTache}</p>}
+            <ActionsSuggerees groupes={t.actions} taches={taches} peutCreer={peutChangerStatut(role)} enCours={tacheEnCours} onCreerTache={creerTache} />
           </Bloc>
           <Bloc titre="Activités récentes" index={5} chargement={chargement} hauteur={180}>
             <ActivitesRecentes entrepriseId={entrepriseId} estAdmin={role === "admin"} factures={factures} />

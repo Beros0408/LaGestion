@@ -120,6 +120,9 @@ export const CONTOUR_JAUGE = melange(C.textSecondary, 0.7);
 export const etatDuStatut = (statut, type) => (type === "avoir" ? "neutre" : ETAT_PAR_STATUT[statut] ?? "neutre");
 export const couleurEtat = (statut, type) => COULEURS_ETAT[etatDuStatut(statut, type)];
 
+// Tâche (etatTache, utils/taches.js) → état : à venir neutre, aujourd'hui information, en retard erreur, faite succès.
+export const ETAT_TACHE = { a_venir: "neutre", aujourdhui: "info", en_retard: "erreur", faite: "succes" };
+
 // Règlements d'un client (situationClient, utils/facture.js) → état.
 export const ETAT_SITUATION = { a_jour: "succes", partiellement_regle: "avertissement", en_retard: "erreur" };
 

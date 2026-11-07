@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Briefcase, FileText, Package, Mail, BarChart3, Bot,
   FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut, ArrowLeft, Boxes, FileSignature,
-  Clock,
+  Clock, ListChecks, AlertCircle,
 } from "lucide-react";
 import { C, AVATARS, VOILE, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
+import { useTaches } from "../context/TachesContext.jsx";
+import { jourParis } from "../utils/facture";
+import { libelleEnRetard, nombreEnRetard } from "../utils/taches";
 import { GardeModificationsProvider, useQuitter } from "../context/GardeModificationsContext.jsx";
 import { pageParente, libellePage } from "../utils/navigation";
 
@@ -18,6 +21,7 @@ const navItems = [
   { id: "devis", label: "Devis", icon: FileSignature, to: "/devis" },
   { id: "factures", label: "Factures", icon: FileText, to: "/factures" },
   { id: "impayes", label: "Impayés", icon: Clock, to: "/impayes" },
+  { id: "taches", label: "Mes tâches", icon: ListChecks, to: "/taches" },
   { id: "catalogue", label: "Catalogue", icon: Boxes, to: "/catalogue" },
   { id: "stock", label: "Stock", icon: Package, soon: true },
   { id: "campagnes", label: "Campagnes", icon: Mail, soon: true },
@@ -56,7 +60,10 @@ function LayoutContenu() {
   const location = useLocation();
   const navigate = useNavigate();
   const quitter = useQuitter();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const { taches } = useTaches();
+  // Compteur de l'en-tête : tâches en retard dont l'utilisateur connecté est responsable.
+  const enRetard = nombreEnRetard(taches, user?.id, jourParis());
   const { nomAffiche, prenomAffiche, initiales, entreprise, libelleRole, peutEcrire } = useEntreprise();
   const sousTitreProfil = [entreprise?.nom, libelleRole].filter(Boolean).join(" · ");
   const breadcrumb = libellePage(location.pathname);
@@ -249,13 +256,13 @@ function LayoutContenu() {
 
           <div className="min-w-0 flex-1">
             <nav
-              className="flex items-center gap-1.5 text-xs"
+              className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs"
               style={{ color: C.textSecondary }}
               aria-label="Fil d'Ariane"
             >
               <span>LaGestion</span>
               <span aria-hidden="true">/</span>
-              <span className="font-medium" style={{ color: C.textPrimary }}>{breadcrumb}</span>
+              <span className="truncate font-medium" style={{ color: C.textPrimary }}>{breadcrumb}</span>
             </nav>
             {/* Titre métier en h1 ; visible seulement sur le tableau de bord (« Bonjour »), ailleurs la page affiche son titre. */}
             {location.pathname === "/dashboard" ? (
@@ -285,6 +292,20 @@ function LayoutContenu() {
               aria-label="Rechercher"
             />
           </div>
+
+          {enRetard > 0 && (
+            <Link
+              to="/taches"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-2 text-sm font-medium transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
+              style={{ color: C.errorText }}
+              aria-label={libelleEnRetard(enRetard)}
+            >
+              <AlertCircle size={16} aria-hidden="true" className="shrink-0" />
+              {/* Sous 640 px : le nombre seul, le nom accessible garde le libellé complet. */}
+              <span className="tabular-nums sm:hidden">{enRetard}</span>
+              <span className="hidden sm:inline">{libelleEnRetard(enRetard)}</span>
+            </Link>
+          )}
 
           <button
             className="relative rounded-xl p-2 transition-colors focus:outline-none focus-visible:ring-2"

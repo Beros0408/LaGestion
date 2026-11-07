@@ -3,7 +3,7 @@
 // Dates au format ISO « AAAA-MM-JJ » ; « aujourdhui » est passé en paramètre (déterminisme, tests).
 import { estComptabilisee, estImpayee, montantSigne, statutCalcule, totalAvoirs, totalHT, totalTTC, totalPaye, resteAPayer } from "./facture.js";
 import { LIBELLE_STATUT, LIBELLE_TYPE, libelleNumero } from "../data/factures.js";
-import { LIBELLE_NIVEAU, niveauSuivant, relanceAProposer } from "../data/relances.js";
+import { LIBELLE_NIVEAU, niveauPropose, relanceAProposer } from "../data/relances.js";
 const N = "\u00a0";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis.js";
 import { ETAPES } from "../data/opportunites.js";
@@ -119,7 +119,7 @@ function nomClient(clientsParId, id) {
 
 // ---------- Calcul principal ----------
 
-export function calculerTableauDeBord({ factures = [], clients = [], opportunites = [], periode = "12m", aujourdhui }) {
+export function calculerTableauDeBord({ factures = [], clients = [], opportunites = [], periode = "12m", aujourdhui, role = "admin" }) {
   const b = bornesPeriode(periode, aujourdhui);
   const clientsParId = new Map(clients.map((c) => [c.id, c]));
 
@@ -269,7 +269,7 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
     .filter((f) => relanceAProposer(f, aujourdhui))
     .map((f) => ({
       id: f.id,
-      titre: `Relancer la facture ${f.numero}${N}: ${LIBELLE_NIVEAU[niveauSuivant(f)]}`,
+      titre: `Relancer la facture ${f.numero}${N}: ${LIBELLE_NIVEAU[niveauPropose(f, role)]}`,
       detail: `${nomClient(clientsParId, f.client_id)} · reste ${fmtEuro(euros(centimes(resteAPayer(f))))}`,
       jours: f.date_echeance ? Math.max(0, joursEntre(f.date_echeance, aujourdhui)) : null,
       lien: `/factures/${f.id}`,

@@ -24,6 +24,7 @@ const ROUTES = [
   { motif: "/factures/:id/avoir/modifier", libelle: "Modifier l'avoir", parent: ({ id }) => `/factures/${id}` },
   { motif: "/factures/:id", libelle: "Fiche facture", parent: () => "/factures" },
   { motif: "/impayes", libelle: "Impayés", parent: () => "/dashboard" },
+  { motif: "/taches", libelle: "Mes tâches", parent: () => "/dashboard" },
   { motif: "/catalogue", libelle: "Catalogue", parent: () => "/dashboard" },
   { motif: "/catalogue/nouveau", libelle: "Nouvel article", parent: () => "/catalogue" },
   { motif: "/catalogue/:id/modifier", libelle: "Modifier l'article", parent: () => "/catalogue" },

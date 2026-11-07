@@ -18,6 +18,7 @@ import FactureForm from "./pages/FactureForm.jsx";
 import FactureDetail from "./pages/FactureDetail.jsx";
 import AvoirForm from "./pages/AvoirForm.jsx";
 import Impayes from "./pages/Impayes.jsx";
+import MesTaches from "./pages/MesTaches.jsx";
 import AcompteForm from "./pages/AcompteForm.jsx";
 import Catalogue from "./pages/Catalogue.jsx";
 import ProduitForm from "./pages/ProduitForm.jsx";
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/devis/:id/modifier" element={<DevisForm />} />
           <Route path="/devis/:id/acompte" element={<AcompteForm />} />
           <Route path="/impayes" element={<Impayes />} />
+          <Route path="/taches" element={<MesTaches />} />
           <Route path="/factures" element={<Factures />} />
           <Route path="/factures/nouvelle" element={<FactureForm />} />
           <Route path="/factures/:id" element={<FactureDetail />} />
