@@ -5,7 +5,7 @@
 --     activité : auteur, admin, manager) ; aucune suppression physique ;
 --   - auteur et nom figés par la base ; date de réalisation cohérente avec le statut ;
 --   - liens : même entreprise, au plus un objet par tâche, opportunité du même client pour une activité ;
---   - responsable membre de l'entreprise, assignation hors entreprise refusée ;
+--   - responsable membre de l'entreprise avec un rôle qui écrit : assignation hors entreprise ou à un membre lecture refusée ;
 --   - une seule tâche à faire par suggestion du tableau de bord ;
 --   - isolation entre deux entreprises.
 -- À lancer après migrations/012_taches_activites.sql, dans le SQL Editor de Supabase (rôle postgres).
@@ -129,6 +129,8 @@ begin
   -- Responsable : membre de l'entreprise de la tâche, uniquement
   perform public._t012_refuse($q$insert into public.taches (entreprise_id, titre, echeance, responsable) values ('a0120000-0000-4000-8000-0000000000e1', 'Hors entreprise', current_date, 'a0120000-0000-4000-8000-000000000006')$q$, 'membre de l''entreprise');
   perform public._t012_refuse($q$insert into public.taches (entreprise_id, titre, echeance, responsable) values ('a0120000-0000-4000-8000-0000000000e1', 'Inconnu', current_date, gen_random_uuid())$q$, 'membre de l''entreprise');
+  -- Membre au rôle lecture : ne pourrait pas marquer sa tâche faite
+  perform public._t012_refuse($q$insert into public.taches (entreprise_id, titre, echeance, responsable) values ('a0120000-0000-4000-8000-0000000000e1', 'Pour la lecture', current_date, 'a0120000-0000-4000-8000-000000000001')$q$, 'rôle qui écrit');
   -- Liens : même entreprise, un objet au plus ; échéance et titre obligatoires
   perform public._t012_refuse($q$insert into public.taches (entreprise_id, titre, echeance, responsable, facture_id) values ('a0120000-0000-4000-8000-0000000000e1', 'Facture de B', current_date, 'a0120000-0000-4000-8000-000000000002', 'a0120000-0000-4000-8000-000000000f02')$q$, 'même entreprise');
   perform public._t012_refuse($q$insert into public.taches (entreprise_id, titre, echeance, responsable, opportunite_id) values ('a0120000-0000-4000-8000-0000000000e1', 'Opportunité de B', current_date, 'a0120000-0000-4000-8000-000000000002', 'a0120000-0000-4000-8000-0000000000a2')$q$, 'même entreprise');
@@ -160,7 +162,7 @@ begin
     raise exception 'ÉCHEC : le rôle lecture ne voit pas les tâches et activités de son entreprise';
   end if;
   perform public._t012_refuse($q$insert into public.activites (entreprise_id, type, client_id, commentaire) values ('a0120000-0000-4000-8000-0000000000e1', 'note', 'a0120000-0000-4000-8000-0000000000c1', 'Lecture')$q$, 'row-level security');
-  perform public._t012_refuse($q$insert into public.taches (entreprise_id, titre, echeance, responsable) values ('a0120000-0000-4000-8000-0000000000e1', 'Lecture', current_date, 'a0120000-0000-4000-8000-000000000001')$q$, 'row-level security');
+  perform public._t012_refuse($q$insert into public.taches (entreprise_id, titre, echeance, responsable) values ('a0120000-0000-4000-8000-0000000000e1', 'Lecture', current_date, 'a0120000-0000-4000-8000-000000000002')$q$, 'row-level security');
   if public._t012_lignes($q$update public.taches set statut = 'faite' where id = 'a0120000-0000-4000-8000-0000000007a1'$q$) <> 0
      or public._t012_lignes($q$update public.activites set commentaire = 'Modifié' where id = 'a0120000-0000-4000-8000-0000000000b1'$q$) <> 0 then
     raise exception 'ÉCHEC : le rôle lecture a modifié une ligne';
@@ -208,6 +210,7 @@ declare a record;
 begin
   update public.taches set responsable = 'a0120000-0000-4000-8000-000000000004' where id = 'a0120000-0000-4000-8000-0000000007a1';
   perform public._t012_refuse($q$update public.taches set responsable = 'a0120000-0000-4000-8000-000000000006' where id = 'a0120000-0000-4000-8000-0000000007a1'$q$, 'membre de l''entreprise');
+  perform public._t012_refuse($q$update public.taches set responsable = 'a0120000-0000-4000-8000-000000000001' where id = 'a0120000-0000-4000-8000-0000000007a1'$q$, 'rôle qui écrit');
   perform public._t012_refuse($q$update public.taches set client_id = 'a0120000-0000-4000-8000-0000000000c2', facture_id = null where id = 'a0120000-0000-4000-8000-0000000007a1'$q$, 'même entreprise');
   perform public._t012_refuse($q$update public.taches set entreprise_id = 'a0120000-0000-4000-8000-0000000000e2' where id = 'a0120000-0000-4000-8000-0000000007a1'$q$, '');
   update public.activites set commentaire = 'Appel de suivi, rappel prévu', auteur = 'a0120000-0000-4000-8000-000000000005'
@@ -264,8 +267,8 @@ begin
   if (select count(*) from public.taches where entreprise_id = 'a0120000-0000-4000-8000-0000000000e2') <> 1 then
     raise exception 'ÉCHEC : tâches de B inattendues';
   end if;
-  if exists (select 1 from public.taches t where t.responsable not in (select user_id from public.memberships m where m.entreprise_id = t.entreprise_id)) then
-    raise exception 'ÉCHEC : une tâche a un responsable hors de son entreprise';
+  if exists (select 1 from public.taches t where t.responsable not in (select user_id from public.memberships m where m.entreprise_id = t.entreprise_id and m.role <> 'lecture')) then
+    raise exception 'ÉCHEC : une tâche a un responsable hors de son entreprise ou au rôle lecture';
   end if;
 end $$;
 

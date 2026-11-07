@@ -2,7 +2,8 @@
 -- Tâches, notes et activités (CRM-01 du PRD, FR-005).
 --   - activites : appel, rendez-vous, e-mail ou note, liés à un client et/ou à une opportunité de la même entreprise ;
 --     auteur et nom figés par la base ; modification et suppression logique réservées à l'auteur, à l'admin et au manager ;
---   - taches : titre, échéance obligatoire, responsable membre de l'entreprise, statut a_faire ou faite ;
+--   - taches : titre, échéance obligatoire, responsable membre de l'entreprise avec un rôle qui écrit (admin, manager,
+--     commercial, comptable : un membre au rôle lecture ne pourrait pas marquer sa tâche faite), statut a_faire ou faite ;
 --     au plus un objet lié (client, opportunité, devis ou facture), facultatif ;
 --     tout rôle d'écriture crée une tâche et change son statut ; le reste de la modification et la suppression logique
 --     sont réservés à l'auteur, au responsable, à l'admin et au manager ;
@@ -92,8 +93,9 @@ begin
   -- Champs propres à chaque table : conditions imbriquées (PL/pgSQL évalue toute l'expression).
   if tg_table_name = 'taches' then
     if (tg_op = 'INSERT' or new.responsable is distinct from old.responsable)
-       and not exists (select 1 from public.memberships m where m.entreprise_id = new.entreprise_id and m.user_id = new.responsable) then
-      raise exception 'Le responsable doit être membre de l''entreprise.';
+       and not exists (select 1 from public.memberships m where m.entreprise_id = new.entreprise_id and m.user_id = new.responsable
+                         and m.role in ('admin', 'manager', 'commercial', 'comptable')) then
+      raise exception 'Le responsable doit être membre de l''entreprise avec un rôle qui écrit (admin, manager, commercial, comptable).';
     end if;
   elsif tg_table_name = 'activites' then
     if new.client_id is not null and new.opportunite_id is not null then
