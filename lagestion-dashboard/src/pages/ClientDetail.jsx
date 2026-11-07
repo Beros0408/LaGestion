@@ -1,13 +1,14 @@
 import React, { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, List, Pencil, Phone, Mail, MapPin } from "lucide-react";
-import { C, AVATARS, alpha, euroCentimes } from "../theme";
+import { C, AVATARS, alpha, euroCentimes, couleurEtat } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { libelleNumero } from "../data/factures";
 import { resteAPayer, soldeClient, statutCalcule, totalTTC } from "../utils/facture";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
+import BarreReglement from "../components/BarreReglement.jsx";
 
 const AVATAR_PALETTE = Object.values(AVATARS);
 
@@ -361,18 +362,25 @@ function CarteFacturesClient({ clientId }) {
             </tr>
           </thead>
           <tbody>
-            {liste.map((f) => (
-              <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                <td className="whitespace-nowrap px-2 py-2 font-medium tabular-nums">
-                  <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
-                    {libelleNumero(f)}
-                  </Link>
-                </td>
-                <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(f))}</td>
-                <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(resteAPayer(f))}</td>
-                <td className="px-2 py-2"><BadgeStatutFacture statut={statutCalcule(f)} /></td>
-              </tr>
-            ))}
+            {liste.map((f) => {
+              const statut = statutCalcule(f);
+              const e = couleurEtat(statut, f.type);
+              return (
+                <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: e.fond }}>
+                  <td className="whitespace-nowrap px-2 py-2 font-medium tabular-nums" style={{ boxShadow: `inset 4px 0 0 ${e.trait}`, paddingLeft: 12 }}>
+                    <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
+                      {libelleNumero(f)}
+                    </Link>
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(f))}</td>
+                  <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textSecondary }}>
+                    {euroCentimes(resteAPayer(f))}
+                    <BarreReglement facture={f} statut={statut} />
+                  </td>
+                  <td className="px-2 py-2"><BadgeStatutFacture statut={statut} type={f.type} /></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

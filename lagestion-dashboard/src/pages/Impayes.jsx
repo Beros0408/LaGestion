@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Send, AlertCircle } from "lucide-react";
-import { C, alpha, euroCentimes } from "../theme";
+import { C, alpha, euroCentimes, couleurEtat } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -9,6 +9,7 @@ import { LIBELLE_TYPE, libelleNumero } from "../data/factures";
 import { LIBELLE_NIVEAU, derniereRelance, niveauSuivant, peutRelancer } from "../data/relances";
 import { estImpayee, joursDeRetard, jourParis, resteAPayer, statutCalcule } from "../utils/facture";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
+import BarreReglement from "../components/BarreReglement.jsx";
 import FenetreRelance from "../components/FenetreRelance.jsx";
 import Select from "../components/form/Select.jsx";
 
@@ -133,9 +134,11 @@ export default function Impayes() {
               <tbody>
                 {visibles.map((f) => {
                   const derniere = derniereRelance(f);
+                  const statut = statutCalcule(f, jour);
+                  const e = couleurEtat(statut, f.type);
                   return (
-                    <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums">
+                    <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: e.fond }}>
+                      <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums" style={{ boxShadow: `inset 4px 0 0 ${e.trait}`, paddingLeft: 16 }}>
                         <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>{libelleNumero(f)}</Link>
                         {f.type !== "facture" && <span className="ml-2 text-xs font-normal" style={{ color: C.textSecondary }}>{LIBELLE_TYPE[f.type]}</span>}
                       </td>
@@ -144,8 +147,11 @@ export default function Impayes() {
                       <td className="whitespace-nowrap px-3 py-3" style={{ color: f.retard > 0 ? C.errorText : C.textSecondary }}>
                         {f.retard > 0 ? `${f.retard} j de retard` : "À échoir"}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(f.reste)}</td>
-                      <td className="px-3 py-3"><BadgeStatutFacture statut={statutCalcule(f, jour)} /></td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+                        {euroCentimes(f.reste)}
+                        <div className="font-normal"><BarreReglement facture={f} statut={statut} /></div>
+                      </td>
+                      <td className="px-3 py-3"><BadgeStatutFacture statut={statut} type={f.type} /></td>
                       <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ color: C.textSecondary }}>
                         {derniere ? `${LIBELLE_NIVEAU[derniere.niveau]}, ${date(derniere.created_at)}` : "—"}
                       </td>

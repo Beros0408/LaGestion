@@ -228,7 +228,7 @@ export default function FactureDetail() {
             </h2>
             {peutEcrire && optionsStatut.length > 0 ? (
               <MenuStatut
-                badge={<BadgeStatutFacture statut={statutAffiche} />}
+                badge={<BadgeStatutFacture statut={statutAffiche} type={facture.type} />}
                 ariaLabel="Changer le statut de la facture"
                 statutActuel={facture.statut}
                 options={optionsStatut}
@@ -239,7 +239,7 @@ export default function FactureDetail() {
                 disabled={actionEnCours}
               />
             ) : (
-              <BadgeStatutFacture statut={statutAffiche} />
+              <BadgeStatutFacture statut={statutAffiche} type={facture.type} />
             )}
             {facture.statut === "envoyee" && statutAffiche !== "envoyee" && (
               <span className="text-xs" style={{ color: C.textSecondary }}>Envoyée au client</span>
@@ -603,7 +603,7 @@ function CarteAvoirs({ avoirs }) {
             </Link>
             <span className="flex items-center gap-3">
               <span className="tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(a))}</span>
-              <BadgeStatutFacture statut={statutCalcule(a)} />
+              <BadgeStatutFacture statut={statutCalcule(a)} type={a.type} />
             </span>
           </li>
         ))}

@@ -2,12 +2,15 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
-  ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download, AlertCircle,
+  ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download, AlertCircle, CheckCircle2, CircleDashed,
 } from "lucide-react";
-import { C, AVATARS, alpha } from "../theme";
+import { C, AVATARS, alpha, COULEURS_ETAT, ETAT_SITUATION } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
+import { useFactures } from "../context/FacturesContext.jsx";
 import { exporterClientsExcel } from "../utils/excel";
+import { jourParis, situationClient } from "../utils/facture";
+import { LIBELLE_SITUATION } from "../data/factures";
 
 const STATUTS = {
   actif:    { label: "Actif",    color: C.success,        texte: C.successText,   bg: alpha(C.success, 0.12) },
@@ -39,7 +42,8 @@ const COLUMNS = [
   { id: "email",     label: "E-mail",    sortable: true,  align: "left" },
   { id: "telephone", label: "Téléphone", sortable: true,  align: "left" },
   { id: "statut",    label: "Statut",    sortable: true,  align: "left" },
-  { id: "tags",      label: "Tags",      sortable: false, align: "left" },
+  { id: "reglements", label: "Solde",     sortable: false, align: "left" },
+  { id: "tags",     label: "Tags",      sortable: false, align: "left" },
   { id: "score",     label: "Score",     sortable: true,  align: "left" },
   { id: "actions",   label: "",          sortable: false, align: "right" },
 ];
@@ -87,6 +91,15 @@ export default function Clients() {
   const navigate = useNavigate();
   const { clients: tousClients, deleteClient, chargement, erreur } = useClients();
   const { peutEcrire, peutSupprimer } = useEntreprise();
+  const { factures } = useFactures();
+
+  // Règlements par client, mêmes règles que statutCalcule (situationClient).
+  const situations = useMemo(() => {
+    const jour = jourParis();
+    const parClient = new Map();
+    factures.forEach((f) => parClient.set(f.client_id, [...(parClient.get(f.client_id) ?? []), f]));
+    return new Map([...parClient].map(([id, liste]) => [id, situationClient(liste, jour)]));
+  }, [factures]);
 
   const [requete, setRequete] = useState("");
   const requeteDeb = useDebouncedValue(requete, 250);
@@ -339,6 +352,7 @@ export default function Clients() {
                     <LigneClient
                       key={c.id}
                       client={c}
+                      situation={situations.get(c.id) ?? null}
                       selected={selection.has(c.id)}
                       onToggle={() => toggleSelection(c.id)}
                       onView={() => handleView(c)}
@@ -424,7 +438,7 @@ function FilterGroup({ label, options, value, onChange, ariaLabel }) {
   );
 }
 
-function LigneClient({ client, selected, onToggle, onView, onEdit, onDelete }) {
+function LigneClient({ client, situation, selected, onToggle, onView, onEdit, onDelete }) {
   return (
     <tr
       onClick={onView}
@@ -458,6 +472,7 @@ function LigneClient({ client, selected, onToggle, onView, onEdit, onDelete }) {
       <td className="px-3 py-3" style={{ color: C.textSecondary }}>{client.email}</td>
       <td className="px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{client.telephone}</td>
       <td className="px-3 py-3"><BadgeStatut statut={client.statut} /></td>
+      <td className="px-3 py-3"><BadgeReglements situation={situation} /></td>
       <td className="px-3 py-3">
         {client.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
@@ -498,6 +513,21 @@ function BadgeStatut({ statut }) {
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} aria-hidden="true" />
       {s.label}
+    </span>
+  );
+}
+
+// Règlements du client : jetons d'état (CLAUDE.md, « Couleurs d'état ») ; « — » sans document émis.
+const ICONES_SITUATION = { a_jour: CheckCircle2, partiellement_regle: CircleDashed, en_retard: AlertCircle };
+
+function BadgeReglements({ situation }) {
+  if (!situation) return <span className="text-xs" style={{ color: C.textSecondary }}>—</span>;
+  const e = COULEURS_ETAT[ETAT_SITUATION[situation]];
+  const Icon = ICONES_SITUATION[situation];
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ color: e.texte, background: e.badge }}>
+      <Icon size={13} aria-hidden="true" style={{ color: e.trait }} />
+      {LIBELLE_SITUATION[situation]}
     </span>
   );
 }

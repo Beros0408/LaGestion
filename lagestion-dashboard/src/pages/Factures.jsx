@@ -4,7 +4,7 @@ import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   Eye, Pencil, Trash2, SearchX, MoreHorizontal, RefreshCw, Download, AlertCircle,
 } from "lucide-react";
-import { C, OMBRE, alpha, euro } from "../theme";
+import { C, OMBRE, alpha, euro, couleurEtat } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -385,7 +385,10 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
       className="cursor-pointer transition-colors hover:bg-lg-hover"
       style={{ borderBottom: `1px solid ${C.border}` }}
     >
-      <td className="px-3 py-3 font-medium tabular-nums" style={{ color: C.textPrimary }}>
+      <td
+        className="px-3 py-3 font-medium tabular-nums"
+        style={{ color: C.textPrimary, boxShadow: facture.statutAffiche === "en_retard" ? `inset 4px 0 0 ${couleurEtat("en_retard").trait}` : undefined }}
+      >
         {libelleNumero(facture)}
         {facture.type !== "facture" && facture.numero && (
           <span className="ml-2 text-xs font-normal" style={{ color: C.textSecondary }}>{LIBELLE_TYPE[facture.type]}</span>
@@ -400,7 +403,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
           <span className="block text-xs font-normal" style={{ color: C.textSecondary }}>dont avoirs − {euro(avoirs)}</span>
         )}
       </td>
-      <td className="px-3 py-3"><BadgeStatutFacture statut={facture.statutAffiche} /></td>
+      <td className="px-3 py-3"><BadgeStatutFacture statut={facture.statutAffiche} type={facture.type} /></td>
       <td className="px-3 py-3">
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <BoutonAction label={`Voir ${nom}`} icon={Eye} onClick={onView} />

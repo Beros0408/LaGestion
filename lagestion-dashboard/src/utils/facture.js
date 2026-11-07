@@ -230,6 +230,19 @@ export function lierAvoirs(factures) {
 export const estComptabilisee = (f) =>
   f.statut !== "brouillon" && (f.statut !== "annulee" || (f.avoirs ?? []).length > 0);
 
+// Règlements d'un client, résumés depuis statutCalcule de ses documents émis (avoirs exclus) :
+// « en_retard » si au moins un est en retard, sinon « partiellement_regle » si au moins un est partiellement payé,
+// sinon « a_jour » ; null sans document émis.
+export function situationClient(factures, jour = jourParis()) {
+  const statuts = factures
+    .filter((f) => f.type !== "avoir" && f.statut !== "brouillon")
+    .map((f) => statutCalcule(f, jour));
+  if (statuts.length === 0) return null;
+  if (statuts.includes("en_retard")) return "en_retard";
+  if (statuts.includes("partiellement_payee")) return "partiellement_regle";
+  return "a_jour";
+}
+
 // Situation d'un client : facturé net des avoirs, encaissé net, reste à payer, trop-perçu.
 export function soldeClient(factures) {
   const liste = factures.filter(estComptabilisee);

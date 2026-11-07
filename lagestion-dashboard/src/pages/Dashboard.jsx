@@ -210,7 +210,7 @@ export default function Dashboard() {
                             <td className="px-3 py-3" style={{ color: C.textSecondary }}>{f.client}</td>
                             <td className="px-3 py-3 font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(f.montantTTC)}</td>
                             <td className="px-3 py-3" style={{ color: C.textSecondary }}>{dateCourte(f.echeance)}</td>
-                            <td className="px-3 py-3"><BadgeStatutFacture statut={f.statut} /></td>
+                            <td className="px-3 py-3"><BadgeStatutFacture statut={f.statut} type={f.type} /></td>
                           </tr>
                         ))}
                       </tbody>

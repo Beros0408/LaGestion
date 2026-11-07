@@ -109,7 +109,7 @@ Ne pas ajouter de fonctionnalité hors de ce périmètre sans décision explicit
 - Application dans le sous-dossier lagestion-dashboard/. Structure :
   - `src/App.jsx` + `src/main.jsx` : entrée + routeur React Router.
   - `src/pages/` : un écran par fichier — `Dashboard.jsx`, `Clients.jsx`, `ClientForm.jsx`, `ClientDetail.jsx`, `Catalogue.jsx`, `ProduitForm.jsx`, `Devis.jsx`, `DevisForm.jsx`, `DevisDetail.jsx`, `AvoirForm.jsx`, `AcompteForm.jsx`, `Impayes.jsx`…
-  - `src/components/` : briques partagées (`Layout.jsx`, `Card.jsx`, `ConfirmDialog.jsx`, `ChoixCatalogue.jsx`, `FenetreRelance.jsx`, `form/*`, `charts/*`, `document/*` : lignes, récapitulatif et cartes communs aux factures et aux devis).
+  - `src/components/` : briques partagées (`Layout.jsx`, `Card.jsx`, `ConfirmDialog.jsx`, `ChoixCatalogue.jsx`, `FenetreRelance.jsx`, `BadgeStatutFacture.jsx`, `BarreReglement.jsx`, `form/*`, `charts/*`, `document/*` : lignes, récapitulatif et cartes communs aux factures et aux devis).
   - `src/context/` : état applicatif partagé (`ClientsContext.jsx`, `ProduitsContext.jsx`, `DevisContext.jsx`…).
   - `src/hooks/` : hooks partagés (`usePiegeFocus.js` : focus piégé des fenêtres modales).
   - `src/data/` : jeux de données statiques du MVP.
@@ -152,6 +152,27 @@ Badge « En retard » : fond opaque (rouge à 10 % posé sur #ECEFF2) pour que e
 
 Couleur de catégorie (KPI) : CA = primaire · Clients = secondaire · Factures impayées = erreur · Pipeline = primaire-700.
 
+### Couleurs d'état (statut de paiement)
+Couleurs sémantiques, distinctes de la palette de marque : elles informent, elles ne décorent pas. Jetons COULEURS_ETAT et couleurEtat(statut, type) dans src/theme.js ; le statut vient uniquement de statutCalcule (src/utils/facture.js). Jamais la couleur seule : icône et libellé toujours présents.
+| Statut | État | Trait (liseré, icône, barre) | Fond (6 %) | Texte | Badge (opaque) |
+| Payée | succès | successText #186A3A | #E0EBE9 | successText | #D4E7E0 (12 %) |
+| Partiellement payée | avertissement | warningText #855407 | #ECEAE5 | warningText | #EDE5D7 (12 %) |
+| Finalisée, envoyée (à échoir) | information | infoText #1A6191 | #E1EAF1 | infoText | #D6E5EF (12 %) |
+| En retard | erreur | errorText #B03A2E | #ECE5E7 | errorText | #ECDFE0 (10 %) |
+| Brouillon, annulée, tout avoir | neutre | textSecondary #4F5A5F | #E3E6E9 | textSecondary | #D9DDE0 (12 %) |
+Fonds et badges : la couleur brute (success, warning, info, error, textSecondary) mélangée à la carte #ECEFF2, en couleur opaque (melange) ; un badge posé sur une ligne teintée ne cumule donc pas les teintes. Les couleurs brutes ne servent qu'aux fonds : sur le fond à 6 %, elles n'atteignent pas 3:1 (success 2,36 · warning 1,82 · info 2,59 · error 3,08).
+Contrastes calculés (WCAG) :
+| État | Texte / fond 6 % | Trait / fond 6 % | Texte et icône / badge | Barre / piste |
+| succès | 5,45 | 5,45 | 5,16 | 4,64 |
+| avertissement | 5,34 | 5,34 | 5,14 | 4,54 |
+| information | 5,45 | 5,45 | 5,16 | 4,63 |
+| erreur | 4,85 | 4,85 | 4,64 (4,50 à 12 % : écarté) | 4,11 |
+| neutre | 5,66 | 5,66 | 5,19 | 4,80 |
+Piste de la barre : textSecondary à 12 % posé sur le fond de la ligne. Aucun effet de survol sur une ligne teintée (errorText y tomberait à 4,32:1).
+Règlements d'un client (situationClient, ETAT_SITUATION) : En retard (erreur) si au moins une facture l'est, sinon Partiellement réglé (avertissement), sinon À jour (succès) ; « — » sans document émis.
+Application : fiche client (« Factures liées ») et Impayés : liseré de 4 px sur la première cellule, ligne teintée, badge, barre ; liste des factures : badge, liseré seulement pour « En retard », lignes non teintées ; liste des clients : colonne « Solde ».
+Contrôle : tests/couleursEtat.test.js recalcule ces contrastes.
+
 ## 5. Design tokens — Typographie
 Police : Inter (repli system-ui, sans-serif). Chiffres en tabular-nums.
 | Style | Taille | Poids |
@@ -186,6 +207,10 @@ Briques réutilisables : Card, Button (états : normal, survol, pressé, chargem
 - Apparition : fondu + translation 8 px vers le haut, 400 ms, avec un décalage de 60 ms par carte via le prop `index` (`animation-delay: index * 60ms`).
 - `prefers-reduced-motion: reduce` désactive transitions et animation.
 - Interdit sur les cartes : halo, lueur, pulsation, rotation, ombre colorée.
+
+**BadgeStatutFacture** (`src/components/BadgeStatutFacture.jsx`) : statut issu de statutCalcule, prop `type` (un avoir est neutre). Jetons d'état, fond opaque, icône + libellé : CheckCircle2 payée · CircleDashed partiellement payée · Clock finalisée ou envoyée · AlertCircle en retard · FileEdit brouillon · Ban annulée · FileMinus avoir.
+
+**BarreReglement** (`src/components/BarreReglement.jsx`) : « X € réglés sur Y € », encaissé net (totalPaye) sur TTC net des avoirs (totalTTC − totalAvoirs). Seulement pour une facture partiellement payée, ou en retard avec un encaissement. role="progressbar", aria-label, aria-valuemin/now/max, aria-valuetext ; chiffres tabulaires ; aucune animation.
 
 ## 9. Accessibilité — RÈGLES NON NÉGOCIABLES (WCAG 2.2 AA)
 - Contraste texte ≥ 4,5:1 (≥ 3:1 pour le grand texte).

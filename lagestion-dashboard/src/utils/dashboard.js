@@ -316,6 +316,7 @@ export function calculerTableauDeBord({ factures = [], clients = [], opportunite
       montantTTC: euros(centimes(totalTTC(f))),
       echeance: f.date_echeance,
       statut: statutCalcule(f, aujourdhui),
+      type: f.type,
     }));
 
   return {

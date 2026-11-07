@@ -77,6 +77,43 @@ export const alpha = (hex, opacite) => {
   return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${opacite})`;
 };
 
+// Couleur opaque (#RRGGBB) : la couleur à cette opacité, posée sur un fond (la carte par défaut).
+export const melange = (hex, opacite, fond = C.bgCard) => {
+  const c = (h, i) => parseInt(h.slice(1 + 2 * i, 3 + 2 * i), 16);
+  return "#" + [0, 1, 2]
+    .map((i) => Math.round(c(hex, i) * opacite + c(fond, i) * (1 - opacite)).toString(16).padStart(2, "0"))
+    .join("").toUpperCase();
+};
+
+// Couleurs d'état du paiement : sémantiques, distinctes de la palette de marque (voir CLAUDE.md, « Couleurs d'état »).
+// trait : liseré, icône, barre (jeton …Text, la couleur brute n'atteint pas 3:1) ; texte : jeton …Text ;
+// fond : couleur brute à 6 % ; badge : couleur brute à 12 % (10 % pour l'erreur : 4,50:1 à 12 %, 4,64:1 à 10 %).
+// Fonds opaques, posés sur la carte : un badge sur une ligne teintée ne cumule pas les teintes.
+const etat = (brute, texte, badge = 0.12) => ({ trait: texte, texte, fond: melange(brute, 0.06), badge: melange(brute, badge) });
+export const COULEURS_ETAT = {
+  succes: etat(C.success, C.successText),
+  avertissement: etat(C.warning, C.warningText),
+  info: etat(C.info, C.infoText),
+  erreur: etat(C.error, C.errorText, 0.1),
+  neutre: etat(C.textSecondary, C.textSecondary),
+};
+
+// Statut issu de statutCalcule (utils/facture.js) → état. Un avoir est toujours neutre.
+const ETAT_PAR_STATUT = {
+  payee: "succes",
+  partiellement_payee: "avertissement",
+  finalisee: "info",
+  envoyee: "info",
+  en_retard: "erreur",
+  brouillon: "neutre",
+  annulee: "neutre",
+};
+export const etatDuStatut = (statut, type) => (type === "avoir" ? "neutre" : ETAT_PAR_STATUT[statut] ?? "neutre");
+export const couleurEtat = (statut, type) => COULEURS_ETAT[etatDuStatut(statut, type)];
+
+// Règlements d'un client (situationClient, utils/facture.js) → état.
+export const ETAT_SITUATION = { a_jour: "succes", partiellement_regle: "avertissement", en_retard: "erreur" };
+
 const OMBRE_BASE = "45,52,54";
 export const OMBRE = {
   xs: `0 1px 2px rgba(${OMBRE_BASE},0.04)`,

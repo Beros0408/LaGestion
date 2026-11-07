@@ -21,6 +21,13 @@ export const LIBELLE_STATUT = {
   annulee: "Annulée",
 };
 
+// Règlements d'un client (situationClient, utils/facture.js).
+export const LIBELLE_SITUATION = {
+  a_jour: "À jour",
+  partiellement_regle: "Partiellement réglé",
+  en_retard: "En retard",
+};
+
 export const TAUX_TVA = [20, 10, 5.5, 0];
 
 export const LIBELLE_TYPE = {
