@@ -167,15 +167,15 @@ Badges : la couleur brute (success, warning, info, error, textSecondary) mélang
 - Jauge (BarreReglement) : toute facture émise de TTC net positif, de 0 % à 100 % ; jamais sur un brouillon, un avoir, une facture annulée, ni si les paiements ne sont pas chargés (reglementAffichable).
 - Carte « Factures liées » : document à encaisser → badge d'échéance ; autre document → statut habituel (soldée = Payée, jauge verte à 100 %).
 Contrastes calculés (WCAG), sur la carte #ECEFF2 :
-| État | Texte et icône / badge | Liseré / carte | Jauge / piste |
+| État | Texte et icône / badge | Liseré / carte | Partie remplie / piste |
 | succès | 5,16 | 5,76 | 4,86 |
 | avertissement | 5,14 | 5,57 | 4,70 |
 | information | 5,16 | 5,75 | — |
 | erreur | 4,64 (4,50 à 12 % : écarté) | 5,21 | — |
 | neutre | 5,19 | 6,15 | — |
-Piste de la jauge : textSecondary à 12 % sur la carte (#D9DDE0, 1,18:1 sur la carte) ; le texte « X € réglés sur Y € » (textSecondary, 6,15:1) porte l'information.
+Piste de la jauge : fond PISTE_JAUGE, textSecondary à 12 % sur la carte (#D9DDE0, 1,18:1 sur la carte), et contour de 1 px CONTOUR_JAUGE, textSecondary à 70 % (#7E878B, 3,18:1 sur la carte) : une jauge vide reste visible. Le texte « X € réglés sur Y € » (textSecondary, 6,15:1) porte l'information.
 Règlements d'un client (situationClient, ETAT_SITUATION) : En retard (erreur) si au moins une facture l'est, sinon Partiel (avertissement), sinon À jour (succès) ; « — » sans document émis.
-Application : liseré de 4 px pour « En retard » uniquement, partout (première cellule). Impayés : s'ouvre sur « Échues » (une échéance aujourd'hui est « À échoir », totaux compris), badge d'échéance, colonne Retard (« 12 j » en errorText, « Aujourd'hui » en textPrimary medium, « — »), jauge à largeur fixe sous le reste à payer. Carte « Factures liées » : jauge sur une ligne à part sous chaque facture. Liste des factures : badge de statut (statutCalcule), pas de jauge. Liste des clients : colonne « Solde ».
+Application : liseré de 4 px pour « En retard » uniquement, partout (première cellule). Impayés : s'ouvre sur « Échues » (une échéance aujourd'hui est « À échoir », totaux compris), badge d'échéance, colonne Retard (« 12 j » en errorText, « Aujourd'hui » en textPrimary medium, « — »), jauge à largeur fixe sous le reste à payer. Carte « Factures liées » : colonnes Numéro, TTC, Reste ; badge sous le numéro ; jauge sur une ligne à part sous chaque facture ; aucun défilement horizontal à 1440, 768 et 400 px. Liste des factures : badge de statut (statutCalcule), pas de jauge. Liste des clients : colonne « Solde ».
 Contrôle : tests/couleursEtat.test.js recalcule ces contrastes.
 
 ## 5. Design tokens — Typographie

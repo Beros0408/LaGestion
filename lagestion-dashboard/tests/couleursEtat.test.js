@@ -1,7 +1,7 @@
 // Couleurs d'état du paiement (CLAUDE.md, « Couleurs d'état »), échéance, règlement et résumé client : node --test tests/
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { C, COULEURS_ETAT, ETAT_REGLEMENT, ETAT_SITUATION, PISTE_JAUGE, couleurEtat, etatDuStatut, melange } from "../src/theme.js";
+import { C, COULEURS_ETAT, ETAT_REGLEMENT, ETAT_SITUATION, PISTE_JAUGE, CONTOUR_JAUGE, couleurEtat, etatDuStatut, melange } from "../src/theme.js";
 import { STATUTS, LIBELLE_ECHEANCE, LIBELLE_SITUATION } from "../src/data/factures.js";
 import { etatEcheance, etatReglement, reglementAffichable, situationClient } from "../src/utils/facture.js";
 
@@ -49,8 +49,11 @@ test("contrastes : texte ≥ 4,5:1, liseré, icône et jauge ≥ 3:1", () => {
     assert.ok(contraste(e.trait, C.bgCard) >= 3, `${nom} liseré / carte`);
   }
   for (const etat of Object.values(ETAT_REGLEMENT)) {
-    assert.ok(contraste(COULEURS_ETAT[etat].trait, PISTE_JAUGE) >= 3, `${etat} jauge / piste`);
+    assert.ok(contraste(COULEURS_ETAT[etat].trait, PISTE_JAUGE) >= 3, `${etat} partie remplie / piste`);
   }
+  // Contour de la piste : jauge vide visible sur la carte.
+  assert.equal(CONTOUR_JAUGE, melange(C.textSecondary, 0.7));
+  assert.ok(contraste(CONTOUR_JAUGE, C.bgCard) >= 3, "contour / carte");
   // Texte de la jauge, « Aujourd'hui » (textPrimary) et liseré sur une ligne survolée de la liste des factures.
   assert.ok(contraste(C.textSecondary, C.bgCard) >= 4.5);
   assert.ok(contraste(C.textPrimary, C.bgCard) >= 4.5);

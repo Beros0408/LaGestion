@@ -356,7 +356,7 @@ function CarteFacturesClient({ clientId }) {
           <caption className="sr-only">Factures et avoirs de ce client</caption>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-              {["Numéro", "TTC", "Reste", "Statut"].map((h) => (
+              {["Numéro", "TTC", "Reste"].map((h) => (
                 <th key={h} scope="col" className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>{h}</th>
               ))}
             </tr>
@@ -371,18 +371,18 @@ function CarteFacturesClient({ clientId }) {
               return (
                 <React.Fragment key={f.id}>
                   <tr style={{ borderBottom: jauge ? undefined : trait }}>
-                    <td className="whitespace-nowrap px-2 py-2 font-medium tabular-nums" style={lisere}>
-                      <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
+                    <td className="px-2 py-2 font-medium tabular-nums" style={lisere}>
+                      <Link to={`/factures/${f.id}`} className="whitespace-nowrap rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
                         {libelleNumero(f)}
                       </Link>
+                      <div className="mt-1"><BadgeStatutFacture statut={statut} type={f.type} /></div>
                     </td>
-                    <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(f))}</td>
-                    <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(resteAPayer(f))}</td>
-                    <td className="px-2 py-2"><BadgeStatutFacture statut={statut} type={f.type} /></td>
+                    <td className="whitespace-nowrap px-2 py-2 align-top tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(f))}</td>
+                    <td className="whitespace-nowrap px-2 py-2 align-top tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(resteAPayer(f))}</td>
                   </tr>
                   {jauge && (
                     <tr style={{ borderBottom: trait }}>
-                      <td colSpan={4} className="px-2 pb-2.5" style={lisere}>
+                      <td colSpan={3} className="px-2 pb-2.5" style={lisere}>
                         <BarreReglement facture={f} />
                       </td>
                     </tr>

@@ -114,8 +114,9 @@ const ETAT_PAR_STATUT = {
 // Règlement issu de etatReglement → état de la jauge ; non réglée : jauge vide.
 export const ETAT_REGLEMENT = { partielle: "avertissement", soldee: "succes" };
 
-// Piste de la jauge : textSecondary à 12 %, posée sur la carte.
+// Piste de la jauge : textSecondary à 12 %, posée sur la carte ; contour textSecondary à 70 % (3,18:1 sur la carte).
 export const PISTE_JAUGE = melange(C.textSecondary, 0.12);
+export const CONTOUR_JAUGE = melange(C.textSecondary, 0.7);
 export const etatDuStatut = (statut, type) => (type === "avoir" ? "neutre" : ETAT_PAR_STATUT[statut] ?? "neutre");
 export const couleurEtat = (statut, type) => COULEURS_ETAT[etatDuStatut(statut, type)];
 

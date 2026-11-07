@@ -1,5 +1,5 @@
 import React from "react";
-import { C, COULEURS_ETAT, ETAT_REGLEMENT, PISTE_JAUGE, euroCentimes } from "../theme";
+import { C, COULEURS_ETAT, ETAT_REGLEMENT, PISTE_JAUGE, CONTOUR_JAUGE, euroCentimes } from "../theme";
 import { etatReglement, reglementAffichable, totalPaye, totalTTC, totalAvoirs } from "../utils/facture";
 
 // « X € réglés sur Y € » : encaissé net (totalPaye) sur TTC net des avoirs (totalTTC − totalAvoirs), de 0 % à 100 %.
@@ -22,8 +22,8 @@ const BarreReglement = React.memo(function BarreReglement({ facture }) {
         aria-valuemax={du}
         aria-valuenow={Math.min(du, Math.max(0, regle))}
         aria-valuetext={texte}
-        className="h-1.5 overflow-hidden rounded-full"
-        style={{ background: PISTE_JAUGE }}
+        className="h-2 overflow-hidden rounded-full"
+        style={{ background: PISTE_JAUGE, border: `1px solid ${CONTOUR_JAUGE}` }}
       >
         {etat && part > 0 && (
           <div className="h-full rounded-full" style={{ width: `${part}%`, background: COULEURS_ETAT[etat].trait }} />
