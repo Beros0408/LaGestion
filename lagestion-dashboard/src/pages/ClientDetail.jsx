@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, List, Pencil, Phone, Mail, MapPin, CalendarDays, StickyNote, Send, Plus, Trash2 } from "lucide-react";
-import { C, AVATARS, alpha, euroCentimes, couleurEtat } from "../theme";
+import { C, AVATARS, alpha, euro, euroCentimes, couleurEtat } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -307,7 +307,7 @@ export default function ClientDetail() {
             </div>
           )}
 
-          <CarteVide titre="Opportunités liées" message="Aucune opportunité liée." />
+          <CarteOpportunitesClient clientId={client.id} />
           <CarteFacturesClient clientId={id} />
           <CarteVide titre="Documents"          message="Aucun document associé." />
         </div>
@@ -520,6 +520,38 @@ function CarteHistorique({ clientId }) {
         onConfirmer={confirmerSuppression}
         elementRetour={aSupprimer?.element}
       />
+    </div>
+  );
+}
+
+// Opportunités du client : nom (lien vers son formulaire), étape, montant ; état vide seulement sans opportunité.
+function CarteOpportunitesClient({ clientId }) {
+  const { opportunites } = useOpportunites();
+  const liste = useMemo(
+    () => opportunites
+      .filter((o) => o.client_id === clientId)
+      .sort((x, y) => (x.date_cloture ?? "9999").localeCompare(y.date_cloture ?? "9999") || x.nom.localeCompare(y.nom, "fr")),
+    [opportunites, clientId]
+  );
+  if (liste.length === 0) return <CarteVide titre="Opportunités liées" message="Aucune opportunité liée." />;
+  return (
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <h3 className="mb-3 text-base font-semibold" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
+        Opportunités liées
+      </h3>
+      <ul className="space-y-2">
+        {liste.map((o, i) => (
+          <li key={o.id} className="flex items-start justify-between gap-3 pt-2 text-sm" style={{ borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}>
+            <div className="min-w-0">
+              <Link to={`/opportunites/${o.id}/modifier`} className="rounded font-medium underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
+                {o.nom}
+              </Link>
+              <p className="text-xs" style={{ color: C.textSecondary }}>{o.etape}</p>
+            </div>
+            <span className="shrink-0 whitespace-nowrap font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euro(Number(o.montant) || 0)}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
