@@ -12,6 +12,7 @@ export default {
           card: C.bgCard,
           hover: C.bgHover,
           border: C.border,
+          "text-secondary": C.textSecondary,
           "primary-200": C.primary200,
           "primary-400": C.primary400,
           "sidebar-hover": C.sidebarHover,

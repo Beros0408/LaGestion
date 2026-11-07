@@ -252,7 +252,7 @@ Lis CLAUDE.md. Nouvelle étape : finitions de navigation et d'affichage (UX-01 d
    - Fiche facture : 0 / 50 à 1 280 ; 0 / 83 à 768 ; 75 / 343 à 390.
    - Fiche devis : 0 / 31 à 1 280 ; 0 / 59 à 768 ; 0 / 334 à 390.
    - Fiche client : 0 / 4 à 1 280.
-10. Bouton flottant de l'assistant : marge basse en place (étape 11 quater), plus aucun contrôle masqué en fin de défilement ; au chargement, il recouvre encore une action en bas d'écran sur /dashboard, /clients, /devis, /factures et /catalogue (1 845 et 1 280 px) et /opportunites (768 px). Décider : gouttière réservée à droite, ou bouton dans l'en-tête.
+10. Texte indicatif des champs de formulaire : couleur Tailwind par défaut #9CA3AF, 2,20:1 sur la carte (#ECEFF2), sous 4,5:1 ; le passer en textSecondary (déjà fait pour la recherche de l'en-tête, étape 11 quater).
 
 Présente ton plan et attends mon go.
 Avant de livrer : npm run build et npm test ; parcours de navigation repassés ; rendu à 390, 768, 1 280 et 1 845 px sur toutes les listes et fiches ; commit séparé sans push ; tableau Vérifié / Non vérifié / À tester par Beros.
@@ -335,6 +335,7 @@ Avant de coder, propose l'architecture : outils métier en lecture seule (factur
 2. Brouillons : relances (à partir des modèles de l'étape 011), synthèse d'une fiche client, explication du tableau de bord, alertes sur devis, factures et chantiers. Toute écriture ou tout envoi exige une validation explicite de l'utilisateur.
 3. Garde-fous : journal des requêtes et des actions, quotas et plafond de dépense par entreprise, rate limiting, désactivation par entreprise, aucune donnée d'une autre entreprise accessible.
 4. Tests : injection de prompt (instructions cachées dans une fiche client ou une note), tentative d'accès inter-entreprise, dépassement de quota.
+5. Réintroduire le bouton de l'assistant sans masquer aucun contrôle (critère 2.4.11 de WCAG 2.2) ; retiré de Layout à l'étape 11 quater tant que l'assistant n'existe pas.
 
 Présente ton plan et attends mon go.
 Avant de livrer : npm run build et npm test ; tests de sécurité ; commit séparé sans push ; tableau Vérifié / Non vérifié / À tester par Beros.

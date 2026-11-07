@@ -201,9 +201,10 @@ Ombres :
 
 ## 7. Grille & responsive
 - Sidebar : 216 px. Repliée en icônes seules (72 px) sous 1280 px. Tiroir sous 768 px.
-- Contenu : 12 colonnes, gap 24 px, padding 32 px (24 px sous 1280 px) ; marge basse de 96 px (pb-24) sur la zone principale, pour que le bouton flottant de l'assistant (56 px, à 24 px du bas) ne masque aucun contrôle en fin de défilement.
+- Contenu : 12 colonnes, gap 24 px, padding 32 px (24 px sous 1280 px).
+- Aucun élément flottant au-dessus du contenu : le bouton de l'assistant est retiré tant que l'assistant n'existe pas (WCAG 2.2, critère 2.4.11) ; à réintroduire au prompt 19 sans masquer aucun contrôle.
 - Barre latérale : libellés et badges « Phase 2 » sur une ligne, icônes non rétrécissables ; aucune entrée rognée.
-- En-tête (Layout) : fil d'Ariane « LaGestion / <page> » et recherche (« Rechercher… ») ; h1 = libellePage, masqué (sr-only) sauf sur /dashboard où il affiche « Bonjour {prénom} ». Le titre visible de chaque page reste son h2 (passage en h1 : prompt 14).
+- En-tête (Layout) : fil d'Ariane « LaGestion / <page> » et recherche (« Rechercher… », texte indicatif en textSecondary : 5,71:1 sur bgMain) ; h1 = libellePage, masqué (sr-only) sauf sur /dashboard où il affiche « Bonjour {prénom} ». Le titre visible de chaque page reste son h2 (passage en h1 : prompt 14).
 - Liste large (Impayés) : tableau à partir de 1 280 px, cartes en dessous (mêmes lignes, l'autre présentation en display: none) ; 0 px de défilement à 1 845, 1 280, 768 et 390 px.
 - Orthographe : « LaGestion » partout dans l'interface.
 

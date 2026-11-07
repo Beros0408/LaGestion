@@ -280,7 +280,7 @@ function LayoutContenu() {
             <input
               type="search"
               placeholder="Rechercher…"
-              className="w-64 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus-visible:ring-2"
+              className="w-64 rounded-xl py-2 pl-9 pr-3 text-sm placeholder:text-lg-text-secondary focus:outline-none focus-visible:ring-2"
               style={{ backgroundColor: C.bgMain, border: `1px solid ${C.borderInput}`, color: C.textPrimary }}
               aria-label="Rechercher"
             />
@@ -306,20 +306,10 @@ function LayoutContenu() {
           )}
         </header>
 
-        {/* Marge basse : le bouton flottant de l'assistant (56 px, à 24 px du bas) ne masque aucun contrôle. */}
-        <main className="flex-1 overflow-auto p-4 pb-24 sm:p-6 sm:pb-24">
+        <main className="flex-1 overflow-auto p-4 sm:p-6">
           <Outlet />
         </main>
       </div>
-
-      <button
-        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:-translate-y-1 focus:outline-none focus-visible:ring-2"
-        style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}
-        aria-label="Assistant IA (disponible en Phase 2)"
-        title="Assistant IA — Phase 2"
-      >
-        <Bot size={24} aria-hidden="true" />
-      </button>
     </div>
   );
 }
