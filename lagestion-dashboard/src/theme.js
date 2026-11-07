@@ -86,10 +86,9 @@ export const melange = (hex, opacite, fond = C.bgCard) => {
 };
 
 // Couleurs d'état du paiement : sémantiques, distinctes de la palette de marque (voir CLAUDE.md, « Couleurs d'état »).
-// trait : liseré, icône, barre (jeton …Text, la couleur brute n'atteint pas 3:1) ; texte : jeton …Text ;
-// fond : couleur brute à 6 % ; badge : couleur brute à 12 % (10 % pour l'erreur : 4,50:1 à 12 %, 4,64:1 à 10 %).
-// Fonds opaques, posés sur la carte : un badge sur une ligne teintée ne cumule pas les teintes.
-const etat = (brute, texte, badge = 0.12) => ({ trait: texte, texte, fond: melange(brute, 0.06), badge: melange(brute, badge) });
+// trait : liseré, icône, jauge (jeton …Text, la couleur brute n'atteint pas 3:1) ; texte : jeton …Text ;
+// badge : couleur brute à 12 % (10 % pour l'erreur : 4,50:1 à 12 %, 4,64:1 à 10 %), opaque, posée sur la carte.
+const etat = (brute, texte, badge = 0.12) => ({ trait: texte, texte, badge: melange(brute, badge) });
 export const COULEURS_ETAT = {
   succes: etat(C.success, C.successText),
   avertissement: etat(C.warning, C.warningText),
@@ -98,7 +97,8 @@ export const COULEURS_ETAT = {
   neutre: etat(C.textSecondary, C.textSecondary),
 };
 
-// Statut issu de statutCalcule (utils/facture.js) → état. Un avoir est toujours neutre.
+// Statut issu de statutCalcule ou de etatEcheance (utils/facture.js) → état. Un avoir est toujours neutre.
+// Le badge d'échéance n'utilise que l'information et l'erreur ; la jauge, que l'avertissement et le succès.
 const ETAT_PAR_STATUT = {
   payee: "succes",
   partiellement_payee: "avertissement",
@@ -107,7 +107,15 @@ const ETAT_PAR_STATUT = {
   en_retard: "erreur",
   brouillon: "neutre",
   annulee: "neutre",
+  a_echoir: "info",
+  echeance_aujourdhui: "info",
 };
+
+// Règlement issu de etatReglement → état de la jauge ; non réglée : jauge vide.
+export const ETAT_REGLEMENT = { partielle: "avertissement", soldee: "succes" };
+
+// Piste de la jauge : textSecondary à 12 %, posée sur la carte.
+export const PISTE_JAUGE = melange(C.textSecondary, 0.12);
 export const etatDuStatut = (statut, type) => (type === "avoir" ? "neutre" : ETAT_PAR_STATUT[statut] ?? "neutre");
 export const couleurEtat = (statut, type) => COULEURS_ETAT[etatDuStatut(statut, type)];
 

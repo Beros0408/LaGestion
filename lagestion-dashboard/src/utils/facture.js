@@ -174,6 +174,29 @@ export function statutCalcule(facture, jour = jourParis()) {
   return statut;
 }
 
+// Échéance d'un document, même règle que statutCalcule et statut_paiement : en retard le lendemain de l'échéance,
+// pas le jour même (ni relance, ni retard) ; sans échéance : à échoir. Ne dit rien du règlement.
+export function etatEcheance(facture, jour = jourParis()) {
+  const echeance = facture?.date_echeance;
+  if (echeance && echeance < jour) return "en_retard";
+  if (echeance === jour) return "echeance_aujourdhui";
+  return "a_echoir";
+}
+
+// Règlement d'un document : encaissé net (totalPaye) face au TTC net des avoirs (totalTTC − totalAvoirs).
+export function etatReglement(facture) {
+  const du = centimes(totalTTC(facture)) - centimes(totalAvoirs(facture));
+  const paye = centimes(totalPaye(facture));
+  if (paye >= du) return "soldee";
+  return paye > 0 ? "partielle" : "non_reglee";
+}
+
+// Jauge de règlement affichable : document émis, ni avoir, ni annulé, TTC net positif, paiements chargés
+// (une donnée absente n'est pas un règlement de 0 €).
+export const reglementAffichable = (facture) =>
+  Array.isArray(facture?.paiements) && facture.type !== "avoir" && facture.statut !== "brouillon"
+  && facture.statut !== "annulee" && centimes(totalTTC(facture)) - centimes(totalAvoirs(facture)) > 0;
+
 // Document à encaisser : émis, non annulé, pas un avoir, avec un reste à payer.
 export const estImpayee = (facture) =>
   facture?.type !== "avoir" && facture?.statut !== "brouillon" && facture?.statut !== "annulee" && resteAPayer(facture) > 0;

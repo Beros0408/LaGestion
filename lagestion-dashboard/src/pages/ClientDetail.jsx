@@ -6,7 +6,7 @@ import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { libelleNumero } from "../data/factures";
-import { resteAPayer, soldeClient, statutCalcule, totalTTC } from "../utils/facture";
+import { estImpayee, etatEcheance, reglementAffichable, resteAPayer, soldeClient, statutCalcule, totalTTC } from "../utils/facture";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import BarreReglement from "../components/BarreReglement.jsx";
 
@@ -363,22 +363,31 @@ function CarteFacturesClient({ clientId }) {
           </thead>
           <tbody>
             {liste.map((f) => {
-              const statut = statutCalcule(f);
-              const e = couleurEtat(statut, f.type);
+              // À encaisser : badge d'échéance ; sinon (payée, brouillon, annulée, avoir) : statut habituel.
+              const statut = estImpayee(f) ? etatEcheance(f) : statutCalcule(f);
+              const lisere = statut === "en_retard" ? { boxShadow: `inset 4px 0 0 ${couleurEtat("en_retard").trait}` } : undefined;
+              const jauge = reglementAffichable(f);
+              const trait = `1px solid ${C.border}`;
               return (
-                <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: e.fond }}>
-                  <td className="whitespace-nowrap px-2 py-2 font-medium tabular-nums" style={{ boxShadow: `inset 4px 0 0 ${e.trait}`, paddingLeft: 12 }}>
-                    <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
-                      {libelleNumero(f)}
-                    </Link>
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(f))}</td>
-                  <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textSecondary }}>
-                    {euroCentimes(resteAPayer(f))}
-                    <BarreReglement facture={f} statut={statut} />
-                  </td>
-                  <td className="px-2 py-2"><BadgeStatutFacture statut={statut} type={f.type} /></td>
-                </tr>
+                <React.Fragment key={f.id}>
+                  <tr style={{ borderBottom: jauge ? undefined : trait }}>
+                    <td className="whitespace-nowrap px-2 py-2 font-medium tabular-nums" style={lisere}>
+                      <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
+                        {libelleNumero(f)}
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(totalTTC(f))}</td>
+                    <td className="whitespace-nowrap px-2 py-2 tabular-nums" style={{ color: C.textSecondary }}>{euroCentimes(resteAPayer(f))}</td>
+                    <td className="px-2 py-2"><BadgeStatutFacture statut={statut} type={f.type} /></td>
+                  </tr>
+                  {jauge && (
+                    <tr style={{ borderBottom: trait }}>
+                      <td colSpan={4} className="px-2 pb-2.5" style={lisere}>
+                        <BarreReglement facture={f} />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>

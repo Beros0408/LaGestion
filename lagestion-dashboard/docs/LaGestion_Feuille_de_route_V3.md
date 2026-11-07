@@ -239,7 +239,7 @@ Lis CLAUDE.md. Nouvelle étape : finitions de navigation et d'affichage (UX-01 d
 1. Remplace les 4 window.confirm restants (suppressions dans Clients.jsx, Opportunites.jsx, Factures.jsx, et suppression d'un paiement dans FactureDetail.jsx) par ConfirmDialog.
 2. Migre vers createBrowserRouter et utilise useBlocker, pour que la barre latérale et le bouton « Précédent » du navigateur demandent aussi confirmation quand un formulaire est modifié.
 3. Supprime le fil d'Ariane en doublon dans les fiches, puisque l'en-tête affiche désormais le bon.
-4. Débordement horizontal à 400 px : /factures (356 px), puis mesure et corrige /clients et /catalogue. Cause probable : le texte sr-only « Actions » hors d'un conteneur relatif (correctif déjà appliqué dans Devis.jsx et Impayes.jsx).
+4. Débordement horizontal à 400 px : /factures (356 px) et /clients (730 px à 400 px, 457 px à 768 px, colonne « Solde » comprise, mesuré à l'étape 12), puis mesure et corrige /catalogue. Cause probable : le texte sr-only « Actions » hors d'un conteneur relatif (correctif déjà appliqué dans Devis.jsx et Impayes.jsx).
 5. Bouton « Aperçu » du PDF avant téléchargement, sur les factures, avoirs, acomptes, soldes et devis.
 6. Pagination et recherche côté base pour les listes clients, factures et devis (au-delà de quelques centaines de lignes).
 7. États vides, de chargement et d'erreur homogènes sur toutes les listes ; navigation complète au clavier (WCAG 2.2 AA).

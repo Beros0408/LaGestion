@@ -1,9 +1,9 @@
-// Couleurs d'état du paiement (CLAUDE.md, « Couleurs d'état ») et résumé des règlements d'un client : node --test tests/
+// Couleurs d'état du paiement (CLAUDE.md, « Couleurs d'état »), échéance, règlement et résumé client : node --test tests/
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { C, COULEURS_ETAT, ETAT_SITUATION, couleurEtat, etatDuStatut, melange } from "../src/theme.js";
-import { STATUTS, LIBELLE_SITUATION } from "../src/data/factures.js";
-import { situationClient } from "../src/utils/facture.js";
+import { C, COULEURS_ETAT, ETAT_REGLEMENT, ETAT_SITUATION, PISTE_JAUGE, couleurEtat, etatDuStatut, melange } from "../src/theme.js";
+import { STATUTS, LIBELLE_ECHEANCE, LIBELLE_SITUATION } from "../src/data/factures.js";
+import { etatEcheance, etatReglement, reglementAffichable, situationClient } from "../src/utils/facture.js";
 
 // Contraste WCAG 2.x entre deux couleurs #RRGGBB.
 const lum = (hex) => {
@@ -16,13 +16,15 @@ const contraste = (a, b) => {
   return (x + 0.05) / (y + 0.05);
 };
 
-test("chaque statut correspond à son état", () => {
+test("chaque statut et chaque état d'échéance correspond à son état", () => {
   const attendu = {
     payee: "succes", partiellement_payee: "avertissement", finalisee: "info", envoyee: "info",
     en_retard: "erreur", brouillon: "neutre", annulee: "neutre",
   };
   for (const s of STATUTS) assert.equal(etatDuStatut(s), attendu[s], s);
   for (const s of STATUTS) assert.equal(couleurEtat(s), COULEURS_ETAT[attendu[s]], s);
+  assert.equal(etatDuStatut("a_echoir"), "info");
+  assert.equal(etatDuStatut("echeance_aujourdhui"), "info");
 });
 
 test("un avoir est neutre quel que soit son statut ; un statut inconnu aussi", () => {
@@ -31,44 +33,84 @@ test("un avoir est neutre quel que soit son statut ; un statut inconnu aussi", (
   assert.equal(etatDuStatut(undefined), "neutre");
 });
 
-test("jetons : trait et texte …Text, fond à 6 %, badge à 12 % (10 % pour l'erreur)", () => {
-  assert.deepEqual(COULEURS_ETAT.succes, { trait: C.successText, texte: C.successText, fond: melange(C.success, 0.06), badge: melange(C.success, 0.12) });
-  assert.deepEqual(COULEURS_ETAT.erreur, { trait: C.errorText, texte: C.errorText, fond: melange(C.error, 0.06), badge: melange(C.error, 0.1) });
+test("jetons : trait et texte …Text, badge opaque à 12 % (10 % pour l'erreur), plus de fond de ligne", () => {
+  assert.deepEqual(COULEURS_ETAT.succes, { trait: C.successText, texte: C.successText, badge: melange(C.success, 0.12) });
+  assert.deepEqual(COULEURS_ETAT.erreur, { trait: C.errorText, texte: C.errorText, badge: melange(C.error, 0.1) });
+  for (const e of Object.values(COULEURS_ETAT)) assert.ok(!("fond" in e));
   assert.equal(melange("#000000", 0.5, "#FFFFFF"), "#808080");
   assert.equal(melange(C.error, 0.1), "#ECDFE0");
+  assert.equal(PISTE_JAUGE, melange(C.textSecondary, 0.12));
 });
 
-test("contrastes : texte ≥ 4,5:1, trait (liseré, icône, barre) ≥ 3:1", () => {
+test("contrastes : texte ≥ 4,5:1, liseré, icône et jauge ≥ 3:1", () => {
   for (const [nom, e] of Object.entries(COULEURS_ETAT)) {
-    assert.ok(contraste(e.texte, e.fond) >= 4.5, `${nom} texte / fond`);
     assert.ok(contraste(e.texte, e.badge) >= 4.5, `${nom} texte / badge`);
-    assert.ok(contraste(C.textSecondary, e.fond) >= 4.5, `${nom} texte secondaire / fond`);
-    assert.ok(contraste(C.textPrimary, e.fond) >= 4.5, `${nom} texte principal / fond`);
-    assert.ok(contraste(C.primary, e.fond) >= 4.5, `${nom} lien / fond`);
-    assert.ok(contraste(e.trait, e.fond) >= 3, `${nom} trait / fond`);
     assert.ok(contraste(e.trait, e.badge) >= 3, `${nom} icône / badge`);
-    assert.ok(contraste(e.trait, melange(C.textSecondary, 0.12, e.fond)) >= 3, `${nom} barre / piste`);
+    assert.ok(contraste(e.trait, C.bgCard) >= 3, `${nom} liseré / carte`);
   }
-  // Le liseré « En retard » de la liste des factures reste lisible sur une ligne survolée.
+  for (const etat of Object.values(ETAT_REGLEMENT)) {
+    assert.ok(contraste(COULEURS_ETAT[etat].trait, PISTE_JAUGE) >= 3, `${etat} jauge / piste`);
+  }
+  // Texte de la jauge, « Aujourd'hui » (textPrimary) et liseré sur une ligne survolée de la liste des factures.
+  assert.ok(contraste(C.textSecondary, C.bgCard) >= 4.5);
+  assert.ok(contraste(C.textPrimary, C.bgCard) >= 4.5);
   assert.ok(contraste(C.errorText, C.bgHover) >= 3);
 });
 
-test("chaque situation client a un état et un libellé", () => {
-  for (const s of ["a_jour", "partiellement_regle", "en_retard"]) {
-    assert.ok(COULEURS_ETAT[ETAT_SITUATION[s]], s);
-    assert.ok(LIBELLE_SITUATION[s], s);
-  }
-  assert.equal(ETAT_SITUATION.en_retard, "erreur");
-  assert.equal(ETAT_SITUATION.partiellement_regle, "avertissement");
-  assert.equal(ETAT_SITUATION.a_jour, "succes");
+test("le badge d'échéance et la jauge ne partagent aucune couleur", () => {
+  const couleurs = (etats) => new Set(etats.flatMap((e) => Object.values(COULEURS_ETAT[e])));
+  const badge = couleurs(Object.keys(LIBELLE_ECHEANCE).map((s) => etatDuStatut(s)));
+  const jauge = couleurs(Object.values(ETAT_REGLEMENT));
+  assert.deepEqual([...new Set(Object.keys(LIBELLE_ECHEANCE).map((s) => etatDuStatut(s)))].sort(), ["erreur", "info"]);
+  assert.deepEqual(Object.values(ETAT_REGLEMENT).sort(), ["avertissement", "succes"]);
+  for (const c of jauge) assert.ok(!badge.has(c), c);
 });
 
-// Factures émises aux totaux figés : seuls total_ttc, l'échéance et les paiements comptent ici.
+test("échéance : en retard le lendemain, pas le jour même (règle de statut_paiement)", () => {
+  const jour = "2026-11-07";
+  assert.equal(etatEcheance({ date_echeance: "2026-11-06" }, jour), "en_retard");
+  assert.equal(etatEcheance({ date_echeance: "2026-11-07" }, jour), "echeance_aujourdhui");
+  assert.equal(etatEcheance({ date_echeance: "2026-11-08" }, jour), "a_echoir");
+  assert.equal(etatEcheance({ date_echeance: null }, jour), "a_echoir");
+  assert.equal(LIBELLE_ECHEANCE.echeance_aujourdhui, "Échéance aujourd'hui");
+});
+
+// Factures émises aux totaux figés : seuls total_ttc, l'échéance, les paiements et les avoirs comptent ici.
 const JOUR = "2026-11-07";
 const fac = (statut, ttc, echeance, paye = 0, extra = {}) => ({
   type: "facture", statut, total_ttc: ttc, date_echeance: echeance,
   paiements: paye ? [{ montant: paye }] : [], avoirs: [], ...extra,
 });
+
+test("règlement : non réglée, partielle, soldée (avoirs et remboursements déduits)", () => {
+  assert.equal(etatReglement(fac("envoyee", 100, JOUR)), "non_reglee");
+  assert.equal(etatReglement(fac("envoyee", 100, JOUR, 40)), "partielle");
+  assert.equal(etatReglement(fac("envoyee", 100, JOUR, 100)), "soldee");
+  assert.equal(etatReglement(fac("envoyee", 100, JOUR, 60, { avoirs: [{ type: "avoir", total_ttc: -40 }] })), "soldee");
+  assert.equal(etatReglement(fac("envoyee", 100, JOUR, 0, { paiements: [{ montant: 100 }, { montant: 30, sens: "remboursement" }] })), "partielle");
+});
+
+test("jauge : toute facture émise de TTC net positif, jamais sur brouillon, avoir, annulée ou paiements absents", () => {
+  assert.equal(reglementAffichable(fac("envoyee", 100, JOUR)), true);
+  assert.equal(reglementAffichable(fac("envoyee", 100, JOUR, 100)), true);
+  assert.equal(reglementAffichable(fac("brouillon", 100, JOUR)), false);
+  assert.equal(reglementAffichable(fac("finalisee", -50, null, 0, { type: "avoir" })), false);
+  assert.equal(reglementAffichable(fac("annulee", 100, JOUR)), false);
+  assert.equal(reglementAffichable(fac("envoyee", 100, JOUR, 0, { paiements: undefined })), false);
+  assert.equal(reglementAffichable(fac("envoyee", 100, JOUR, 0, { avoirs: [{ type: "avoir", total_ttc: -100 }] })), false);
+});
+
+test("chaque situation client a un état et un libellé ; « Partiel »", () => {
+  for (const s of ["a_jour", "partiellement_regle", "en_retard"]) {
+    assert.ok(COULEURS_ETAT[ETAT_SITUATION[s]], s);
+    assert.ok(LIBELLE_SITUATION[s], s);
+  }
+  assert.equal(LIBELLE_SITUATION.partiellement_regle, "Partiel");
+  assert.equal(ETAT_SITUATION.en_retard, "erreur");
+  assert.equal(ETAT_SITUATION.partiellement_regle, "avertissement");
+  assert.equal(ETAT_SITUATION.a_jour, "succes");
+});
+
 const payee = fac("envoyee", 100, "2026-10-01", 100);
 const partielle = fac("envoyee", 100, "2026-12-01", 40);
 const aEchoir = fac("finalisee", 100, "2026-12-01");
@@ -93,6 +135,5 @@ test("résumé client : à jour, y compris avec une facture à échoir sans paie
   assert.equal(situationClient([payee, aEchoir], JOUR), "a_jour");
   assert.equal(situationClient([fac("annulee", 100, "2026-10-01")], JOUR), "a_jour");
   assert.equal(situationClient([payee, fac("finalisee", -50, null, 0, { type: "avoir" })], JOUR), "a_jour");
-  // Échéance le jour même : pas encore en retard.
   assert.equal(situationClient([fac("envoyee", 100, JOUR)], JOUR), "a_jour");
 });

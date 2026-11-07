@@ -153,24 +153,29 @@ Badge « En retard » : fond opaque (rouge à 10 % posé sur #ECEFF2) pour que e
 Couleur de catégorie (KPI) : CA = primaire · Clients = secondaire · Factures impayées = erreur · Pipeline = primaire-700.
 
 ### Couleurs d'état (statut de paiement)
-Couleurs sémantiques, distinctes de la palette de marque : elles informent, elles ne décorent pas. Jetons COULEURS_ETAT et couleurEtat(statut, type) dans src/theme.js ; le statut vient uniquement de statutCalcule (src/utils/facture.js). Jamais la couleur seule : icône et libellé toujours présents.
-| Statut | État | Trait (liseré, icône, barre) | Fond (6 %) | Texte | Badge (opaque) |
-| Payée | succès | successText #186A3A | #E0EBE9 | successText | #D4E7E0 (12 %) |
-| Partiellement payée | avertissement | warningText #855407 | #ECEAE5 | warningText | #EDE5D7 (12 %) |
-| Finalisée, envoyée (à échoir) | information | infoText #1A6191 | #E1EAF1 | infoText | #D6E5EF (12 %) |
-| En retard | erreur | errorText #B03A2E | #ECE5E7 | errorText | #ECDFE0 (10 %) |
-| Brouillon, annulée, tout avoir | neutre | textSecondary #4F5A5F | #E3E6E9 | textSecondary | #D9DDE0 (12 %) |
-Fonds et badges : la couleur brute (success, warning, info, error, textSecondary) mélangée à la carte #ECEFF2, en couleur opaque (melange) ; un badge posé sur une ligne teintée ne cumule donc pas les teintes. Les couleurs brutes ne servent qu'aux fonds : sur le fond à 6 %, elles n'atteignent pas 3:1 (success 2,36 · warning 1,82 · info 2,59 · error 3,08).
-Contrastes calculés (WCAG) :
-| État | Texte / fond 6 % | Trait / fond 6 % | Texte et icône / badge | Barre / piste |
-| succès | 5,45 | 5,45 | 5,16 | 4,64 |
-| avertissement | 5,34 | 5,34 | 5,14 | 4,54 |
-| information | 5,45 | 5,45 | 5,16 | 4,63 |
-| erreur | 4,85 | 4,85 | 4,64 (4,50 à 12 % : écarté) | 4,11 |
-| neutre | 5,66 | 5,66 | 5,19 | 4,80 |
-Piste de la barre : textSecondary à 12 % posé sur le fond de la ligne. Aucun effet de survol sur une ligne teintée (errorText y tomberait à 4,32:1).
-Règlements d'un client (situationClient, ETAT_SITUATION) : En retard (erreur) si au moins une facture l'est, sinon Partiellement réglé (avertissement), sinon À jour (succès) ; « — » sans document émis.
-Application : fiche client (« Factures liées ») et Impayés : liseré de 4 px sur la première cellule, ligne teintée, badge, barre ; liste des factures : badge, liseré seulement pour « En retard », lignes non teintées ; liste des clients : colonne « Solde ».
+Couleurs sémantiques, distinctes de la palette de marque : elles informent, elles ne décorent pas. Jetons COULEURS_ETAT, couleurEtat(statut, type), ETAT_REGLEMENT et PISTE_JAUGE dans src/theme.js. Jamais la couleur seule : icône et libellé toujours présents.
+| Statut | État | Trait (liseré, icône, jauge) | Texte | Badge (opaque) |
+| Payée | succès | successText #186A3A | successText | #D4E7E0 (12 %) |
+| Partiellement payée | avertissement | warningText #855407 | warningText | #EDE5D7 (12 %) |
+| Finalisée, envoyée, à échoir, échéance aujourd'hui | information | infoText #1A6191 | infoText | #D6E5EF (12 %) |
+| En retard | erreur | errorText #B03A2E | errorText | #ECDFE0 (10 %) |
+| Brouillon, annulée, tout avoir | neutre | textSecondary #4F5A5F | textSecondary | #D9DDE0 (12 %) |
+Badges : la couleur brute (success, warning, info, error, textSecondary) mélangée à la carte #ECEFF2, en couleur opaque (melange). Les couleurs brutes ne servent qu'à ces fonds : sur la carte, elles n'atteignent pas 3:1. Aucun fond de ligne teinté.
+Échéance et règlement, séparés (Impayés, carte « Factures liées ») : statutCalcule et statut_paiement inchangés ; deux fonctions dérivées dans src/utils/facture.js.
+- etatEcheance(facture, jour) : en_retard si l'échéance est passée, echeance_aujourdhui le jour même (ni retard, ni relance, comme statut_paiement), sinon a_echoir. Le badge d'échéance n'utilise que l'information (À échoir, icône Clock ; Échéance aujourd'hui, icône CalendarClock) et l'erreur (En retard, icône AlertCircle).
+- etatReglement(facture) : soldee, partielle ou non_reglee (totalPaye face à totalTTC − totalAvoirs). La jauge n'utilise que l'avertissement (partielle) et le succès (soldée) ; non réglée : jauge vide. Badge d'échéance et jauge ne partagent aucune couleur (testé).
+- Jauge (BarreReglement) : toute facture émise de TTC net positif, de 0 % à 100 % ; jamais sur un brouillon, un avoir, une facture annulée, ni si les paiements ne sont pas chargés (reglementAffichable).
+- Carte « Factures liées » : document à encaisser → badge d'échéance ; autre document → statut habituel (soldée = Payée, jauge verte à 100 %).
+Contrastes calculés (WCAG), sur la carte #ECEFF2 :
+| État | Texte et icône / badge | Liseré / carte | Jauge / piste |
+| succès | 5,16 | 5,76 | 4,86 |
+| avertissement | 5,14 | 5,57 | 4,70 |
+| information | 5,16 | 5,75 | — |
+| erreur | 4,64 (4,50 à 12 % : écarté) | 5,21 | — |
+| neutre | 5,19 | 6,15 | — |
+Piste de la jauge : textSecondary à 12 % sur la carte (#D9DDE0, 1,18:1 sur la carte) ; le texte « X € réglés sur Y € » (textSecondary, 6,15:1) porte l'information.
+Règlements d'un client (situationClient, ETAT_SITUATION) : En retard (erreur) si au moins une facture l'est, sinon Partiel (avertissement), sinon À jour (succès) ; « — » sans document émis.
+Application : liseré de 4 px pour « En retard » uniquement, partout (première cellule). Impayés : s'ouvre sur « Échues » (une échéance aujourd'hui est « À échoir », totaux compris), badge d'échéance, colonne Retard (« 12 j » en errorText, « Aujourd'hui » en textPrimary medium, « — »), jauge à largeur fixe sous le reste à payer. Carte « Factures liées » : jauge sur une ligne à part sous chaque facture. Liste des factures : badge de statut (statutCalcule), pas de jauge. Liste des clients : colonne « Solde ».
 Contrôle : tests/couleursEtat.test.js recalcule ces contrastes.
 
 ## 5. Design tokens — Typographie
@@ -208,9 +213,9 @@ Briques réutilisables : Card, Button (états : normal, survol, pressé, chargem
 - `prefers-reduced-motion: reduce` désactive transitions et animation.
 - Interdit sur les cartes : halo, lueur, pulsation, rotation, ombre colorée.
 
-**BadgeStatutFacture** (`src/components/BadgeStatutFacture.jsx`) : statut issu de statutCalcule, prop `type` (un avoir est neutre). Jetons d'état, fond opaque, icône + libellé : CheckCircle2 payée · CircleDashed partiellement payée · Clock finalisée ou envoyée · AlertCircle en retard · FileEdit brouillon · Ban annulée · FileMinus avoir.
+**BadgeStatutFacture** (`src/components/BadgeStatutFacture.jsx`) : statut issu de statutCalcule, ou état d'échéance issu de etatEcheance (Impayés, factures liées) ; prop `type` (un avoir est neutre). Jetons d'état, fond opaque, icône + libellé : CheckCircle2 payée · CircleDashed partiellement payée · Clock finalisée, envoyée ou à échoir · CalendarClock échéance aujourd'hui · AlertCircle en retard · FileEdit brouillon · Ban annulée · FileMinus avoir.
 
-**BarreReglement** (`src/components/BarreReglement.jsx`) : « X € réglés sur Y € », encaissé net (totalPaye) sur TTC net des avoirs (totalTTC − totalAvoirs). Seulement pour une facture partiellement payée, ou en retard avec un encaissement. role="progressbar", aria-label, aria-valuemin/now/max, aria-valuetext ; chiffres tabulaires ; aucune animation.
+**BarreReglement** (`src/components/BarreReglement.jsx`) : « X € réglés sur Y € », encaissé net (totalPaye) sur TTC net des avoirs (totalTTC − totalAvoirs), de 0 % à 100 %, couleur selon etatReglement. Affichée si reglementAffichable (document émis de TTC net positif, ni avoir ni annulé, paiements chargés) ; pleine largeur du parent, l'écran fixe la largeur. role="progressbar", aria-label, aria-valuemin/now/max, aria-valuetext ; chiffres tabulaires ; aucune animation.
 
 ## 9. Accessibilité — RÈGLES NON NÉGOCIABLES (WCAG 2.2 AA)
 - Contraste texte ≥ 4,5:1 (≥ 3:1 pour le grand texte).

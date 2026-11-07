@@ -24,7 +24,14 @@ export const LIBELLE_STATUT = {
 // Règlements d'un client (situationClient, utils/facture.js).
 export const LIBELLE_SITUATION = {
   a_jour: "À jour",
-  partiellement_regle: "Partiellement réglé",
+  partiellement_regle: "Partiel",
+  en_retard: "En retard",
+};
+
+// Échéance d'un document à encaisser (etatEcheance, utils/facture.js).
+export const LIBELLE_ECHEANCE = {
+  a_echoir: "À échoir",
+  echeance_aujourdhui: "Échéance aujourd'hui",
   en_retard: "En retard",
 };
 

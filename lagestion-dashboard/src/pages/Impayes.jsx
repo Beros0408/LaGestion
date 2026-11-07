@@ -7,7 +7,7 @@ import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { LIBELLE_TYPE, libelleNumero } from "../data/factures";
 import { LIBELLE_NIVEAU, derniereRelance, niveauSuivant, peutRelancer } from "../data/relances";
-import { estImpayee, joursDeRetard, jourParis, resteAPayer, statutCalcule } from "../utils/facture";
+import { estImpayee, etatEcheance, joursDeRetard, jourParis, resteAPayer } from "../utils/facture";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import BarreReglement from "../components/BarreReglement.jsx";
 import FenetreRelance from "../components/FenetreRelance.jsx";
@@ -27,7 +27,7 @@ export default function Impayes() {
   const { peutEcrire, entreprise, role } = useEntreprise();
   const jour = useMemo(() => jourParis(), []);
   const [client, setClient] = useState("tous");
-  const [filtre, setFiltre] = useState("tous");
+  const [filtre, setFiltre] = useState("echues");
   const [aRelancer, setARelancer] = useState(null);
 
   const clientsParId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
@@ -61,9 +61,11 @@ export default function Impayes() {
     [impayees, client, filtre]
   );
 
+  // Totaux de l'en-tête : filtre client seul, pour que l'onglet ouvert (« Échues ») ne mette pas « À échoir » à zéro.
   const somme = (liste) => liste.reduce((s, f) => s + Math.round(f.reste * 100), 0) / 100;
-  const totalEchu = somme(visibles.filter((f) => f.retard > 0));
-  const totalAEchoir = somme(visibles.filter((f) => f.retard === 0));
+  const duClient = impayees.filter((f) => client === "tous" || f.client_id === client);
+  const totalEchu = somme(duClient.filter((f) => f.retard > 0));
+  const totalAEchoir = somme(duClient.filter((f) => f.retard === 0));
   const relanceOuverte = aRelancer ? factures.find((f) => f.id === aRelancer.id) : null;
 
   return (
@@ -124,7 +126,7 @@ export default function Impayes() {
               <caption className="sr-only">Factures impayées, de la plus en retard à la plus lointaine</caption>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                  {[["Facture", "left"], ["Client", "left"], ["Échéance", "left"], ["Ancienneté", "left"], ["Reste à payer", "right"], ["Statut", "left"], ["Dernière relance", "left"], ["", "right"]].map(([h, a], i) => (
+                  {[["Facture", "left"], ["Client", "left"], ["Échéance", "left"], ["Retard", "left"], ["Reste à payer", "right"], ["Statut", "left"], ["Dernière relance", "left"], ["", "right"]].map(([h, a], i) => (
                     <th key={i} scope="col" className={`px-3 py-2.5 text-xs font-semibold uppercase tracking-wider ${a === "right" ? "text-right" : "text-left"}`} style={{ color: C.textSecondary }}>
                       {h || <span className="sr-only">Actions</span>}
                     </th>
@@ -134,24 +136,32 @@ export default function Impayes() {
               <tbody>
                 {visibles.map((f) => {
                   const derniere = derniereRelance(f);
-                  const statut = statutCalcule(f, jour);
-                  const e = couleurEtat(statut, f.type);
+                  const echeance = etatEcheance(f, jour);
                   return (
-                    <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: e.fond }}>
-                      <td className="whitespace-nowrap px-3 py-3 font-medium tabular-nums" style={{ boxShadow: `inset 4px 0 0 ${e.trait}`, paddingLeft: 16 }}>
+                    <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td
+                        className="whitespace-nowrap px-3 py-3 font-medium tabular-nums"
+                        style={echeance === "en_retard" ? { boxShadow: `inset 4px 0 0 ${couleurEtat("en_retard").trait}` } : undefined}
+                      >
                         <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>{libelleNumero(f)}</Link>
                         {f.type !== "facture" && <span className="ml-2 text-xs font-normal" style={{ color: C.textSecondary }}>{LIBELLE_TYPE[f.type]}</span>}
                       </td>
                       <td className="px-3 py-3" style={{ color: C.textSecondary }}>{f.clientNom}</td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{date(f.date_echeance)}</td>
-                      <td className="whitespace-nowrap px-3 py-3" style={{ color: f.retard > 0 ? C.errorText : C.textSecondary }}>
-                        {f.retard > 0 ? `${f.retard} j de retard` : "À échoir"}
+                      <td className="whitespace-nowrap px-3 py-3 tabular-nums">
+                        {echeance === "en_retard" ? (
+                          <span style={{ color: C.errorText }}>{f.retard} j</span>
+                        ) : echeance === "echeance_aujourdhui" ? (
+                          <span className="font-medium" style={{ color: C.textPrimary }}>Aujourd'hui</span>
+                        ) : (
+                          <span style={{ color: C.textSecondary }}>—</span>
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>
                         {euroCentimes(f.reste)}
-                        <div className="font-normal"><BarreReglement facture={f} statut={statut} /></div>
+                        <div className="ml-auto mt-1.5 w-40 text-left"><BarreReglement facture={f} /></div>
                       </td>
-                      <td className="px-3 py-3"><BadgeStatutFacture statut={statut} type={f.type} /></td>
+                      <td className="px-3 py-3"><BadgeStatutFacture statut={echeance} type={f.type} /></td>
                       <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ color: C.textSecondary }}>
                         {derniere ? `${LIBELLE_NIVEAU[derniere.niveau]}, ${date(derniere.created_at)}` : "—"}
                       </td>

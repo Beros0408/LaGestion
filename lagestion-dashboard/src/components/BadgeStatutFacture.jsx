@@ -1,10 +1,10 @@
 import React from "react";
-import { CheckCircle2, CircleDashed, Clock, AlertCircle, FileEdit, Ban, FileMinus } from "lucide-react";
+import { CheckCircle2, CircleDashed, Clock, CalendarClock, AlertCircle, FileEdit, Ban, FileMinus } from "lucide-react";
 import { couleurEtat } from "../theme";
-import { LIBELLE_STATUT } from "../data/factures";
+import { LIBELLE_STATUT, LIBELLE_ECHEANCE } from "../data/factures";
 
 // Couleurs : jetons d'état (theme.js, CLAUDE.md « Couleurs d'état ») ; fond opaque, texte et icône ≥ 4,5:1.
-// Le statut vient de statutCalcule ; un avoir (type « avoir ») est toujours neutre.
+// Le statut vient de statutCalcule, ou de etatEcheance (Impayés, factures liées) ; un avoir est toujours neutre.
 const ICONES = {
   payee: CheckCircle2,
   partiellement_payee: CircleDashed,
@@ -13,11 +13,13 @@ const ICONES = {
   en_retard: AlertCircle,
   brouillon: FileEdit,
   annulee: Ban,
+  a_echoir: Clock,
+  echeance_aujourdhui: CalendarClock,
 };
 
 const BadgeStatutFacture = React.memo(function BadgeStatutFacture({ statut, type }) {
   const e = couleurEtat(statut, type);
-  const libelle = LIBELLE_STATUT[statut] ?? LIBELLE_STATUT.brouillon;
+  const libelle = LIBELLE_STATUT[statut] ?? LIBELLE_ECHEANCE[statut] ?? LIBELLE_STATUT.brouillon;
   const Icon = type === "avoir" ? FileMinus : ICONES[statut] ?? FileEdit;
   return (
     <span
