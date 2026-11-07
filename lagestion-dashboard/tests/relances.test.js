@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { estImpayee, joursDeRetard, jourParis, lierAvoirs, resteAPayer, statutCalcule, tropPercu } from "../src/utils/facture.js";
-import { DELAI_ENTRE_RELANCES, genererRelance, niveauSuivant, niveauxPossibles, peutRelancer, relanceAProposer } from "../src/data/relances.js";
+import { DELAI_ENTRE_RELANCES, genererRelance, niveauPropose, niveauSuivant, niveauxPossibles, peutRelancer, relanceAProposer } from "../src/data/relances.js";
 
 const J = "2026-11-10";
 const doc = (statut, type, echeance, ttc, avoirs, encaisse) => ({
@@ -125,4 +125,15 @@ test("modèles : pénalités et 40 € pour un professionnel seulement", () => {
 test("lierAvoirs conserve les relances", () => {
   const [f] = lierAvoirs([{ id: "f", type: "facture", statut: "envoyee", relances: [{ niveau: 2 }] }]);
   assert.equal(niveauSuivant(f), 3);
+});
+
+test("niveau présélectionné (bouton « Relancer » et fenêtre) : le suivant s'il est permis, sinon le plus haut permis", () => {
+  const avec = (...niveaux) => ({ relances: niveaux.map((niveau) => ({ niveau })) });
+  assert.equal(niveauPropose(avec(), "admin"), 1);
+  assert.equal(niveauPropose(avec(1), "commercial"), 2);
+  assert.equal(niveauPropose(avec(1, 2), "admin"), 3);
+  assert.equal(niveauPropose(avec(1, 2), "comptable"), 3);
+  // Mise en demeure interdite au commercial : la 2e relance reste proposée.
+  assert.equal(niveauPropose(avec(1, 2), "commercial"), 2);
+  assert.equal(niveauPropose(avec(1, 2, 3), "commercial"), 2);
 });

@@ -26,6 +26,13 @@ export function niveauxPossibles(facture, role) {
   return [1, 2, 3].filter((n) => n <= max && (n < 3 || ROLES_MISE_EN_DEMEURE.includes(role)));
 }
 
+// Niveau présélectionné dans la fenêtre de relance : le suivant s'il est permis au rôle, sinon le plus haut permis.
+export function niveauPropose(facture, role) {
+  const options = niveauxPossibles(facture, role);
+  const suivant = niveauSuivant(facture);
+  return options.includes(suivant) ? suivant : options[options.length - 1] ?? 1;
+}
+
 // Relançable : émise, non annulée, avec un reste à payer, échue. Toujours possible depuis Impayés.
 export const peutRelancer = (facture, jour) => estImpayee(facture) && joursDeRetard(facture, jour) > 0;
 

@@ -85,7 +85,7 @@ export default function Login() {
               className="text-lg font-bold"
               style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
             >
-              Lagestion
+              LaGestion
             </h1>
             <p className="text-xs" style={{ color: C.textSecondary }}>
               Connexion à votre espace

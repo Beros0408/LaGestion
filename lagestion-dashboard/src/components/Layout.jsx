@@ -83,11 +83,11 @@ function LayoutContenu() {
     const Icon = item.icon;
     const content = (
       <>
-        <Icon size={20} aria-hidden="true" />
-        <span className="flex-1 text-left md:hidden xl:inline">{item.label}</span>
+        <Icon size={20} aria-hidden="true" className="shrink-0" />
+        <span className="flex-1 whitespace-nowrap text-left md:hidden xl:inline">{item.label}</span>
         {item.soon && (
           <span
-            className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold md:hidden xl:inline"
+            className="shrink-0 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-semibold md:hidden xl:inline"
             style={{ color: C.accent, backgroundColor: alpha(C.accent, 0.15) }}
           >
             Phase 2
@@ -142,7 +142,7 @@ function LayoutContenu() {
           className="text-lg font-bold md:hidden xl:inline"
           style={{ color: C.sidebarText, fontFamily: "Sora, sans-serif" }}
         >
-          Lagestion
+          LaGestion
         </span>
       </div>
 
@@ -162,7 +162,7 @@ function LayoutContenu() {
               className={itemClass}
               style={bientotStyle}
             >
-              <Icon size={20} aria-hidden="true" />
+              <Icon size={20} aria-hidden="true" className="shrink-0" />
               <span className="md:hidden xl:inline">{item.label}</span>
             </button>
           );
@@ -253,16 +253,21 @@ function LayoutContenu() {
               style={{ color: C.textSecondary }}
               aria-label="Fil d'Ariane"
             >
-              <span>Lagestion</span>
+              <span>LaGestion</span>
               <span aria-hidden="true">/</span>
               <span className="font-medium" style={{ color: C.textPrimary }}>{breadcrumb}</span>
             </nav>
-            <h1
-              className="truncate text-lg font-bold sm:text-xl"
-              style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
-            >
-              Bonjour {prenomAffiche} 👋
-            </h1>
+            {/* Titre métier en h1 ; visible seulement sur le tableau de bord (« Bonjour »), ailleurs la page affiche son titre. */}
+            {location.pathname === "/dashboard" ? (
+              <h1
+                className="truncate text-lg font-bold sm:text-xl"
+                style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
+              >
+                Bonjour {prenomAffiche} 👋
+              </h1>
+            ) : (
+              <h1 className="sr-only">{breadcrumb}</h1>
+            )}
           </div>
 
           <div className="relative hidden lg:block">
@@ -274,7 +279,7 @@ function LayoutContenu() {
             />
             <input
               type="search"
-              placeholder="Rechercher un client, une facture…"
+              placeholder="Rechercher…"
               className="w-64 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus-visible:ring-2"
               style={{ backgroundColor: C.bgMain, border: `1px solid ${C.borderInput}`, color: C.textPrimary }}
               aria-label="Rechercher"
@@ -301,7 +306,8 @@ function LayoutContenu() {
           )}
         </header>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6">
+        {/* Marge basse : le bouton flottant de l'assistant (56 px, à 24 px du bas) ne masque aucun contrôle. */}
+        <main className="flex-1 overflow-auto p-4 pb-24 sm:p-6 sm:pb-24">
           <Outlet />
         </main>
       </div>

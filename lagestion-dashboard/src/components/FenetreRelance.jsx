@@ -3,7 +3,7 @@ import { AlertCircle, Copy } from "lucide-react";
 import { C, OMBRE, VOILE, alpha } from "../theme";
 import usePiegeFocus from "../hooks/usePiegeFocus";
 import { useFactures } from "../context/FacturesContext.jsx";
-import { LIBELLE_NIVEAU, genererRelance, niveauSuivant, niveauxPossibles } from "../data/relances";
+import { LIBELLE_NIVEAU, genererRelance, niveauPropose, niveauSuivant, niveauxPossibles } from "../data/relances";
 import { jourParis } from "../utils/facture";
 import Input from "./form/Input.jsx";
 import Select from "./form/Select.jsx";
@@ -16,7 +16,7 @@ export default function FenetreRelance({ facture, client, entreprise, role, elem
   const jour = useMemo(() => jourParis(), []);
   const options = useMemo(() => niveauxPossibles(facture, role), [facture, role]);
   const proposeBrut = niveauSuivant(facture);
-  const propose = options.includes(proposeBrut) ? proposeBrut : options[options.length - 1] ?? 1;
+  const propose = niveauPropose(facture, role);
 
   const [niveau, setNiveau] = useState(propose);
   const [brouillon, setBrouillon] = useState(() => genererRelance(propose, facture, client, entreprise, jour));

@@ -6,7 +6,7 @@ import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { LIBELLE_TYPE, libelleNumero } from "../data/factures";
-import { LIBELLE_NIVEAU, derniereRelance, niveauSuivant, peutRelancer } from "../data/relances";
+import { LIBELLE_NIVEAU, derniereRelance, niveauPropose, peutRelancer } from "../data/relances";
 import { estImpayee, etatEcheance, joursDeRetard, jourParis, resteAPayer } from "../utils/facture";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import BarreReglement from "../components/BarreReglement.jsx";
@@ -59,6 +59,22 @@ export default function Impayes() {
     () => impayees.filter((f) => (client === "tous" || f.client_id === client)
       && (filtre === "tous" || (filtre === "echues" ? f.retard > 0 : f.retard === 0))),
     [impayees, client, filtre]
+  );
+
+  // Lignes communes au tableau et aux cartes : même tri, mêmes filtres, mêmes droits de relance.
+  const lignes = useMemo(
+    () => visibles.map((f) => {
+      const echeance = etatEcheance(f, jour);
+      return {
+        f,
+        echeance,
+        derniere: derniereRelance(f),
+        relancable: peutEcrire && peutRelancer(f, jour),
+        niveau: niveauPropose(f, role),
+        lisere: echeance === "en_retard" ? { boxShadow: `inset 4px 0 0 ${couleurEtat("en_retard").trait}` } : undefined,
+      };
+    }),
+    [visibles, jour, peutEcrire, role]
   );
 
   // Totaux de l'en-tête : filtre client seul, pour que l'onglet ouvert (« Échues ») ne mette pas « À échoir » à zéro.
@@ -121,70 +137,80 @@ export default function Impayes() {
             {chargement ? "Chargement des impayés…" : "Aucun impayé pour ces filtres."}
           </p>
         ) : (
-          <div className="relative overflow-x-auto">
-            <table className="w-full text-sm">
-              <caption className="sr-only">Factures impayées, de la plus en retard à la plus lointaine</caption>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                  {[["Facture", "left"], ["Client", "left"], ["Échéance", "left"], ["Retard", "left"], ["Reste à payer", "right"], ["Statut", "left"], ["Dernière relance", "left"], ["", "right"]].map(([h, a], i) => (
-                    <th key={i} scope="col" className={`px-3 py-2.5 text-xs font-semibold uppercase tracking-wider ${a === "right" ? "text-right" : "text-left"}`} style={{ color: C.textSecondary }}>
-                      {h || <span className="sr-only">Actions</span>}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.map((f) => {
-                  const derniere = derniereRelance(f);
-                  const echeance = etatEcheance(f, jour);
-                  return (
-                    <tr key={f.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td
-                        className="whitespace-nowrap px-3 py-3 font-medium tabular-nums"
-                        style={echeance === "en_retard" ? { boxShadow: `inset 4px 0 0 ${couleurEtat("en_retard").trait}` } : undefined}
-                      >
-                        <Link to={`/factures/${f.id}`} className="rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>{libelleNumero(f)}</Link>
-                        {f.type !== "facture" && <span className="ml-2 text-xs font-normal" style={{ color: C.textSecondary }}>{LIBELLE_TYPE[f.type]}</span>}
+          <>
+            {/* Tableau à partir de 1 280 px (76 px de défilement à 1 024) ; en dessous, cartes. L'un des deux est toujours en display: none. */}
+            <div className="relative hidden overflow-x-auto xl:block">
+              <table className="w-full text-sm">
+                <caption className="sr-only">Factures impayées, de la plus en retard à la plus lointaine</caption>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    {[["Facture", "left"], ["Client", "left"], ["Échéance", "left"], ["Retard", "left"], ["Reste à payer", "right"], ["Statut", "left"], ["Dernière relance", "left"], ["", "right"]].map(([h, a], i) => (
+                      <th key={i} scope="col" className={`px-2 py-2.5 text-xs font-semibold uppercase tracking-wider ${a === "right" ? "text-right" : "text-left"}`} style={{ color: C.textSecondary }}>
+                        {h || <span className="sr-only">Actions</span>}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {lignes.map((l) => (
+                    <tr key={l.f.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td className="whitespace-nowrap px-2 py-3 font-medium tabular-nums" style={l.lisere}>
+                        <LienFacture f={l.f} />
+                        {l.f.type !== "facture" && <span className="block text-xs font-normal" style={{ color: C.textSecondary }}>{LIBELLE_TYPE[l.f.type]}</span>}
                       </td>
-                      <td className="px-3 py-3" style={{ color: C.textSecondary }}>{f.clientNom}</td>
-                      <td className="whitespace-nowrap px-3 py-3 tabular-nums" style={{ color: C.textSecondary }}>{date(f.date_echeance)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 tabular-nums">
-                        {echeance === "en_retard" ? (
-                          <span style={{ color: C.errorText }}>{f.retard} j</span>
-                        ) : echeance === "echeance_aujourdhui" ? (
-                          <span className="font-medium" style={{ color: C.textPrimary }}>Aujourd'hui</span>
-                        ) : (
-                          <span style={{ color: C.textSecondary }}>—</span>
-                        )}
+                      <td className="px-2 py-3" style={{ color: C.textSecondary }}>
+                        <span className="line-clamp-2 min-w-[7rem] max-w-[12rem]" title={l.f.clientNom}>{l.f.clientNom}</span>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>
-                        {euroCentimes(f.reste)}
-                        <div className="ml-auto mt-1.5 w-40 text-left"><BarreReglement facture={f} /></div>
+                      <td className="whitespace-nowrap px-2 py-3 tabular-nums" style={{ color: C.textSecondary }}>{date(l.f.date_echeance)}</td>
+                      <td className="whitespace-nowrap px-2 py-3 tabular-nums"><Retard l={l} /></td>
+                      <td className="whitespace-nowrap px-2 py-3 text-right font-semibold tabular-nums" style={{ color: C.textPrimary }}>
+                        {euroCentimes(l.f.reste)}
+                        <div className="ml-auto mt-1.5 w-36 text-left"><BarreReglement facture={l.f} /></div>
                       </td>
-                      <td className="px-3 py-3"><BadgeStatutFacture statut={echeance} type={f.type} /></td>
-                      <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ color: C.textSecondary }}>
-                        {derniere ? `${LIBELLE_NIVEAU[derniere.niveau]}, ${date(derniere.created_at)}` : "—"}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-3 text-right">
-                        {peutEcrire && peutRelancer(f, jour) && (
-                          <button
-                            type="button"
-                            onClick={(e) => setARelancer({ id: f.id, element: e.currentTarget })}
-                            aria-label={`Préparer une relance pour ${libelleNumero(f)} : ${LIBELLE_NIVEAU[niveauSuivant(f)]}`}
-                            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2"
-                            style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
-                          >
-                            <Send size={14} aria-hidden="true" />
-                            {LIBELLE_NIVEAU[niveauSuivant(f)]}
-                          </button>
-                        )}
-                      </td>
+                      <td className="whitespace-nowrap px-2 py-3"><BadgeStatutFacture statut={l.echeance} type={l.f.type} /></td>
+                      <td className="px-2 py-3 text-xs tabular-nums" style={{ color: C.textSecondary }}><DerniereRelance l={l} /></td>
+                      <td className="whitespace-nowrap px-2 py-3 text-right">{l.relancable && <BoutonRelancer l={l} onRelancer={setARelancer} />}</td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <ul className="xl:hidden" aria-label="Factures impayées, de la plus en retard à la plus lointaine">
+              {lignes.map((l, i) => (
+                <li key={l.f.id} className="px-4 py-4" style={{ ...l.lisere, borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium tabular-nums"><LienFacture f={l.f} /></p>
+                      {l.f.type !== "facture" && <p className="text-xs" style={{ color: C.textSecondary }}>{LIBELLE_TYPE[l.f.type]}</p>}
+                      <p className="mt-0.5 text-sm" style={{ color: C.textSecondary }}>{l.f.clientNom}</p>
+                    </div>
+                    <BadgeStatutFacture statut={l.echeance} type={l.f.type} />
+                  </div>
+                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div>
+                      <dt className="text-xs" style={{ color: C.textSecondary }}>Échéance</dt>
+                      <dd className="tabular-nums" style={{ color: C.textPrimary }}>{date(l.f.date_echeance)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs" style={{ color: C.textSecondary }}>Retard</dt>
+                      <dd className="tabular-nums"><Retard l={l} /></dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs" style={{ color: C.textSecondary }}>Reste à payer</dt>
+                      <dd className="font-semibold tabular-nums" style={{ color: C.textPrimary }}>{euroCentimes(l.f.reste)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs" style={{ color: C.textSecondary }}>Dernière relance</dt>
+                      <dd className="text-xs tabular-nums" style={{ color: C.textSecondary }}><DerniereRelance l={l} /></dd>
+                    </div>
+                  </dl>
+                  <div className="mt-3"><BarreReglement facture={l.f} /></div>
+                  {l.relancable && <div className="mt-3"><BoutonRelancer l={l} onRelancer={setARelancer} /></div>}
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
@@ -199,5 +225,45 @@ export default function Impayes() {
         />
       )}
     </>
+  );
+}
+
+function LienFacture({ f }) {
+  return (
+    <Link to={`/factures/${f.id}`} className="whitespace-nowrap rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
+      {libelleNumero(f)}
+    </Link>
+  );
+}
+
+function Retard({ l }) {
+  if (l.echeance === "en_retard") return <span style={{ color: C.errorText }}>{l.f.retard} j</span>;
+  if (l.echeance === "echeance_aujourdhui") return <span className="font-medium" style={{ color: C.textPrimary }}>Aujourd'hui</span>;
+  return <span style={{ color: C.textSecondary }}>—</span>;
+}
+
+function DerniereRelance({ l }) {
+  if (!l.derniere) return "—";
+  return (
+    <>
+      <span className="block whitespace-nowrap">{LIBELLE_NIVEAU[l.derniere.niveau]}</span>
+      <span className="block whitespace-nowrap">{date(l.derniere.created_at)}</span>
+    </>
+  );
+}
+
+// Ouvre la fenêtre existante, niveau proposé présélectionné (niveauPropose, comme FenetreRelance).
+function BoutonRelancer({ l, onRelancer }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => onRelancer({ id: l.f.id, element: e.currentTarget })}
+      aria-label={`Relancer la facture ${libelleNumero(l.f)}, ${LIBELLE_NIVEAU[l.niveau].toLowerCase()} proposée`}
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2"
+      style={{ color: C.primary, backgroundColor: alpha(C.primary, 0.08) }}
+    >
+      <Send size={14} aria-hidden="true" />
+      Relancer
+    </button>
   );
 }

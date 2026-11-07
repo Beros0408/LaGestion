@@ -243,9 +243,19 @@ Lis CLAUDE.md. Nouvelle étape : finitions de navigation et d'affichage (UX-01 d
 5. Bouton « Aperçu » du PDF avant téléchargement, sur les factures, avoirs, acomptes, soldes et devis.
 6. Pagination et recherche côté base pour les listes clients, factures et devis (au-delà de quelques centaines de lignes).
 7. États vides, de chargement et d'erreur homogènes sur toutes les listes ; navigation complète au clavier (WCAG 2.2 AA).
+8. Titres : depuis l'étape 11 quater, le h1 de Layout est masqué (sr-only, libellePage) hors du tableau de bord ; passe le h2 visible de chaque page en h1 et retire le h1 masqué (16 pages).
+9. Défilements mesurés à l'étape 11 quater (banc, défilement de page / défilement interne du tableau, en px), à corriger page par page, au besoin en cartes comme Impayés :
+   - /clients : 89 / 141 à 1 280 ; 457 / 509 à 768 ; 740 / 769 à 390.
+   - /factures : 108 / 160 à 768 ; 392 / 420 à 390.
+   - /catalogue : 86 / 168 à 768 ; 369 / 428 à 390.
+   - /devis : 0 / 157 à 768 ; 0 / 432 à 390.
+   - Fiche facture : 0 / 50 à 1 280 ; 0 / 83 à 768 ; 75 / 343 à 390.
+   - Fiche devis : 0 / 31 à 1 280 ; 0 / 59 à 768 ; 0 / 334 à 390.
+   - Fiche client : 0 / 4 à 1 280.
+10. Bouton flottant de l'assistant : marge basse en place (étape 11 quater), plus aucun contrôle masqué en fin de défilement ; au chargement, il recouvre encore une action en bas d'écran sur /dashboard, /clients, /devis, /factures et /catalogue (1 845 et 1 280 px) et /opportunites (768 px). Décider : gouttière réservée à droite, ou bouton dans l'en-tête.
 
 Présente ton plan et attends mon go.
-Avant de livrer : npm run build et npm test ; parcours de navigation repassés ; rendu à 400, 768 et 1440 px sur toutes les listes ; commit séparé sans push ; tableau Vérifié / Non vérifié / À tester par Beros.
+Avant de livrer : npm run build et npm test ; parcours de navigation repassés ; rendu à 390, 768, 1 280 et 1 845 px sur toutes les listes et fiches ; commit séparé sans push ; tableau Vérifié / Non vérifié / À tester par Beros.
 ```
 
 ### Prompt 15 — Exports et rapports
