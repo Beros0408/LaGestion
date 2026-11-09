@@ -150,14 +150,19 @@ function LayoutContenu() {
       style={{ backgroundColor: C.sidebarBg, borderRight: `1px solid ${C.sidebarBorder}` }}
     >
       <div className="flex items-center px-4 py-4 md:justify-center md:px-2 xl:justify-start xl:px-4">
-        {/* Logo de LaGestion (src/assets) ; barre repliée (72 px) : seul le symbole, à gauche de l'image, reste visible. */}
+        {/* Logo de LaGestion (src/assets, fond transparent, texte blanc) : 175 px au plus, hauteur automatique.
+            Barre repliée (72 px) : seul le monogramme, à gauche de l'image, reste visible dans 40 px. */}
         <Link
           to="/dashboard"
           onClick={lienProtege("/dashboard", closeMobile)}
           title="Tableau de bord"
-          className="block overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-lg-sidebar-focus md:w-10 xl:w-auto"
+          className="block w-full max-w-[175px] overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-lg-sidebar-focus md:w-10 xl:w-full"
         >
-          <img src={logoLaGestion} alt="LaGestion" className="block h-9 w-auto max-w-none md:h-10 xl:h-9" />
+          <img
+            src={logoLaGestion}
+            alt="LaGestion"
+            className="block h-auto w-full max-w-[175px] md:h-[26px] md:w-auto md:max-w-none xl:h-auto xl:w-full xl:max-w-[175px]"
+          />
         </Link>
       </div>
 
