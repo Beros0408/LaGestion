@@ -61,6 +61,7 @@ export default function App() {
           <Route path="/factures/:id/avoir/modifier" element={<AvoirForm edition />} />
           <Route path="/catalogue" element={<Catalogue />} />
           <Route path="/catalogue/nouveau" element={<ProduitForm />} />
+          <Route path="/catalogue/import" element={avecChargement(<Import type="articles" />)} />
           <Route path="/catalogue/:id/modifier" element={<ProduitForm />} />
         </Route>
       </Route>

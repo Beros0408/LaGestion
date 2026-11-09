@@ -14,6 +14,8 @@ import {
   lignesFichierErreurs, motifDoublon, nettoyer, planifier, preparerTableau, proposerCorrespondance,
 } from "../utils/import.js";
 import { CHAMPS_CLIENTS, analyserClients } from "../utils/importClients.js";
+import { CHAMPS_ARTICLES, analyserArticles } from "../utils/importArticles.js";
+import { useProduits } from "../context/ProduitsContext.jsx";
 import { exporterErreursImport } from "../utils/excel";
 
 const CONFIG = {
@@ -22,9 +24,20 @@ const CONFIG = {
     champs: CHAMPS_CLIENTS,
     analyser: analyserClients,
     cible: "client",
+    lien: (id) => `/clients/${id}`,
     retour: "/clients",
     libelleRetour: "Voir les clients",
     fichierErreurs: "erreurs-import-clients.xlsx",
+  },
+  articles: {
+    titre: "Importer des articles",
+    champs: CHAMPS_ARTICLES,
+    analyser: analyserArticles,
+    cible: "produit",
+    lien: (id) => `/catalogue/${id}/modifier`,
+    retour: "/catalogue",
+    libelleRetour: "Voir le catalogue",
+    fichierErreurs: "erreurs-import-articles.xlsx",
   },
 };
 
@@ -72,6 +85,8 @@ export default function Import({ type = "clients" }) {
   const config = CONFIG[type];
   const { peutEcrire } = useEntreprise();
   const { clients, importerClients } = useClients();
+  const { produits, importerProduits } = useProduits();
+  const [existants, importerLignes] = type === "articles" ? [produits, importerProduits] : [clients, importerClients];
 
   const [etape, setEtape] = useState(1);
   const [fichier, setFichier] = useState(null);
@@ -121,7 +136,7 @@ export default function Import({ type = "clients" }) {
   };
 
   const previsualiser = () => {
-    setLignes(config.analyser(tableau, correspondance, clients));
+    setLignes(config.analyser(tableau, correspondance, existants));
     setEtape(3);
   };
 
@@ -129,7 +144,7 @@ export default function Import({ type = "clients" }) {
     const plan = planifier(lignes, config.cible);
     setEtape(4);
     setProgression({ faits: 0, total: plan.creations.length + plan.majs.length });
-    const resultats = await importerClients(plan, (faits, total) => setProgression({ faits, total }));
+    const resultats = await importerLignes(plan, (faits, total) => setProgression({ faits, total }));
     const issues = issuesFinales(lignes, plan, resultats);
     setFinal({ issues, rapport: compterRapport(issues) });
     setProgression(null);
@@ -559,7 +574,7 @@ function EtapePrevisualisation({ titreRef, config, lignes, setLignes, onRetour, 
         <p className="mt-6 text-sm" style={{ color: C.textSecondary }}>Aucune ligne dans ce filtre.</p>
       ) : (
         <ul className="mt-4 space-y-2" aria-label="Lignes du fichier">
-          {affichees.map((l) => <LignePrevisualisation key={l.numero} ligne={l} cible={config.cible} onChoisir={choisir} />)}
+          {affichees.map((l) => <LignePrevisualisation key={l.numero} ligne={l} config={config} onChoisir={choisir} />)}
         </ul>
       )}
 
@@ -625,7 +640,8 @@ function Messages({ ligne }) {
   );
 }
 
-function LignePrevisualisation({ ligne: l, cible, onChoisir }) {
+function LignePrevisualisation({ ligne: l, config, onChoisir }) {
+  const { cible } = config;
   const { etat, libelle, Icone } = etatLigne(l);
   const e = COULEURS_ETAT[etat];
   const erreur = l.categorie === "erreur";
@@ -654,7 +670,7 @@ function LignePrevisualisation({ ligne: l, cible, onChoisir }) {
                 {l.doublon.confiance >= 90 && " · "}
                 {/* Nouvel onglet : la prévisualisation en cours reste intacte. */}
                 <Link
-                  to={`/clients/${l.doublon[cible].id}`}
+                  to={config.lien(l.doublon[cible].id)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline focus:outline-none focus-visible:ring-2"

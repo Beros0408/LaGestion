@@ -302,7 +302,7 @@ export async function executerImport({ creations, majs }, acces, surProgression 
     groupe.forEach((m, k) => {
       const { error, n } = sorties[k];
       if (error) resultats.push({ numero: m.numero, issue: "erreur", motif: error });
-      else if (n === 0) resultats.push({ numero: m.numero, issue: "erreur", motif: "Modification refusée (droits insuffisants ou client supprimé)." });
+      else if (n === 0) resultats.push({ numero: m.numero, issue: "erreur", motif: "Modification refusée (droits insuffisants ou fiche supprimée)." });
       else resultats.push({ numero: m.numero, issue: "mise_a_jour" });
     });
     avancer(groupe.length);

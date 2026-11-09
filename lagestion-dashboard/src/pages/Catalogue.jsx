@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Plus, Pencil, Trash2, SearchX, Boxes, AlertCircle } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, SearchX, Boxes, AlertCircle, Upload } from "lucide-react";
 import { C, alpha, euroCentimes } from "../theme";
 import { useProduits } from "../context/ProduitsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -81,14 +81,24 @@ export default function Catalogue() {
           </p>
         </div>
         {peutEcrire && (
-          <Link
-            to="/catalogue/nouveau"
-            className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
-            style={{ backgroundColor: C.primary }}
-          >
-            <Plus size={16} aria-hidden="true" />
-            Nouvel article
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/catalogue/import"
+              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
+              style={{ color: C.textSecondary, backgroundColor: "transparent", border: `1px solid ${C.border}` }}
+            >
+              <Upload size={16} aria-hidden="true" />
+              Importer
+            </Link>
+            <Link
+              to="/catalogue/nouveau"
+              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2"
+              style={{ backgroundColor: C.primary }}
+            >
+              <Plus size={16} aria-hidden="true" />
+              Nouvel article
+            </Link>
+          </div>
         )}
       </div>
 

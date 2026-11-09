@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { supabase } from "../lib/supabase";
 import { useEntreprise } from "./EntrepriseContext.jsx";
 import { erreurFrancaise, messageErreur, MESSAGE_REFUS } from "../utils/erreurs";
+import { executerImport } from "../utils/import.js";
 
 // Catalogue d'articles (produits et services) de l'entreprise active.
 const ProduitsContext = createContext(null);
@@ -24,6 +25,10 @@ function preparerPayload(data) {
   });
   return payload;
 }
+
+// Unicité (uniq_produits_reference) : seul index unique de la table.
+const motifImport = (error) =>
+  error.code === "23505" ? "Référence déjà utilisée par un autre article." : messageErreur(error);
 
 export function ProduitsProvider({ children }) {
   const { entrepriseId } = useEntreprise();
@@ -93,9 +98,38 @@ export function ProduitsProvider({ children }) {
     return true;
   }, []);
 
+  // Import (utils/import.js) : insertion par lots, entreprise_id sur chaque ligne ; un seul rechargement à la fin.
+  const importerProduits = useCallback(
+    async (plan, surProgression) => {
+      const acces = {
+        inserer: async (lignes) => {
+          const payload = lignes.map((d) => ({ ...preparerPayload(d), entreprise_id: entrepriseId }));
+          // missing=default : un champ absent prend la valeur par défaut de la colonne (type, TVA 20 %, actif).
+          const { error } = await supabase.from("produits").insert(payload, { defaultToNull: false });
+          return { error: error ? motifImport(error) : null };
+        },
+        mettreAJour: async (id, patch) => {
+          const { data, error } = await supabase
+            .from("produits")
+            .update(preparerPayload(patch))
+            .eq("id", id)
+            .eq("entreprise_id", entrepriseId)
+            .select("id");
+          return { error: error ? motifImport(error) : null, n: data?.length ?? 0 };
+        },
+      };
+      try {
+        return await executerImport(plan, acces, surProgression);
+      } finally {
+        await chargerProduits();
+      }
+    },
+    [entrepriseId, chargerProduits]
+  );
+
   const value = useMemo(
-    () => ({ produits, chargement, erreur, addProduit, updateProduit, deleteProduit }),
-    [produits, chargement, erreur, addProduit, updateProduit, deleteProduit]
+    () => ({ produits, chargement, erreur, addProduit, updateProduit, deleteProduit, importerProduits }),
+    [produits, chargement, erreur, addProduit, updateProduit, deleteProduit, importerProduits]
   );
 
   return <ProduitsContext.Provider value={value}>{children}</ProduitsContext.Provider>;

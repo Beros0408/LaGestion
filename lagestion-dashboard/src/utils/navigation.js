@@ -28,6 +28,7 @@ const ROUTES = [
   { motif: "/taches", libelle: "Mes tâches", parent: () => "/dashboard" },
   { motif: "/catalogue", libelle: "Catalogue", parent: () => "/dashboard" },
   { motif: "/catalogue/nouveau", libelle: "Nouvel article", parent: () => "/catalogue" },
+  { motif: "/catalogue/import", libelle: "Importer des articles", parent: () => "/catalogue" },
   { motif: "/catalogue/:id/modifier", libelle: "Modifier l'article", parent: () => "/catalogue" },
 ];
 

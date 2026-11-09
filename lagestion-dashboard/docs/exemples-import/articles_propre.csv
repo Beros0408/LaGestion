@@ -1,0 +1,16 @@
+﻿Référence;Désignation;Type;Unité;Prix unitaire HT;TVA;Actif;Description
+PL-001;Plinthe chêne massif;Produit;ml;18,90 €;20 %;Oui;Hauteur 70 mm, vernie
+PL-002;Pose de plinthes;Service;ml;9,50 €;20 %;Oui;
+PE-010;Peinture acrylique mate;Produit;l;24,00 €;20 %;Oui;Pot de 10 litres, blanc
+PE-011;Mise en peinture murs (logement);Service;m²;21,00 €;10 %;Oui;Deux couches, logement de plus de deux ans
+IS-020;Isolation combles soufflée;Service;m²;28,50 €;5,5 %;Oui;Laine de verre, R = 7
+IS-021;Pare-vapeur;Produit;m²;3,20 €;5,5 %;Oui;
+EL-030;Tableau électrique 2 rangées;Produit;u;1 234,50 €;20 %;Oui;Fourni posé, disjoncteurs compris
+EL-031;Prise de courant 16 A;Produit;u;14,80 €;20 %;Oui;
+DEP-040;Déplacement;Service;forfait;45,00 €;20 %;Oui;Zone 1 : moins de 20 km
+DEP-041;Déplacement zone 2;Service;forfait;65,00 €;20 %;Oui;Zone 2 : de 20 à 40 km
+FO-050;Formation utilisateur;Service;h;80,00 €;0 %;Oui;Organisme exonéré
+MA-060;Location bétonnière;Service;jour;35,00 €;20 %;Non;Plus proposé
+MA-061;Sac de ciment 35 kg;Produit;u;9,95 €;20 %;Oui;
+CA-070;Carreau grès cérame 60 × 60;Produit;m²;39,90 €;10 %;Oui;Logement de plus de deux ans
+CA-071;Colle carrelage C2;Produit;u;22,40 €;10 %;Oui;Sac de 25 kg
