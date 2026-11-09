@@ -93,7 +93,7 @@ Cette version réunit en un seul plan :
 | IWA-01 | IA hybride en lecture, brouillons, alertes | — | IWa (19) |
 | EXP-01 | CSV, XLSX, PDF côté serveur, audités | Export XLSX des factures et des clients et fichier d'erreurs d'import (navigateur), en cellules texte sans formule (12) ; neutralisation des formules prête pour le CSV (neutraliserFormule) | Exports complets (CSV UTF-8, ventes, impayés), côté serveur, audités, mêmes filtres et totaux (15) |
 | FR-003 (cahier V2) | Import CSV/XLSX : prévisualisation, correspondance, erreurs, déduplication | Fait (12) : clients et articles du catalogue, CSV UTF-8 / Windows-1252 et XLSX, doublons, mise à jour champ par champ, lots de 200, rapport et fichier d'erreurs ; 1 000 lignes testées avec RLS | Import des opportunités ou des contacts : non prévu au MVP |
-| UX-01 | FR/EN, responsive, accessible, navigation clavier | FR, responsive, contrastes AA, focus | i18n FR/EN (16) ; finitions mobile (14) |
+| UX-01 | FR/EN, responsive, accessible, navigation clavier | FR, responsive, contrastes AA, focus | i18n FR/EN (16) ; finitions mobile (14) ; aide et prise en main (20 bis) |
 | SUB-01 | Abonnements, essais, suspension, quotas | — | Abonnements (20) |
 
 **Parcours de recette du PRD :** le parcours généraliste est déjà réalisable de bout en bout ; le parcours BTP le sera après le prompt 18 ; le parcours sécurité est couvert par les tests SQL d'isolation et sera repris au prompt 21 (UI, API, base, Storage, IWa et exports).
@@ -366,6 +366,23 @@ Propose une intégration de prestataire (Stripe Billing ou autre, à me faire ch
 
 Présente ton plan et attends mon go.
 Avant de livrer : npm run build et npm test ; tests ; commit séparé sans push ; tableau Vérifié / Non vérifié / À tester par Beros.
+```
+
+### Prompt 20 bis — Aide et prise en main
+
+À réaliser quand les écrans sont stables : après l'i18n (16), avant la recette et le pilote (21).
+
+```markdown
+Lis CLAUDE.md. Nouvelle étape : aide et prise en main (UX-01 du PRD). Elle active l'entrée « Aide & Tutoriels » de la barre latérale.
+
+1. Liste de démarrage « Vos premières actions » : compléter l'entreprise et ses mentions, créer ou importer ses clients, créer un premier devis, finaliser une première facture, inviter un membre. Chaque étape cochée d'après les données réelles (jamais déclarée à la main), lien vers l'écran concerné, liste masquable.
+2. Centre d'aide : articles courts, avec captures et démarche pas à pas ; recherche dans les articles ; textes prêts pour l'i18n.
+3. Visites guidées sur 3 ou 4 parcours clés : première facture, import, relance, équipe. Accessibles au clavier, interruptibles à tout moment, jamais relancées sans demande, sans masquer de contrôle (critère 2.4.11 de WCAG 2.2), prefers-reduced-motion respecté.
+4. Vidéos : hors périmètre.
+5. Toute bibliothèque de visites guidées demande mon accord ; propose d'abord une version sans dépendance, avec ses compromis.
+
+Présente ton plan et attends mon go.
+Avant de livrer : npm run build et npm test ; parcours au clavier ; rendu à 400, 768 et 1440 px ; commit séparé sans push ; tableau Vérifié / Non vérifié / À tester par Beros.
 ```
 
 ### Prompt 21 — Recette et pilote
