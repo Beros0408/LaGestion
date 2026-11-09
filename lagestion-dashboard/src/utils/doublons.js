@@ -14,10 +14,17 @@ export function chiffresSeuls(s) {
   return (s ?? "").toString().replace(/\D/g, "");
 }
 
+// Mots qui ne distinguent pas deux noms : articles, prépositions, formes juridiques.
+const MOTS_VIDES = new Set([
+  "le", "la", "les", "l", "de", "du", "des", "d", "et", "au", "aux", "en", "a", "un", "une", "pour", "par", "sur", "chez",
+  "sarl", "sas", "sasu", "eurl", "sa", "sci", "snc", "selarl", "eirl", "ei", "scop",
+]);
+
+// Ponctuation retirée (« S.A.R.L. », « l'Atelier ») ; mots de 3 lettres ou plus, hors mots vides.
 export function motsSignificatifs(s) {
   return normaliser(s)
-    .split(/\s+/)
-    .filter((m) => m.length >= 3);
+    .split(/[^a-z0-9]+/)
+    .filter((m) => m.length >= 3 && !MOTS_VIDES.has(m));
 }
 
 export function detecterDoublons(saisie, existants, idExclu = null) {

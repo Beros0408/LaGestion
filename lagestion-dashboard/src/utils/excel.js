@@ -1,10 +1,18 @@
 import * as XLSX from "xlsx";
 import { resteAPayer, statutCalcule, totalAvoirs, totalHT, totalPaye, totalTVA, totalTTC } from "./facture.js";
 import { LIBELLE_STATUT, LIBELLE_TYPE } from "../data/factures.js";
-import { neutraliserFormule } from "./import.js";
 
-// Texte commençant par =, +, -, @, tabulation ou retour chariot : apostrophe en tête (injection de formules).
-const neutraliserLignes = (lignes) => lignes.map((l) => l.map(neutraliserFormule));
+// Injection de formules : en .xlsx, chaque texte est une cellule de type texte (t = "s") sans formule ; Excel
+// l'affiche tel quel (« =1+1 » reste du texte). L'apostrophe de neutraliserFormule (utils/import.js) est réservée aux CSV.
+function texteSansFormule(ws) {
+  for (const ref of Object.keys(ws)) {
+    if (ref[0] === "!") continue;
+    const cell = ws[ref];
+    delete cell.f;
+    if (typeof cell.v === "string") cell.t = "s";
+  }
+  return ws;
+}
 
 const TYPE_LABEL = {
   particulier: "Particulier",
@@ -43,7 +51,7 @@ export function exporterClientsExcel(clients) {
     typeof c.score === "number" ? c.score : null,
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet(neutraliserLignes([headers, ...rows]));
+  const ws = texteSansFormule(XLSX.utils.aoa_to_sheet([headers, ...rows]));
   ws["!cols"] = [
     { wch: 30 },
     { wch: 12 },
@@ -99,7 +107,7 @@ export function exporterFacturesExcel(factures, clients) {
     resteAPayer(f),
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet(neutraliserLignes([headers, ...rows]), { cellDates: true });
+  const ws = texteSansFormule(XLSX.utils.aoa_to_sheet([headers, ...rows], { cellDates: true }));
   ws["!cols"] = [
     { wch: 16 },
     { wch: 18 },
@@ -128,7 +136,7 @@ export function exporterFacturesExcel(factures, clients) {
 
 // Fichier d'erreurs d'un import : lignes déjà préparées par lignesFichierErreurs (utils/import.js).
 export function exporterErreursImport(lignes, nomFichier) {
-  const ws = XLSX.utils.aoa_to_sheet(neutraliserLignes(lignes));
+  const ws = texteSansFormule(XLSX.utils.aoa_to_sheet(lignes));
   ws["!cols"] = lignes[0].map((_, i) => ({ wch: i === 0 ? 8 : i === lignes[0].length - 1 ? 60 : 22 }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Erreurs");

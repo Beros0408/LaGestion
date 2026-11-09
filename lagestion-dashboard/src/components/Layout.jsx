@@ -76,6 +76,16 @@ function LayoutContenu() {
       else navigate(parente, { replace: true });
     });
   const closeMobile = () => setMenuMobile(false);
+  // Lien de la barre latérale ou de l'en-tête : confirmation si un formulaire ou un import est en cours.
+  // Clic du milieu ou avec Ctrl / Cmd / Maj : comportement du navigateur (nouvel onglet), sans garde.
+  const lienProtege = (to, apres) => (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    quitter(() => {
+      apres?.();
+      navigate(to);
+    });
+  };
 
   const handleSignOut = async () => {
     try {
@@ -108,7 +118,7 @@ function LayoutContenu() {
         <NavLink
           key={item.id}
           to={item.to}
-          onClick={closeMobile}
+          onClick={lienProtege(item.to, closeMobile)}
           aria-label={item.label}
           title={item.label}
           className={itemClass}
@@ -296,6 +306,7 @@ function LayoutContenu() {
           {enRetard > 0 && (
             <Link
               to="/taches"
+              onClick={lienProtege("/taches")}
               className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-2 text-sm font-medium transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
               style={{ color: C.errorText }}
               aria-label={libelleEnRetard(enRetard)}

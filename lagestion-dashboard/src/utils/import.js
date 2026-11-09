@@ -258,10 +258,11 @@ export function parserMontant(v) {
   return Number(s);
 }
 
-// ---------- Neutralisation des formules (exports et fichier d'erreurs) ----------
+// ---------- Neutralisation des formules (exports CSV) ----------
 
 // Texte qui commence par =, +, -, @, tabulation ou retour chariot : apostrophe en tête, pour qu'aucun tableur
-// ne l'interprète comme une formule. Les nombres ne sont pas touchés.
+// ne l'interprète comme une formule. Les nombres ne sont pas touchés. À appliquer à tout export CSV ;
+// les exports .xlsx écrivent des cellules texte sans formule (utils/excel.js).
 export function neutraliserFormule(v) {
   return typeof v === "string" && /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
 }
@@ -362,11 +363,12 @@ export function compterRapport(lignes) {
   return c;
 }
 
-// Lignes du fichier d'erreurs : numéro de ligne, valeurs d'origine, motif ; formules neutralisées.
+// Lignes du fichier d'erreurs (.xlsx) : numéro de ligne, valeurs d'origine, motif. Les formules sont neutralisées
+// à l'écriture (cellules texte, utils/excel.js) ; les valeurs restent identiques au fichier importé.
 export function lignesFichierErreurs(entetes, lignes) {
   const tete = ["Ligne", ...entetes.map((e) => e.libelle), "Motif"];
   const corps = lignes
     .filter((l) => l.issue === "erreur")
     .map((l) => [l.numero, ...l.valeurs.map((v) => (v instanceof Date ? v.toISOString().slice(0, 10) : v)), l.motifs.join(" ; ")]);
-  return [tete, ...corps].map((r) => r.map(neutraliserFormule));
+  return [tete, ...corps];
 }

@@ -153,7 +153,7 @@ test("clients_sale.xlsx : en-tête décalé, fusions, vides, total, erreurs et d
   assert.equal(par[19].categorie, "total");
 });
 
-test("clients_sale.xlsx : somme des compteurs du rapport = lignes lues ; fichier d'erreurs neutralisé", async () => {
+test("clients_sale.xlsx : somme des compteurs du rapport = lignes lues ; fichier d'erreurs fidèle au fichier importé", async () => {
   const brut = lire("clients_sale.xlsx");
   const { tableau, lignes } = analyser(brut);
   const { issues, rapport } = await importer(lignes, baseSimulee(DEMO));
@@ -164,7 +164,7 @@ test("clients_sale.xlsx : somme des compteurs du rapport = lignes lues ; fichier
   assert.deepEqual(fichier[0], ["Ligne", "Raison sociale", "Type", "N° SIREN", "E-mail", "Tél.", "Adresse", "Code postal", "Ville", "Secteur d'activité", "Statut", "Remarques", "Motif"]);
   assert.deepEqual(fichier.slice(1).map((l) => l[0]), [9, 12, 17]);
   const fantome = fichier.find((l) => l[0] === 17);
-  assert.equal(fantome[11], "'=1+1");
+  assert.equal(fantome[11], "=1+1");
   assert.match(fantome[12], /Statut inconnu/);
 });
 
@@ -287,7 +287,7 @@ test("neutralisation : =, +, -, @, tabulation, retour chariot ; nombres et texte
   for (const v of ["Dupont", "", " =espace devant", -2, 12.5, null]) assert.equal(neutraliserFormule(v), v);
 });
 
-test("exports Excel (clients, factures, erreurs) : formules neutralisées, nombres et dates inchangés", () => {
+test("exports Excel (clients, factures, erreurs) : textes en cellules texte, aucune formule, sans apostrophe ; nombres et dates inchangés", () => {
   const dossier = fs.mkdtempSync(path.join(os.tmpdir(), "lg-export-"));
   const ici = process.cwd();
   process.chdir(dossier);
@@ -300,16 +300,27 @@ test("exports Excel (clients, factures, erreurs) : formules neutralisées, nombr
       [{ id: "c", nom: "+Client" }]);
     exporterErreursImport([["Ligne", "Nom", "Motif"], [3, "=1+1", "Nom manquant"]], "erreurs.xlsx");
 
-    const feuille = (f) => { const wb = XLSX.readFile(f, { cellDates: true }); return wb.Sheets[wb.SheetNames[0]]; };
+    const feuille = (f) => { const wb = XLSX.readFile(f, { cellDates: true, cellFormula: true }); return wb.Sheets[wb.SheetNames[0]]; };
+    // Aucune cellule ne porte de formule ; tout texte est de type « s ».
+    const sansFormule = (ws) => {
+      for (const [ref, cell] of Object.entries(ws)) {
+        if (ref[0] === "!") continue;
+        assert.equal(cell.f, undefined, `formule en ${ref}`);
+        if (typeof cell.v === "string") assert.equal(cell.t, "s", `type de ${ref}`);
+      }
+    };
     const c = feuille("clients.xlsx");
-    assert.deepEqual(["A2", "C2", "D2", "E2", "G2"].map((r) => c[r].v), ["'=HYPERLINK(\"http://x.example\")", "'@evil", "'+33 6 12 34 56 78", "'-1", "'=cmd"]);
+    sansFormule(c);
+    assert.deepEqual(["A2", "C2", "D2", "E2", "G2"].map((r) => c[r].v), ["=HYPERLINK(\"http://x.example\")", "@evil", "+33 6 12 34 56 78", "-1", "=cmd"]);
     assert.equal(c.H2.t, "n");
     const f = feuille("factures.xlsx");
-    assert.equal(f.D2.v, "'+Client");
+    sansFormule(f);
+    assert.equal(f.D2.v, "+Client");
     assert.equal(f.J2.v, 120);
     assert.ok(f.E2.v instanceof Date);
     const e = feuille("erreurs.xlsx");
-    assert.equal(e.B2.v, "'=1+1");
+    sansFormule(e);
+    assert.equal(e.B2.v, "=1+1");
     assert.equal(e.A2.v, 3);
   } finally {
     process.chdir(ici);

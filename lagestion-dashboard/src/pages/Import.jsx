@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  AlertCircle, AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Copy, Download, FileSpreadsheet,
+  AlertCircle, AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Copy, Download, ExternalLink, FileSpreadsheet,
   MinusCircle, PlusCircle, RefreshCw, Upload,
 } from "lucide-react";
 import { C, COULEURS_ETAT, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
+import { useGardeModifications } from "../context/GardeModificationsContext.jsx";
 import Select from "../components/form/Select.jsx";
 import {
   DELAI_LECTURE_MS, LIMITE_LIGNES, LIMITE_OCTETS, compterRapport, detecterEntete, estVide, issuesFinales,
@@ -84,6 +85,9 @@ export default function Import({ type = "clients" }) {
   const titreRef = useRef(null);
 
   const tableau = useMemo(() => (brut ? preparerTableau(brut, entete.index) : null), [brut, entete.index]);
+
+  // Colonnes, prévisualisation ou import en cours : quitter la page (barre latérale, Retour, onglet) demande confirmation.
+  useGardeModifications(etape === 2 || etape === 3 || (etape === 4 && !final));
 
   // Focus sur le titre de chaque étape (lecteurs d'écran, clavier).
   useEffect(() => { titreRef.current?.focus(); }, [etape]);
@@ -269,6 +273,17 @@ function Pied({ children }) {
   return <div className="mt-6 flex flex-wrap items-center justify-between gap-3 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>{children}</div>;
 }
 
+// Mêmes actions en haut de l'étape : le bouton principal est visible sans faire défiler une longue liste.
+// Pas de barre fixe : aucun élément flottant au-dessus du contenu (CLAUDE.md §7, WCAG 2.4.11).
+function ActionsHaut({ children, aide }) {
+  return (
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3 pb-4" style={{ borderBottom: `1px solid ${C.border}` }}>
+      {children}
+      {aide && <p className="w-full text-xs" style={{ color: C.textSecondary }}>{aide}</p>}
+    </div>
+  );
+}
+
 // ---------- 1. Fichier ----------
 
 function EtapeFichier({ titreRef, lecture, onFichier }) {
@@ -337,11 +352,23 @@ function EtapeColonnes({ titreRef, config, fichier, brut, tableau, entete, corre
     pluriel(tableau.lignes.length, "ligne sous les titres", "lignes sous les titres"),
   ].filter(Boolean).join(" · ");
 
+  const actions = (
+    <>
+      <Bouton icon={ArrowLeft} onClick={onRetour}>Changer de fichier</Bouton>
+      <Bouton primaire icon={ArrowRight} iconeApres disabled={problemes.length > 0 || donnees === 0} onClick={onSuite}>
+        Prévisualiser
+      </Bouton>
+    </>
+  );
+
   return (
     <>
       <TitreEtape titreRef={titreRef} sousTitre={<><strong className="font-medium" style={{ color: C.textPrimary }}>{fichier.name}</strong> · {details}</>}>
         2. Associer les colonnes
       </TitreEtape>
+      <ActionsHaut aide={problemes.length > 0 ? "Prévisualisation impossible : corrigez les associations signalées sous la liste des colonnes." : null}>
+        {actions}
+      </ActionsHaut>
 
       <div className="flex flex-wrap items-start gap-4">
         {brut.feuilles.length > 1 && (
@@ -417,12 +444,7 @@ function EtapeColonnes({ titreRef, config, fichier, brut, tableau, entete, corre
         </div>
       )}
 
-      <Pied>
-        <Bouton icon={ArrowLeft} onClick={onRetour}>Changer de fichier</Bouton>
-        <Bouton primaire icon={ArrowRight} iconeApres disabled={problemes.length > 0 || donnees === 0} onClick={onSuite}>
-          Prévisualiser
-        </Bouton>
-      </Pied>
+      <Pied>{actions}</Pied>
     </>
   );
 }
@@ -468,11 +490,21 @@ function EtapePrevisualisation({ titreRef, config, lignes, setLignes, onRetour, 
   const affichees = visibles.slice((pageSure - 1) * PAR_PAGE, pageSure * PAR_PAGE);
   const aTraiter = plan.creations.length + plan.majs.length;
 
+  const actions = (
+    <>
+      <Bouton icon={ArrowLeft} onClick={onRetour}>Colonnes</Bouton>
+      <Bouton primaire icon={Upload} disabled={aTraiter === 0} onClick={onImporter}>
+        {aTraiter === 0 ? "Aucune ligne à importer" : `Importer ${pluriel(aTraiter, "ligne", "lignes")}`}
+      </Bouton>
+    </>
+  );
+
   return (
     <>
       <TitreEtape titreRef={titreRef} sousTitre="Vérifiez chaque ligne. Rien n'est enregistré avant de cliquer sur « Importer ».">
         3. Prévisualiser
       </TitreEtape>
+      <ActionsHaut>{actions}</ActionsHaut>
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <Compteur libelle="Lignes lues" valeur={lignes.length} />
@@ -533,12 +565,7 @@ function EtapePrevisualisation({ titreRef, config, lignes, setLignes, onRetour, 
 
       <Pagination page={pageSure} pages={pages} total={visibles.length} onPage={setPage} />
 
-      <Pied>
-        <Bouton icon={ArrowLeft} onClick={onRetour}>Colonnes</Bouton>
-        <Bouton primaire icon={Upload} disabled={aTraiter === 0} onClick={onImporter}>
-          {aTraiter === 0 ? "Aucune ligne à importer" : `Importer ${pluriel(aTraiter, "ligne", "lignes")}`}
-        </Bouton>
-      </Pied>
+      <Pied>{actions}</Pied>
     </>
   );
 }
@@ -625,8 +652,16 @@ function LignePrevisualisation({ ligne: l, cible, onChoisir }) {
             {l.doublon.source === "base" && l.doublon[cible]?.id && (
               <>
                 {l.doublon.confiance >= 90 && " · "}
-                <Link to={`/clients/${l.doublon[cible].id}`} className="underline focus:outline-none focus-visible:ring-2" style={{ color: C.infoText }}>
-                  {l.doublon.confiance >= 90 ? "voir la fiche" : `Voir la fiche de « ${l.doublon[cible].nom} »`}
+                {/* Nouvel onglet : la prévisualisation en cours reste intacte. */}
+                <Link
+                  to={`/clients/${l.doublon[cible].id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline focus:outline-none focus-visible:ring-2"
+                  style={{ color: C.infoText }}
+                >
+                  {l.doublon.confiance >= 90 ? "voir la fiche" : `Voir la fiche de « ${l.doublon[cible].nom} »`} (nouvel onglet)
+                  <ExternalLink size={12} aria-hidden="true" className="ml-1 inline align-[-1px]" />
                 </Link>
               </>
             )}
