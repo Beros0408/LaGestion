@@ -13,6 +13,7 @@ import { jourParis } from "../utils/facture";
 import { libelleEnRetard, nombreEnRetard } from "../utils/taches";
 import { GardeModificationsProvider, useQuitter } from "../context/GardeModificationsContext.jsx";
 import { pageParente, libellePage } from "../utils/navigation";
+import logoLaGestion from "../assets/logo-lagestion.png";
 
 const navItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, to: "/dashboard" },
@@ -148,19 +149,16 @@ function LayoutContenu() {
       className="flex h-full w-[216px] md:w-[72px] xl:w-[216px] shrink-0 flex-col"
       style={{ backgroundColor: C.sidebarBg, borderRight: `1px solid ${C.sidebarBorder}` }}
     >
-      <div className="flex items-center gap-2.5 px-4 py-4 md:justify-center md:px-2 xl:justify-start xl:px-4">
-        <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: `linear-gradient(135deg, ${C.primary}, ${AVATARS.vertEau})` }}
+      <div className="flex items-center px-4 py-4 md:justify-center md:px-2 xl:justify-start xl:px-4">
+        {/* Logo de LaGestion (src/assets) ; barre repliée (72 px) : seul le symbole, à gauche de l'image, reste visible. */}
+        <Link
+          to="/dashboard"
+          onClick={lienProtege("/dashboard", closeMobile)}
+          title="Tableau de bord"
+          className="block overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-lg-sidebar-focus md:w-10 xl:w-auto"
         >
-          <span className="text-lg font-bold text-white" style={{ fontFamily: "Sora, sans-serif" }}>L</span>
-        </div>
-        <span
-          className="text-lg font-bold md:hidden xl:inline"
-          style={{ color: C.sidebarText, fontFamily: "Sora, sans-serif" }}
-        >
-          LaGestion
-        </span>
+          <img src={logoLaGestion} alt="LaGestion" className="block h-9 w-auto max-w-none md:h-10 xl:h-9" />
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2 xl:px-3" aria-label="Navigation principale">

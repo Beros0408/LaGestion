@@ -5,6 +5,7 @@ import { C, OMBRE, alpha } from "../theme";
 import Input from "../components/form/Input.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { MESSAGE_TECHNIQUE } from "../utils/erreurs";
+import logoLaGestion from "../assets/logo-lagestion.png";
 
 function traduireErreur(err) {
   const message = (err?.message || "").toLowerCase();
@@ -66,31 +67,13 @@ export default function Login() {
         }}
         aria-labelledby="titre-connexion"
       >
-        <div className="mb-6 flex items-center gap-3">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl"
-            style={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})` }}
-            aria-hidden="true"
-          >
-            <span
-              className="text-lg font-bold text-white"
-              style={{ fontFamily: "Sora, sans-serif" }}
-            >
-              L
-            </span>
-          </div>
-          <div>
-            <h1
-              id="titre-connexion"
-              className="text-lg font-bold"
-              style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
-            >
-              LaGestion
-            </h1>
-            <p className="text-xs" style={{ color: C.textSecondary }}>
-              Connexion à votre espace
-            </p>
-          </div>
+        <div className="mb-6">
+          <h1 id="titre-connexion">
+            <img src={logoLaGestion} alt="LaGestion" className="block h-11 w-auto rounded-lg" />
+          </h1>
+          <p className="mt-2 text-xs" style={{ color: C.textSecondary }}>
+            Connexion à votre espace
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
