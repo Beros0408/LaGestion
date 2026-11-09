@@ -253,6 +253,10 @@ Lis CLAUDE.md. Nouvelle étape : finitions de navigation et d'affichage (UX-01 d
    - Fiche devis : 0 / 31 à 1 280 ; 0 / 59 à 768 ; 0 / 334 à 390.
    - Fiche client : 0 / 4 à 1 280.
 10. Texte indicatif des champs de formulaire : couleur Tailwind par défaut #9CA3AF, 2,20:1 sur la carte (#ECEFF2), sous 4,5:1 ; le passer en textSecondary (déjà fait pour la recherche de l'en-tête, étape 11 quater).
+11. Relevés pendant les tests de l'étape 11 ter :
+   - LIBELLE_NIVEAU (src/data/relances.js) : espace insécable entre « 1re » / « 2e » et « relance », pour éviter une coupure en fin de ligne (vérifier les tests et le titre de la tâche du seed qui reprennent ce libellé) ;
+   - actions suggérées du tableau de bord : la ligne de détail est coupée dans les colonnes étroites (« 36 j… ») ;
+   - formulaire client, champ « Informations internes » : le texte indicatif parle encore d'« historique commercial », alors que l'historique est désormais tenu par les activités.
 
 Présente ton plan et attends mon go.
 Avant de livrer : npm run build et npm test ; parcours de navigation repassés ; rendu à 390, 768, 1 280 et 1 845 px sur toutes les listes et fiches ; commit séparé sans push ; tableau Vérifié / Non vérifié / À tester par Beros.
