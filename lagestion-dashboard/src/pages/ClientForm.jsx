@@ -393,7 +393,7 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
               hint="Appuyez sur Entrée pour ajouter un tag."
             />
             <Textarea
-              label="Notes"
+              label="Informations internes"
               value={form.notes}
               onChange={(e) => definir("notes")(e.target.value)}
               rows={4}

@@ -487,7 +487,7 @@ begin
   select v_ent, v.titre, public.date_du_jour_paris() + v.jours, v_admin, v.statut,
          c.id, o.id, d.id, f.id, v.origine
   from (values
-    ('Relancer la facture DEMO-0008 (2e relance)',             -1, 'a_faire', null::text,                  null::text,                      null::text,      'DEMO-0008', 'relance'),
+    ('Relancer la facture DEMO-0008' || chr(160) || ': 2e relance', -1, 'a_faire', null::text,                  null::text,                      null::text,      'DEMO-0008', 'relance'),
     ('Appeler l''agence Delmas pour le solde de DEMO-0011',    0, 'a_faire', 'Agence immobilière Delmas', null,                            null,            null,        null),
     ('Préparer le chiffrage de la terrasse couverte',          3, 'a_faire', null,                         'Terrasse couverte et chauffée', null,            null,        null),
     ('Envoyer le devis DEV-DEMO-0003',                        -4, 'faite',   null,                         null,                            'DEV-DEMO-0003', null,        null)

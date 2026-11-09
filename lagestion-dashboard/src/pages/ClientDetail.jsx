@@ -255,7 +255,7 @@ export default function ClientDetail() {
               className="mb-3 text-base font-semibold"
               style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
             >
-              Notes
+              Informations internes
             </h3>
             {client.notes ? (
               <p
@@ -266,7 +266,7 @@ export default function ClientDetail() {
               </p>
             ) : (
               <p className="text-sm" style={{ color: C.textSecondary }}>
-                Aucune note pour ce client.
+                Aucune information interne.
               </p>
             )}
           </div>

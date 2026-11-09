@@ -32,12 +32,12 @@ function ActionsSuggerees({ groupes, taches = [], peutCreer = false, enCours = n
             </h4>
             <ul className="space-y-1.5">
               {g.elements.map((a) => (
-                <li key={a.id} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ backgroundColor: C.bgMain }}>
+                <li key={a.id} className="flex flex-col gap-1.5 rounded-xl px-3 py-2" style={{ backgroundColor: C.bgMain }}>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>{a.titre}</p>
+                    <p className="line-clamp-2 text-sm font-medium" style={{ color: C.textPrimary }} title={a.titre}>{a.titre}</p>
                     <p className="truncate text-xs" style={{ color: C.textSecondary }}>{a.detail}{jours(a.jours)}</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="flex flex-wrap items-center justify-end gap-1">
                     <Link
                       to={a.lien}
                       className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus-visible:ring-2"
