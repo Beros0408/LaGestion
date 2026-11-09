@@ -84,20 +84,21 @@ Cette version réunit en un seul plan :
 | ID | Exigence | Fait à ce jour | Reste à faire (prompt) |
 | --- | --- | --- | --- |
 | SAAS-01 | Auth, tenants, memberships, invitations, rôles, plans, quotas | Auth, isolation, rôles, table invitations, tests d'accès croisé | Écran Équipe, invitations, suspension, dernier admin, changement d'entreprise, MFA (13) ; plans et quotas (20) |
-| CRM-01 | Clients, contacts, prospects, pipeline, notes, activités | Clients (statut prospect), opportunités, étapes | Notes, activités, tâches (11 ter) ; recherche et pagination côté base (14) ; gagnée/perdue (17) |
+| CRM-01 | Clients, contacts, prospects, pipeline, notes, activités | Clients (statut prospect), opportunités, étapes ; notes, activités, tâches (11 ter) | Recherche et pagination côté base (14) ; gagnée/perdue (17) |
 | VEN-01 | Catalogue, taxes, remises, devis, conversion | Fait (étapes 005 à 007) | Lien opportunité → devis (17) |
 | FAC-01 | Factures, avoirs, acomptes, échéances, PDF, numérotation | Fait (étapes 008 à 010) | Mentions légales complètes (13) |
-| PAY-01 | Paiements manuels, solde, impayés, brouillon de relance | Fait (étape 011) | Couleurs d'état (11 bis) |
+| PAY-01 | Paiements manuels, solde, impayés, brouillon de relance | Fait (étape 011) ; couleurs d'état (11 bis) | Taux des pénalités dans les relances (13) |
 | BTP-01 | Chantier, budget, dépenses, pièces, marge | — | Module BTP (18) |
 | KPI-01 | CA, devis en attente, impayés, budgets chantier | CA, impayés, encaissements, pipeline | Devis en attente et objectifs (17) ; budgets chantier (18) |
 | IWA-01 | IA hybride en lecture, brouillons, alertes | — | IWa (19) |
-| EXP-01 | CSV, XLSX, PDF côté serveur, audités | Export Excel des factures et des clients (navigateur) | Exports complets, côté serveur, audités (15) |
+| EXP-01 | CSV, XLSX, PDF côté serveur, audités | Export XLSX des factures et des clients et fichier d'erreurs d'import (navigateur), en cellules texte sans formule (12) ; neutralisation des formules prête pour le CSV (neutraliserFormule) | Exports complets (CSV UTF-8, ventes, impayés), côté serveur, audités, mêmes filtres et totaux (15) |
+| FR-003 (cahier V2) | Import CSV/XLSX : prévisualisation, correspondance, erreurs, déduplication | Fait (12) : clients et articles du catalogue, CSV UTF-8 / Windows-1252 et XLSX, doublons, mise à jour champ par champ, lots de 200, rapport et fichier d'erreurs ; 1 000 lignes testées avec RLS | Import des opportunités ou des contacts : non prévu au MVP |
 | UX-01 | FR/EN, responsive, accessible, navigation clavier | FR, responsive, contrastes AA, focus | i18n FR/EN (16) ; finitions mobile (14) |
 | SUB-01 | Abonnements, essais, suspension, quotas | — | Abonnements (20) |
 
 **Parcours de recette du PRD :** le parcours généraliste est déjà réalisable de bout en bout ; le parcours BTP le sera après le prompt 18 ; le parcours sécurité est couvert par les tests SQL d'isolation et sera repris au prompt 21 (UI, API, base, Storage, IWa et exports).
 
-## 5. État d'avancement (6 novembre 2026)
+## 5. État d'avancement (9 novembre 2026)
 
 | Étape | Commit | Statut |
 | --- | --- | --- |
@@ -110,7 +111,12 @@ Cette version réunit en un seul plan :
 | 08 — Numérotation légale, verrouillage, totaux et identités figés (008) | `6d0492f` | Fait, validé sur Supabase, poussé |
 | 09 — Avoirs, annulation, remboursement du trop-perçu (009) | `fb3800b` | Fait, validé sur Supabase, poussé |
 | 10 — Factures d'acompte et facture de solde (010) | `e5dd81f` | Fait, validé sur Supabase, poussé |
-| 11 — Règlements, statut calculé, écran Impayés, relances (011) | `1ca6ec2` | Fait en local, **à valider sur Supabase puis à pousser** |
+| 11 — Règlements, statut calculé, écran Impayés, relances (011) | `1ca6ec2` | Fait, validé sur Supabase, poussé |
+| 11-0 — Cadrage V3 : PRD et feuille de route en référence | `311e991` | Fait, poussé |
+| 11 bis — Couleurs d'état des paiements, jauge de règlement, solde client | `a483d27`, `04eb8e1`, `a2cd92c` | Fait, validé, poussé |
+| 11 quater — Impayés et en-tête sans défilement, retrait du bouton flottant | `1347025`, `69c893c` | Fait, validé, poussé |
+| 11 ter — Tâches, notes et activités (012) | `431ec0a`, `4eed9e9`, `91dc37b`, `42c815e` | Fait, validé sur Supabase, poussé |
+| 12 — Import CSV/XLSX des clients et des articles | `16190f6` (xlsx 0.20.3), `05e895d`, `360b407`, `0763bb6` | Fait, validé sur Supabase, poussé |
 
 **Rappel :** aucune vraie facture ne doit être émise avant l'ajout et la validation des mentions légales (prompt 13).
 
