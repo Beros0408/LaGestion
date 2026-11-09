@@ -18,6 +18,8 @@ import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
 import Textarea from "../components/form/Textarea.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
+import { useEntreprise } from "../context/EntrepriseContext.jsx";
+import { MODES_PAIEMENT, defautsPaiement } from "../utils/parametres";
 import LignesDocument from "../components/document/LignesDocument.jsx";
 import RecapitulatifDocument from "../components/document/RecapitulatifDocument.jsx";
 
@@ -32,15 +34,6 @@ const VIDE = {
   message_client: "",
   lignes: [{ ...LIGNE_VIDE }],
 };
-
-const MODE_PAIEMENT_OPTIONS = [
-  { value: "", label: "— Non précisé —" },
-  { value: "virement", label: "Virement" },
-  { value: "carte", label: "Carte" },
-  { value: "cheque", label: "Chèque" },
-  { value: "especes", label: "Espèces" },
-  { value: "autre", label: "Autre" },
-];
 
 function normaliser(existant) {
   return {
@@ -61,6 +54,7 @@ export default function FactureForm() {
   const navigate = useNavigate();
   const { factures, addFacture, updateFacture, chargement } = useFactures();
   const { clients } = useClients();
+  const { entreprise } = useEntreprise();
 
   const modeEdition = Boolean(id);
 
@@ -69,12 +63,14 @@ export default function FactureForm() {
     [modeEdition, factures, id]
   );
 
-  const [form, setForm] = useState(() => (existant ? normaliser(existant) : VIDE));
+  // Nouvelle facture : échéance, mode et conditions de paiement proposés depuis les paramètres de l'entreprise.
+  const vide = useMemo(() => ({ ...VIDE, ...defautsPaiement(entreprise, VIDE.date_emission) }), [entreprise]);
+  const [form, setForm] = useState(() => (existant ? normaliser(existant) : vide));
   const [errors, setErrors] = useState({});
   const [erreurSoumission, setErreurSoumission] = useState(null);
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
   const quitter = useQuitter();
-  const etatInitial = useMemo(() => (existant ? normaliser(existant) : VIDE), [existant]);
+  const etatInitial = useMemo(() => (existant ? normaliser(existant) : vide), [existant, vide]);
   useGardeModifications(JSON.stringify(form) !== JSON.stringify(etatInitial));
 
   useEffect(() => {
@@ -264,7 +260,7 @@ export default function FactureForm() {
               label="Mode de paiement"
               value={form.mode_paiement}
               onChange={(e) => definir("mode_paiement")(e.target.value)}
-              options={MODE_PAIEMENT_OPTIONS}
+              options={MODES_PAIEMENT}
             />
             <Input
               label="Conditions de paiement"

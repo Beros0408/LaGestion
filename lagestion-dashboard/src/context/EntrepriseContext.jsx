@@ -51,20 +51,20 @@ async function chargerProfil(userId) {
 async function chargerAppartenances(userId) {
   const { data, error } = await supabase
     .from("memberships")
-    .select("role, entreprise:entreprises(id, nom, siret, adresse)")
+    .select("role, entreprise:entreprises(*)")
     .eq("user_id", userId);
   if (error) throw error;
   return (data ?? [])
     .filter((m) => m.entreprise)
-    .map((m) => ({
-      entrepriseId: m.entreprise.id,
-      nom: m.entreprise.nom,
-      siret: m.entreprise.siret,
-      adresse: m.entreprise.adresse,
-      role: m.role,
-    }))
+    .map((m) => versAppartenance(m.entreprise, m.role))
     .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 }
+
+// Appartenance : tous les paramètres de l'entreprise (migration 013), son identifiant et le rôle de l'utilisateur.
+const versAppartenance = (entreprise, role) => ({ ...entreprise, entrepriseId: entreprise.id, role });
+
+// Logo : chemin versionné dans le bucket privé logos ; un ancien fichier reste lisible par les documents qui le citent.
+const extensionLogo = (type) => (type === "image/png" ? "png" : "jpg");
 
 function initialesDe(nom) {
   const mots = nom.split(/[\s._-]+/).filter(Boolean);
@@ -139,6 +139,36 @@ export function EntrepriseProvider({ children }) {
     [userId]
   );
 
+  // Paramètres de l'entreprise courante (RLS : admin seul). Aucune ligne renvoyée = droit refusé.
+  const enregistrerEntreprise = useCallback(
+    async (patch) => {
+      const { data, error } = await supabase.from("entreprises").update(patch).eq("id", entrepriseId).select("*");
+      if (error) throw erreurFrancaise(error);
+      if (!data?.length) throw new Error("Seul un administrateur peut modifier les informations de l'entreprise.");
+      setAppartenances((liste) => liste.map((a) => (a.entrepriseId === entrepriseId ? versAppartenance(data[0], a.role) : a)));
+      return data[0];
+    },
+    [entrepriseId]
+  );
+
+  const enregistrerLogo = useCallback(
+    async (fichier) => {
+      const chemin = `${entrepriseId}/logo-${Date.now()}.${extensionLogo(fichier.type)}`;
+      const { error } = await supabase.storage.from("logos").upload(chemin, fichier, { contentType: fichier.type, upsert: false });
+      if (error) throw erreurFrancaise(error);
+      return enregistrerEntreprise({ logo_url: chemin });
+    },
+    [entrepriseId, enregistrerEntreprise]
+  );
+
+  // Lien temporaire (1 h) vers le logo : le bucket est privé.
+  const lienLogo = useCallback(async (chemin) => {
+    if (!chemin) return null;
+    const { data, error } = await supabase.storage.from("logos").createSignedUrl(chemin, 3600);
+    if (error) throw erreurFrancaise(error);
+    return data?.signedUrl ?? null;
+  }, []);
+
   const value = useMemo(() => {
     const courante = appartenances.find((a) => a.entrepriseId === entrepriseId) ?? null;
     const role = courante?.role ?? null;
@@ -156,11 +186,17 @@ export function EntrepriseProvider({ children }) {
       nomAffiche,
       prenomAffiche: nomAffiche.split(/\s+/)[0],
       initiales: initialesDe(nomAffiche),
+      estAdmin: role === "admin",
+      email: user?.email ?? "",
+      nomProfil: profil?.nom ?? "",
       creerEntreprise,
       enregistrerNom,
+      enregistrerEntreprise,
+      enregistrerLogo,
+      lienLogo,
       recharger: charger,
     };
-  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, enregistrerNom, charger]);
+  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, enregistrerNom, enregistrerEntreprise, enregistrerLogo, lienLogo, charger]);
 
   return <EntrepriseContext.Provider value={value}>{children}</EntrepriseContext.Provider>;
 }

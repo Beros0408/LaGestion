@@ -31,7 +31,7 @@ const navItems = [
 
 const navSecondaires = [
   { id: "documents", label: "Documents", icon: FolderOpen },
-  { id: "parametres", label: "Paramètres", icon: Settings },
+  { id: "parametres", label: "Paramètres", icon: Settings, to: "/parametres" },
   { id: "aide", label: "Aide & Tutoriels", icon: HelpCircle },
 ];
 
@@ -169,6 +169,7 @@ function LayoutContenu() {
         <div className="my-3" style={{ borderTop: `1px solid ${C.sidebarBorder}` }} />
 
         {navSecondaires.map((item) => {
+          if (item.to) return renderNavItem(item);
           const Icon = item.icon;
           return (
             <button

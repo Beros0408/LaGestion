@@ -22,6 +22,7 @@ import MesTaches from "./pages/MesTaches.jsx";
 import AcompteForm from "./pages/AcompteForm.jsx";
 import Catalogue from "./pages/Catalogue.jsx";
 import ProduitForm from "./pages/ProduitForm.jsx";
+import Parametres from "./pages/Parametres.jsx";
 
 // Import CSV/XLSX : chargé à la demande (lecture xlsx dans un Web Worker).
 const Import = lazy(() => import("./pages/Import.jsx"));
@@ -63,6 +64,9 @@ export default function App() {
           <Route path="/catalogue/nouveau" element={<ProduitForm />} />
           <Route path="/catalogue/import" element={avecChargement(<Import type="articles" />)} />
           <Route path="/catalogue/:id/modifier" element={<ProduitForm />} />
+          <Route path="/parametres" element={<Navigate to="/parametres/profil" replace />} />
+          <Route path="/parametres/profil" element={<Parametres section="profil" />} />
+          <Route path="/parametres/entreprise" element={<Parametres section="entreprise" />} />
         </Route>
       </Route>
     </Routes>
