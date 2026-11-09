@@ -1,6 +1,6 @@
 const DIACRITIQUES = new RegExp("[\\u0300-\\u036f]", "g");
 
-function normaliser(s) {
+export function normaliser(s) {
   return (s ?? "")
     .toString()
     .toLowerCase()
@@ -10,11 +10,11 @@ function normaliser(s) {
     .trim();
 }
 
-function chiffresSeuls(s) {
+export function chiffresSeuls(s) {
   return (s ?? "").toString().replace(/\D/g, "");
 }
 
-function motsSignificatifs(s) {
+export function motsSignificatifs(s) {
   return normaliser(s)
     .split(/\s+/)
     .filter((m) => m.length >= 3);

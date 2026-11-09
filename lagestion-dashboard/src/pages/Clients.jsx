@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
-  ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download, AlertCircle, CheckCircle2, CircleDashed,
+  ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download, AlertCircle, CheckCircle2, CircleDashed, Upload,
 } from "lucide-react";
 import { C, AVATARS, alpha, COULEURS_ETAT, ETAT_SITUATION } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
@@ -217,6 +217,16 @@ export default function Clients() {
             <Download size={16} aria-hidden="true" />
             Exporter en Excel
           </button>
+          {peutEcrire && (
+            <Link
+              to="/clients/import"
+              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2"
+              style={{ color: C.textSecondary, backgroundColor: "transparent", border: `1px solid ${C.border}` }}
+            >
+              <Upload size={16} aria-hidden="true" />
+              Importer
+            </Link>
+          )}
           {peutEcrire && (
             <Link
               to="/clients/nouveau"

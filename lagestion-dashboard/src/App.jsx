@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -23,6 +23,12 @@ import AcompteForm from "./pages/AcompteForm.jsx";
 import Catalogue from "./pages/Catalogue.jsx";
 import ProduitForm from "./pages/ProduitForm.jsx";
 
+// Import CSV/XLSX : chargé à la demande (lecture xlsx dans un Web Worker).
+const Import = lazy(() => import("./pages/Import.jsx"));
+const avecChargement = (element) => (
+  <Suspense fallback={<p role="status" className="text-sm">Chargement…</p>}>{element}</Suspense>
+);
+
 export default function App() {
   return (
     <Routes>
@@ -34,6 +40,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/clients/nouveau" element={<ClientForm />} />
+          <Route path="/clients/import" element={avecChargement(<Import type="clients" />)} />
           <Route path="/clients/:id" element={<ClientDetail />} />
           <Route path="/clients/:id/modifier" element={<ClientForm />} />
           <Route path="/opportunites" element={<Opportunites />} />

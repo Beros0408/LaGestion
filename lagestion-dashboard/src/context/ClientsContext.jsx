@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { supabase } from "../lib/supabase";
 import { useEntreprise } from "./EntrepriseContext.jsx";
 import { erreurFrancaise, messageErreur, MESSAGE_REFUS } from "../utils/erreurs";
+import { executerImport } from "../utils/import.js";
 
 const ClientsContext = createContext(null);
 
@@ -103,9 +104,39 @@ export function ClientsProvider({ children }) {
     return true;
   }, []);
 
+  // Import (utils/import.js) : insertion par lots, entreprise_id sur chaque ligne ; un seul rechargement à la fin.
+  const importerClients = useCallback(
+    async (plan, surProgression) => {
+      const acces = {
+        inserer: async (lignes) => {
+          const payload = lignes.map((d) => ({ ...preparerPayload(d), entreprise_id: entrepriseId }));
+          // missing=default : un champ absent d'une ligne du lot prend la valeur par défaut de la colonne
+          // (statut « prospect », tags vides), et non NULL.
+          const { error } = await supabase.from("clients").insert(payload, { defaultToNull: false });
+          return { error: error ? messageErreur(error) : null };
+        },
+        mettreAJour: async (id, patch) => {
+          const { data, error } = await supabase
+            .from("clients")
+            .update(preparerPayload(patch))
+            .eq("id", id)
+            .eq("entreprise_id", entrepriseId)
+            .select("id");
+          return { error: error ? messageErreur(error) : null, n: data?.length ?? 0 };
+        },
+      };
+      try {
+        return await executerImport(plan, acces, surProgression);
+      } finally {
+        await chargerClients();
+      }
+    },
+    [entrepriseId, chargerClients]
+  );
+
   const value = useMemo(
-    () => ({ clients, chargement, erreur, addClient, updateClient, deleteClient }),
-    [clients, chargement, erreur, addClient, updateClient, deleteClient]
+    () => ({ clients, chargement, erreur, addClient, updateClient, deleteClient, importerClients }),
+    [clients, chargement, erreur, addClient, updateClient, deleteClient, importerClients]
   );
 
   return <ClientsContext.Provider value={value}>{children}</ClientsContext.Provider>;

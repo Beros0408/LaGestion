@@ -1,0 +1,21 @@
+﻿Nom;Type;E-mail;Téléphone;Adresse;Secteur;Statut;Tags;SIREN;Date de naissance;Informations internes
+Atelier Bois & Design;Entreprise;contact@bois-design.example;02 41 55 10 20;3 rue des Ébénistes, 49000 Angers;BTP;Actif;artisan, fidèle;443061841;;Paiement à 30 jours
+Café de la Gare;Entreprise;bonjour@cafe-gare.example;03 26 47 12 98;1 place de la Gare, 51100 Reims;Restauration;Prospect;salon 2026;;;
+Soins Infirmiers Rivière;Entreprise;cabinet@infirmier-riviere.example;04 73 90 11 42;22 avenue des Thermes, 63000 Clermont-Ferrand;Santé;Actif;;;;
+Martel Ressources Humaines;Entreprise;contact@rh-martel.example;01 53 20 44 87;18 rue La Boétie, 75008 Paris;Conseil;Actif;rh;;;Rappeler en septembre
+Épicerie fine Laurent;Entreprise;epicerie@fine-laurent.example;05 61 22 98 31;9 rue d'Alsace-Lorraine, 31000 Toulouse;Commerce;Prospect;;;;
+Fonderie du Rhône;Entreprise;commercial@fonderie-rhone.example;04 72 18 55 60;ZI Sud, 69200 Vénissieux;Industrie;Actif;industrie;;;
+Gîtes de la Vallée;Entreprise;reservation@gites-vallee.example;04 75 30 12 45;Le Village, 07200 Aubenas;Hôtellerie;Prospect;;;;
+Perrin Immobilier;Entreprise;agence@immo-perrin.example;02 97 40 66 18;5 rue du Port, 56100 Lorient;Immobilier;Actif;;;;
+Jardins & Paysages Roux;Entreprise;devis@paysages-roux.example;04 94 20 31 77;Chemin des Oliviers, 83000 Toulon;BTP;Actif;saisonnier;;;
+Kiné Sport Bertin;Entreprise;accueil@kine-bertin.example;03 81 50 22 64;14 rue de Belfort, 25000 Besançon;Santé;Prospect;;;;
+Logistique Ouest Express;Entreprise;exploitation@ouest-express.example;02 51 82 47 30;Parc d'activités, 85000 La Roche-sur-Yon;Transport;Actif;;;;
+Maison Vidal Traiteur;Entreprise;commandes@vidal-traiteur.example;04 68 35 12 09;7 rue Mailly, 66000 Perpignan;Restauration;Inactif;;;;Ne plus démarcher
+Optique Mercier;Entreprise;magasin@optique-mercier.example;03 87 75 41 23;30 rue Serpenoise, 57000 Metz;Commerce;Actif;;;;
+Pressing Étoile;Entreprise;pressing@etoile.example;01 47 63 20 18;12 avenue de Wagram, 75017 Paris;Autre;Prospect;;;;
+Studio Graphique Noé;Entreprise;hello@studio-noe.example;05 49 41 30 72;2 rue Carnot, 86000 Poitiers;Conseil;Actif;créatif;;;
+Amélie Faure;Particulier;amelie.faure@mail.example;06 12 45 78 90;4 allée des Pins, 40100 Dax;;Prospect;;;14/02/1986;
+Hugo Lambert;Particulier;hugo.lambert@mail.example;06 98 76 54 32;27 rue Nationale, 59800 Lille;;Actif;;;03/09/1979;Chantier salle de bains
+Inès Moreau;Particulier;ines.moreau@mail.example;07 61 23 45 67;8 place Kléber, 67000 Strasbourg;;Prospect;;;21/11/1992;
+Julien Roche;Particulier;julien.roche@mail.example;06 33 21 45 98;15 cours Mirabeau, 13100 Aix-en-Provence;;Actif;;;30/06/1970;
+Nadia Benali;Particulier;nadia.benali@mail.example;07 45 12 36 89;3 rue Sainte-Catherine, 33000 Bordeaux;;Prospect;;;07/04/1988;

@@ -7,6 +7,7 @@ const ROUTES = [
   { motif: "/dashboard", libelle: "Tableau de bord", parent: null },
   { motif: "/clients", libelle: "Clients", parent: () => "/dashboard" },
   { motif: "/clients/nouveau", libelle: "Nouveau client", parent: () => "/clients" },
+  { motif: "/clients/import", libelle: "Importer des clients", parent: () => "/clients" },
   { motif: "/clients/:id/modifier", libelle: "Modifier le client", parent: ({ id }) => `/clients/${id}` },
   { motif: "/clients/:id", libelle: "Fiche client", parent: () => "/clients" },
   { motif: "/opportunites", libelle: "Opportunités", parent: () => "/dashboard" },

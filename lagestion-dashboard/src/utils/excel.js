@@ -1,6 +1,10 @@
 import * as XLSX from "xlsx";
-import { resteAPayer, statutCalcule, totalAvoirs, totalHT, totalPaye, totalTVA, totalTTC } from "./facture";
-import { LIBELLE_STATUT, LIBELLE_TYPE } from "../data/factures";
+import { resteAPayer, statutCalcule, totalAvoirs, totalHT, totalPaye, totalTVA, totalTTC } from "./facture.js";
+import { LIBELLE_STATUT, LIBELLE_TYPE } from "../data/factures.js";
+import { neutraliserFormule } from "./import.js";
+
+// Texte commençant par =, +, -, @, tabulation ou retour chariot : apostrophe en tête (injection de formules).
+const neutraliserLignes = (lignes) => lignes.map((l) => l.map(neutraliserFormule));
 
 const TYPE_LABEL = {
   particulier: "Particulier",
@@ -39,7 +43,7 @@ export function exporterClientsExcel(clients) {
     typeof c.score === "number" ? c.score : null,
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const ws = XLSX.utils.aoa_to_sheet(neutraliserLignes([headers, ...rows]));
   ws["!cols"] = [
     { wch: 30 },
     { wch: 12 },
@@ -95,7 +99,7 @@ export function exporterFacturesExcel(factures, clients) {
     resteAPayer(f),
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows], { cellDates: true });
+  const ws = XLSX.utils.aoa_to_sheet(neutraliserLignes([headers, ...rows]), { cellDates: true });
   ws["!cols"] = [
     { wch: 16 },
     { wch: 18 },
@@ -120,4 +124,13 @@ export function exporterFacturesExcel(factures, clients) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Factures");
   XLSX.writeFile(wb, "factures.xlsx");
+}
+
+// Fichier d'erreurs d'un import : lignes déjà préparées par lignesFichierErreurs (utils/import.js).
+export function exporterErreursImport(lignes, nomFichier) {
+  const ws = XLSX.utils.aoa_to_sheet(neutraliserLignes(lignes));
+  ws["!cols"] = lignes[0].map((_, i) => ({ wch: i === 0 ? 8 : i === lignes[0].length - 1 ? 60 : 22 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Erreurs");
+  XLSX.writeFile(wb, nomFichier);
 }

@@ -373,6 +373,7 @@ Lis CLAUDE.md. Nouvelle étape : recette avant pilote (parcours de recette du PR
 4. Vérifie la sauvegarde et la restauration de la base Supabase (procédure écrite et testée sur un projet séparé) ; revue des dépendances (npm audit sans --force).
 5. Liste les vulnérabilités trouvées, les points de conformité à faire valider (RGPD, facturation) et propose un plan de pilote avec 5 entreprises.
 6. Ne déploie rien en production sans mon feu vert.
+7. Traite les 11 alertes npm audit restantes après l'étape 12 (vite, esbuild, react-router, dompurify…), en priorité celles qui finissent dans le bundle livré, sans npm audit fix --force.
 ```
 
 ### Prompt 22 — Revue finale et mise en production
