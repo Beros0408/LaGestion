@@ -28,6 +28,9 @@ on conflict (id) do update set nom = excluded.nom;
 insert into public.entreprises (id, nom, siret, adresse) values
   ('a0110000-0000-4000-8000-0000000000e1', 'Entreprise A (test 011)', '11111111100011', '1 rue de A, 75001 Paris'),
   ('a0110000-0000-4000-8000-0000000000e2', 'Entreprise B (test 011)', '22222222200022', '2 rue de B, 69001 Lyon');
+-- Mentions minimales exigées à la finalisation depuis la migration 014 (testées dans 014_mentions.sql)
+update public.entreprises set forme_juridique = 'EI', immatriculation_type = 'dispense', tva_intra = 'FR00000000000'
+ where id::text like 'a0110000-0000-4000-8000-0000000000e%';
 
 insert into public.memberships (entreprise_id, user_id, role) values
   ('a0110000-0000-4000-8000-0000000000e1', 'a0110000-0000-4000-8000-000000000001', 'lecture'),

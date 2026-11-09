@@ -122,6 +122,21 @@ test("modèles : pénalités et 40 € pour un professionnel seulement", () => {
   assert.ok(!/%/.test(med), "aucun taux de pénalités écrit");
 });
 
+test("modèles : taux de pénalités figé sur la facture cité dans la 2e relance et la mise en demeure (migration 014)", () => {
+  const avecTaux = (fige) => ({ ...factureModele, emetteur_fige: { nom: "Émetteur SA", ...fige } });
+  const fixe = avecTaux({ penalites_mode: "taux_fixe", penalites_taux: 12.5 });
+  assert.ok(genererRelance(2, fixe, null, null, J).corps.includes("pénalités de retard (taux annuel de 12,5 %) et une indemnité forfaitaire de 40 €"));
+  assert.ok(genererRelance(3, fixe, null, null, J).corps.includes("pénalités de retard (taux annuel de 12,5 %), exigibles depuis le lendemain de l'échéance, et une indemnité forfaitaire de 40 €"));
+  assert.ok(!genererRelance(1, fixe, null, null, J).corps.includes("12,5"));
+  const bce = genererRelance(3, avecTaux({ penalites_mode: "bce_10" }), null, null, J).corps;
+  assert.ok(bce.includes("Banque centrale européenne") && bce.includes("10 points de pourcentage"));
+  assert.ok(genererRelance(2, avecTaux({ penalites_mode: "trois_interet_legal" }), null, null, J).corps.includes("(trois fois le taux d'intérêt légal)"));
+  // Particulier : jamais de taux ni d'indemnité, même figés
+  const particulier = { ...fixe, client_fige: { ...fixe.client_fige, type: "particulier" } };
+  assert.ok(!genererRelance(2, particulier, null, null, J).corps.includes("12,5"));
+  assert.ok(!genererRelance(3, particulier, null, null, J).corps.includes("12,5"));
+});
+
 test("lierAvoirs conserve les relances", () => {
   const [f] = lierAvoirs([{ id: "f", type: "facture", statut: "envoyee", relances: [{ niveau: 2 }] }]);
   assert.equal(niveauSuivant(f), 3);

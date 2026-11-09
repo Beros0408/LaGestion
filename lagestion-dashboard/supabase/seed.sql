@@ -1,9 +1,10 @@
 -- seed.sql — Lagestion
 -- Données de démonstration pour UNE entreprise existante (créée depuis l'onboarding).
--- S'applique après 012_taches_activites.sql, dans le SQL Editor (rôle postgres).
+-- S'applique après 014_mentions.sql, dans le SQL Editor (rôle postgres).
 --
 -- Ce que fait le script :
---   - ne crée aucune entreprise et ne touche ni à entreprises, ni à memberships, ni à profiles ;
+--   - ne crée aucune entreprise et ne touche ni à memberships, ni à profiles ; dans entreprises, pose seulement des
+--     mentions légales FICTIVES (identité juridique, TVA, paiement, assurance : section 1 bis) ;
 --   - écrit en se faisant passer pour un admin de l'entreprise : RLS et triggers des migrations 002/003 s'appliquent ;
 --     seules exceptions, en rôle postgres : la suppression de la démo précédente (une facture émise ne peut pas être
 --     supprimée par un utilisateur) et la pose des statuts des factures et des devis (ils ne peuvent pas être créés
@@ -74,6 +75,19 @@ begin
   if v_admin is null then
     raise exception 'Seed interrompu : l''entreprise % n''a aucun administrateur.', v_ent;
   end if;
+
+  -- 1 bis. Mentions légales FICTIVES de l'entreprise de démonstration (migrations 013 et 014), pour que la finalisation
+  --        fonctionne sur les données de démo. SIREN 121 212 120 : clé valide, introuvable dans l'annuaire des
+  --        entreprises au 9 novembre 2026. Aucun IBAN : un exemple réel de banque ne doit pas figurer sur une facture.
+  update public.entreprises set
+    siret = '12121212000012', adresse = coalesce(nullif(trim(adresse), ''), '12 rue des Lilas, 75011 Paris'),
+    forme_juridique = 'SAS', capital_social = 10000, immatriculation_type = 'rcs', immatriculation_lieu = 'Paris',
+    tva_intra = 'FR56121212120', franchise_tva = false, option_debits = false,
+    penalites_mode = 'bce_10', penalites_taux = null, escompte = 'Pas d''escompte pour paiement anticipé.',
+    delai_paiement_jours = 30, mode_paiement = 'virement', conditions_paiement = '30 jours net', iban = null,
+    assurance_pro = 'Assureur fictif (démonstration), contrat DEMO-0001, France métropolitaine'
+  where id = v_ent;
+  raise notice 'Seed : mentions légales fictives posées sur l''entreprise % (SIRET 121 212 120 00012).', v_ent;
 
   select count(*) into n from public.factures f
    join public.clients c on c.id = f.client_id
@@ -565,6 +579,9 @@ begin
    where f.entreprise_id = v_ent and f.numero like 'DEMO-%' and f.statut <> 'brouillon'
      and f.total_ttc = t.total_ttc and f.tva_detail is not null and f.client_fige is not null and f.emetteur_fige is not null;
   if n <> 15 then raise exception 'Contrôle seed : % document(s) émis figé(s) au lieu de 15', n; end if;
+  if cardinality(public.mentions_manquantes(v_ent)) <> 0 then
+    raise exception 'Contrôle seed : mentions manquantes sur l''entreprise de démo (%)', public.mentions_manquantes(v_ent);
+  end if;
   select count(*) into n from public.factures
    where entreprise_id = v_ent and numero like 'DEMO-%' and statut = 'brouillon' and total_ttc is null;
   if n <> 1 then raise exception 'Contrôle seed : % brouillon(s) de démo au lieu de 1', n; end if;

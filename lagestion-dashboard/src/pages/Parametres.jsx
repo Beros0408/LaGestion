@@ -13,7 +13,7 @@ import {
 } from "../utils/parametres";
 
 const ESCOMPTE_DEFAUT = "Pas d'escompte pour paiement anticipé.";
-const N = " ";
+const N = " ";
 
 const SECTIONS = [
   { to: "/parametres/profil", label: "Profil" },
@@ -154,8 +154,8 @@ function Profil() {
     <form onSubmit={soumettre} noValidate className="space-y-4">
       <Carte titre="Mon profil" description="Votre nom apparaît dans le menu, l'historique des activités et les tâches.">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input label="Nom affiché" autoComplete="name" value={nom} onChange={(e) => setNom(e.target.value)} hint="Laissé vide : la partie de l'e-mail avant @ est affichée." />
-          <Input label="E-mail de connexion" value={email} readOnly disabled hint="Modification de l'e-mail : à venir." />
+          <Input label="Nom affiché" autoComplete="name" value={nom} onChange={(e) => setNom(e.target.value)} hint="Laissé vide : la partie de l'e-mail avant @ est affichée." />
+          <Input label="E-mail de connexion" value={email} readOnly disabled hint="Modification de l'e-mail : à venir." />
         </div>
       </Carte>
       {etat && <Message type={etat.type}>{etat.texte}</Message>}
@@ -187,8 +187,8 @@ function Logo({ entreprise, modifiable }) {
     const fichier = e.target.files?.[0];
     e.target.value = "";
     if (!fichier) return;
-    if (!TYPES_LOGO.includes(fichier.type)) return setEtat({ type: "erreur", texte: "Format refusé : PNG ou JPEG uniquement." });
-    if (fichier.size > TAILLE_MAX_LOGO) return setEtat({ type: "erreur", texte: `Fichier trop lourd : 1${N}Mo au plus.` });
+    if (!TYPES_LOGO.includes(fichier.type)) return setEtat({ type: "erreur", texte: "Format refusé : PNG ou JPEG uniquement." });
+    if (fichier.size > TAILLE_MAX_LOGO) return setEtat({ type: "erreur", texte: `Fichier trop lourd : 1${N}Mo au plus.` });
     setEtat(null);
     setEnvoi(true);
     try {
@@ -215,7 +215,7 @@ function Logo({ entreprise, modifiable }) {
   };
 
   return (
-    <Carte titre="Logo" description={`PNG ou JPEG, 1${N}Mo au plus. Stocké dans un espace privé ; les documents déjà émis gardent le logo de leur émission.`}>
+    <Carte titre="Logo" description={`PNG ou JPEG, 1${N}Mo au plus. Stocké dans un espace privé ; les documents déjà émis gardent le logo de leur émission.`}>
       <div className="flex flex-wrap items-center gap-4">
         <div
           className="flex h-20 w-40 items-center justify-center overflow-hidden rounded-xl"
@@ -282,7 +282,7 @@ function Entreprise() {
     try {
       const ligne = await enregistrerEntreprise(versPatch(form));
       setForm(normaliser(ligne));
-      setEtat({ type: "ok", texte: "Informations de l'entreprise enregistrées. Elles s'appliquent aux prochains documents ; les factures déjà émises ne changent pas." });
+      setEtat({ type: "ok", texte: "Informations de l'entreprise enregistrées. Elles s'appliquent aux prochains documents ; les factures déjà émises ne changent pas." });
     } catch (err) {
       setEtat({ type: "erreur", texte: err?.message ?? "Enregistrement impossible." });
     } finally {
@@ -307,13 +307,13 @@ function Entreprise() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input label="Nom de l'entreprise" required autoComplete="organization" className="md:col-span-2" {...champ("nom")} />
             <Select label="Forme juridique" options={FORME_OPTIONS} {...champ("forme_juridique")} />
-            {form.forme_juridique === FORME_AUTRE && <Input label="Forme juridique (précision)" placeholder="Ex : SELAS" {...champ("forme_autre")} />}
+            {form.forme_juridique === FORME_AUTRE && <Input label="Forme juridique (précision)" placeholder="Ex : SELAS" {...champ("forme_autre")} />}
             {form.forme_juridique !== "EI" && (
               <Input label={`Capital social (€)`} type="number" inputMode="decimal" min="0" step="0.01" hint="Obligatoire pour une société." {...champ("capital_social")} />
             )}
             <Input label="SIRET" inputMode="numeric" hint="14 chiffres (siège)." {...champ("siret")} />
             <Select label="Immatriculation" options={IMMATRICULATIONS} {...champ("immatriculation_type")} />
-            {avecLieu && <Input label={lieuLibelle} placeholder={form.immatriculation_type === "rm" ? "Ex : 75" : "Ex : Paris"} {...champ("immatriculation_lieu")} />}
+            {avecLieu && <Input label={lieuLibelle} placeholder={form.immatriculation_type === "rm" ? "Ex : 75" : "Ex : Paris"} {...champ("immatriculation_lieu")} />}
             <Textarea label="Adresse du siège" rows={2} className="md:col-span-2" {...champ("adresse")} />
           </div>
         </Carte>
@@ -330,7 +330,7 @@ function Entreprise() {
               />
               <Case
                 label="Option pour le paiement de la TVA d'après les débits"
-                hint="Prestations de services uniquement ; mention ajoutée aux factures."
+                hint="Prestations de services uniquement ; mention ajoutée aux factures."
                 checked={form.option_debits}
                 onChange={definir("option_debits")}
               />
@@ -348,28 +348,28 @@ function Entreprise() {
               min="0"
               max={String(DELAI_MAX_JOURS)}
               step="1"
-              hint={`À compter de l'émission ; ${DELAI_MAX_JOURS}${N}jours au plus entre professionnels.`}
+              hint={`À compter de l'émission ; ${DELAI_MAX_JOURS}${N}jours au plus entre professionnels.`}
               {...champ("delai_paiement_jours")}
             />
             <Select label="Mode de paiement" options={MODES_PAIEMENT} {...champ("mode_paiement")} />
-            <Input label="Conditions de paiement" placeholder="Ex : 30 jours net" className="md:col-span-2" {...champ("conditions_paiement")} />
+            <Input label="Conditions de paiement" placeholder="Ex : 30 jours net" className="md:col-span-2" {...champ("conditions_paiement")} />
             <Select
               label="Pénalités de retard"
               options={PENALITES}
               className="md:col-span-2"
-              hint="BCE + 10 points : taux appliqué si rien n'est stipulé (art. L. 441-10 du Code de commerce)."
+              hint={PENALITES.find((p) => p.value === form.penalites_mode)?.aide}
               {...champ("penalites_mode")}
             />
             {form.penalites_mode === "taux_fixe" && (
               <Input label="Taux annuel des pénalités (%)" type="number" inputMode="decimal" min="0" step="0.01" hint="Au moins trois fois le taux d'intérêt légal." {...champ("penalites_taux")} />
             )}
             <Input label="Escompte pour paiement anticipé" className="md:col-span-2" {...champ("escompte")} />
-            <Input label="IBAN" placeholder="FR76 …" hint="Facultatif ; imprimé en pied de facture." className="md:col-span-2" {...champ("iban")} />
+            <Input label="IBAN" placeholder="FR76 …" hint="Facultatif ; imprimé en pied de facture." className="md:col-span-2" {...champ("iban")} />
           </div>
         </Carte>
 
-        <Carte titre="Assurance professionnelle" description="Facultative ici ; obligatoire sur les documents de certaines activités (décennale du BTP).">
-          <Input label="Assureur, n° de contrat et couverture géographique" placeholder="Ex : Assureur X, contrat 123456, France métropolitaine" {...champ("assurance_pro")} />
+        <Carte titre="Assurance professionnelle" description="Facultative ici ; obligatoire sur les documents de certaines activités (décennale du BTP).">
+          <Input label="Assureur, n° de contrat et couverture géographique" placeholder="Ex : Assureur X, contrat 123456, France métropolitaine" {...champ("assurance_pro")} />
         </Carte>
       </fieldset>
 

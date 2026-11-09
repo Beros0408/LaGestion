@@ -30,7 +30,7 @@ export default function DevisDetail() {
   const { devis: tous, chargement, changerStatutDevis, deleteDevis, convertirDevis } = useDevis();
   const { factures, chargement: chargementFactures } = useFactures();
   const { clients, chargement: chargementClients } = useClients();
-  const { peutEcrire, peutSupprimer, entreprise } = useEntreprise();
+  const { peutEcrire, peutSupprimer, entreprise, chargerLogoPdf } = useEntreprise();
 
   const devis = useMemo(() => tous.find((d) => d.id === id), [tous, id]);
   const client = useMemo(() => (devis ? clients.find((c) => c.id === devis.client_id) : null), [clients, devis]);
@@ -114,6 +114,18 @@ export default function DevisDetail() {
     }
   };
 
+  // Logo actuel de l'entreprise (un devis n'est jamais figé) ; s'il est illisible, le PDF part sans logo.
+  const telechargerPdf = async () => {
+    setErreurAction(null);
+    let logo = null;
+    try {
+      logo = await chargerLogoPdf(entreprise?.logo_url);
+    } catch {
+      setErreurAction("Logo indisponible : le PDF a été généré sans logo.");
+    }
+    genererDevisPdf(devis, client, recap, entreprise, logo);
+  };
+
   const confirmerSuppression = async () => {
     setASupprimer(null);
     setErreurAction(null);
@@ -174,7 +186,7 @@ export default function DevisDetail() {
             Tous les devis
           </Link>
           <BoutonSecondaire
-            onClick={() => genererDevisPdf(devis, client, recap, entreprise)}
+            onClick={telechargerPdf}
             ariaLabel={`Télécharger le devis ${devis.numero} en PDF`}
             icon={Download}
             disabled={clientAbsent}

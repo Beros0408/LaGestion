@@ -15,6 +15,7 @@ import {
 import { LIBELLE_NIVEAU, niveauSuivant, peutRelancer } from "../data/relances";
 import FenetreRelance from "../components/FenetreRelance.jsx";
 import { genererFacturePdf } from "../utils/facturePdf";
+import { CATEGORIES_OPERATION, avertissementSirenClient, emetteurDocument, mentionsManquantes } from "../utils/mentions";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
 import {
   BoutonSecondaire, CarteBloc, CarteClient, CarteLignes, CarteResume, MenuStatut, Panneau, Spinner,
@@ -68,7 +69,7 @@ export default function FactureDetail() {
     factures, chargement, changerStatut, finaliserFacture, ajouterPaiement, supprimerPaiement, dupliquerFacture,
   } = useFactures();
   const { clients, chargement: chargementClients } = useClients();
-  const { peutEcrire, peutSupprimer, entreprise, role } = useEntreprise();
+  const { peutEcrire, peutSupprimer, entreprise, role, estAdmin, chargerLogoPdf } = useEntreprise();
   const { devis } = useDevis();
 
   const facture = useMemo(() => factures.find((f) => f.id === id), [factures, id]);
@@ -107,6 +108,7 @@ export default function FactureDetail() {
   const [erreurAction, setErreurAction] = useState(null);
   const [aFinaliser, setAFinaliser] = useState(null);
   const [aRelancer, setARelancer] = useState(null);
+  const [mentionsAbsentes, setMentionsAbsentes] = useState(null);
   const jour = useMemo(() => jourParis(), []);
 
   if (chargement && !facture) {
@@ -200,6 +202,26 @@ export default function FactureDetail() {
 
   const handleImprimer = () => window.print();
 
+  // Logo figé (document émis) ou actuel (brouillon) ; s'il est illisible, le PDF part sans logo et l'écran le dit.
+  const telechargerPdf = async () => {
+    setErreurAction(null);
+    let logo = null;
+    try {
+      logo = await chargerLogoPdf(emetteurDocument(facture, entreprise)?.logo);
+    } catch {
+      setErreurAction("Logo indisponible : le PDF a été généré sans logo.");
+    }
+    genererFacturePdf(facture, client, recap, entreprise, devisOrigine, logo);
+  };
+
+  // Mentions obligatoires absentes : la base refuserait la finalisation ; on le dit avant d'ouvrir la confirmation.
+  const demanderFinalisation = (e) => {
+    const manque = mentionsManquantes(entreprise);
+    setMentionsAbsentes(manque.length ? manque : null);
+    if (!manque.length) setAFinaliser({ element: e.currentTarget });
+  };
+  const alerteSiren = estAvoir ? null : avertissementSirenClient(client);
+
   return (
     <>
       {erreurAction && (
@@ -214,6 +236,26 @@ export default function FactureDetail() {
         >
           <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
           <span>{erreurAction}</span>
+        </div>
+      )}
+      {mentionsAbsentes && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 rounded-xl p-3 text-sm"
+          style={{ backgroundColor: alpha(C.error, 0.06), color: C.errorText, border: `1px solid ${C.error}` }}
+        >
+          <AlertCircle size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+          <span>
+            <strong className="font-semibold">Finalisation impossible : mentions obligatoires manquantes.</strong>{" "}
+            {`À compléter : ${mentionsAbsentes.join(", ")}. `}
+            {estAdmin ? (
+              <Link to="/parametres/entreprise" className="rounded font-semibold underline focus:outline-none focus-visible:ring-2" style={{ color: C.errorText }}>
+                Compléter les paramètres de l'entreprise
+              </Link>
+            ) : (
+              "Un administrateur doit les renseigner dans Paramètres, Entreprise."
+            )}
+          </span>
         </div>
       )}
 
@@ -294,7 +336,7 @@ export default function FactureDetail() {
             Toutes les factures
           </Link>
           <BoutonSecondaire
-            onClick={() => genererFacturePdf(facture, client, recap, entreprise, devisOrigine)}
+            onClick={telechargerPdf}
             ariaLabel={`Télécharger ${nomFacture} en PDF`}
             icon={Download}
           >
@@ -358,7 +400,7 @@ export default function FactureDetail() {
                   {peutFinaliser && (
                     <button
                       type="button"
-                      onClick={(e) => setAFinaliser({ element: e.currentTarget })}
+                      onClick={demanderFinalisation}
                       disabled={actionEnCours}
                       className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
                       style={{ backgroundColor: C.primary }}
@@ -503,7 +545,7 @@ export default function FactureDetail() {
         titre={estAvoir ? `Finaliser cet avoir ?` : `Finaliser cette facture ?`}
         message={estAvoir
           ? `Il recevra son numéro définitif et sera daté du ${dateDuJourParis()}. Cette action est irréversible : l'avoir ne pourra plus être modifié ni supprimé.${soldeOrigine ? ` La facture ${facture.origine_numero} passera au statut annulée.` : ""}`
-          : `Elle recevra son numéro définitif et sera datée du ${dateDuJourParis()}. Cette action est irréversible : la facture ne pourra plus être modifiée ni supprimée, sa correction passera par un avoir.`}
+          : `Elle recevra son numéro définitif et sera datée du ${dateDuJourParis()}. Cette action est irréversible : la facture ne pourra plus être modifiée ni supprimée, sa correction passera par un avoir.${alerteSiren ? ` Attention : ${alerteSiren}` : ""}`}
         libelleAnnuler="Annuler"
         libelleConfirmer="Finaliser"
         onAnnuler={() => setAFinaliser(null)}
@@ -880,6 +922,12 @@ function CarteMetaFacture({ facture }) {
   const items = [
     facture.mode_paiement && { label: "Mode de paiement", value: MODE_PAIEMENT_LIBELLES[facture.mode_paiement] ?? facture.mode_paiement },
     facture.conditions_paiement && { label: "Conditions de paiement", value: facture.conditions_paiement },
+    facture.date_prestation && { label: "Date de la prestation ou de la livraison", value: formaterDateLongue(facture.date_prestation) },
+    facture.categorie_operation && {
+      label: "Catégorie de l'opération",
+      value: CATEGORIES_OPERATION.find((c) => c.value === facture.categorie_operation)?.label ?? facture.categorie_operation,
+    },
+    facture.adresse_livraison && { label: "Adresse de livraison", value: facture.adresse_livraison },
   ].filter(Boolean);
 
   if (items.length === 0) return null;

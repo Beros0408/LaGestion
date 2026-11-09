@@ -20,6 +20,7 @@ import Textarea from "../components/form/Textarea.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { MODES_PAIEMENT, defautsPaiement } from "../utils/parametres";
+import { CATEGORIES_OPERATION, avertissementSirenClient } from "../utils/mentions";
 import LignesDocument from "../components/document/LignesDocument.jsx";
 import RecapitulatifDocument from "../components/document/RecapitulatifDocument.jsx";
 
@@ -32,6 +33,9 @@ const VIDE = {
   conditions_paiement: "",
   notes_internes: "",
   message_client: "",
+  categorie_operation: "services",
+  date_prestation: "",
+  adresse_livraison: "",
   lignes: [{ ...LIGNE_VIDE }],
 };
 
@@ -45,6 +49,9 @@ function normaliser(existant) {
     conditions_paiement: existant.conditions_paiement ?? "",
     notes_internes: existant.notes_internes ?? "",
     message_client: existant.message_client ?? "",
+    categorie_operation: existant.categorie_operation ?? "services",
+    date_prestation: existant.date_prestation ?? "",
+    adresse_livraison: existant.adresse_livraison ?? "",
     lignes: (existant.lignes ?? []).map(ligneVersFormulaire),
   };
 }
@@ -185,6 +192,9 @@ export default function FactureForm() {
       conditions_paiement: form.conditions_paiement,
       notes_internes: form.notes_internes,
       message_client: form.message_client,
+      categorie_operation: form.categorie_operation || null,
+      date_prestation: form.date_prestation || null,
+      adresse_livraison: form.adresse_livraison,
       ...(estAcompte ? {} : { lignes: form.lignes.map(ligneDepuisFormulaire) }),
     };
 
@@ -243,6 +253,7 @@ export default function FactureForm() {
               onChange={(e) => definir("client_id")(e.target.value)}
               options={clientOptions}
               error={errors.client_id}
+              hint={avertissementSirenClient(clients.find((c) => c.id === form.client_id)) ?? undefined}
             />
             <Input
               label="Date d'émission prévue"
@@ -267,6 +278,26 @@ export default function FactureForm() {
               value={form.conditions_paiement}
               onChange={(e) => definir("conditions_paiement")(e.target.value)}
               placeholder="Ex : 30 jours net"
+            />
+            <Select
+              label="Catégorie de l'opération"
+              value={form.categorie_operation}
+              onChange={(e) => definir("categorie_operation")(e.target.value)}
+              options={CATEGORIES_OPERATION}
+            />
+            <Input
+              label="Date de la prestation ou de la livraison"
+              type="date"
+              value={form.date_prestation}
+              onChange={(e) => definir("date_prestation")(e.target.value)}
+              hint="Laissée vide : la date d'émission est retenue à la finalisation."
+            />
+            <Input
+              label="Adresse de livraison ou du chantier"
+              value={form.adresse_livraison}
+              onChange={(e) => definir("adresse_livraison")(e.target.value)}
+              hint="Seulement si elle diffère de l'adresse du client."
+              className="md:col-span-2"
             />
           </div>
         </div>

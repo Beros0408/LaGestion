@@ -29,6 +29,9 @@ insert into public.entreprises (id, nom, siret, adresse) values
   ('a0080000-0000-4000-8000-0000000000e3', 'Sans SIRET (test 008)', '  ', '3 rue, 44000 Nantes'),
   ('a0080000-0000-4000-8000-0000000000e4', 'Sans adresse (test 008)', '44444444400044', null),
   ('a0080000-0000-4000-8000-0000000000e5', 'Séries anciennes (test 008)', '55555555500055', '5 rue, 33000 Bordeaux');
+-- Mentions minimales exigées à la finalisation depuis la migration 014 (testées dans 014_mentions.sql)
+update public.entreprises set forme_juridique = 'EI', immatriculation_type = 'dispense', tva_intra = 'FR00000000000'
+ where id::text like 'a0080000-0000-4000-8000-0000000000e%';
 
 insert into public.memberships (entreprise_id, user_id, role) values
   ('a0080000-0000-4000-8000-0000000000e1', 'a0080000-0000-4000-8000-000000000001', 'lecture'),

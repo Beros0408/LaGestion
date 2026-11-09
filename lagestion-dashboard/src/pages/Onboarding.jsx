@@ -8,6 +8,9 @@ import { useEntreprise } from "../context/EntrepriseContext.jsx";
 function valider(nom, siret) {
   const erreurs = {};
   if (!nom.trim()) erreurs.nom = "Le nom de l'entreprise est obligatoire.";
+  else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nom.trim())) {
+    erreurs.nom = "Saisissez le nom de l'entreprise, pas une adresse e-mail : il figure sur vos devis et vos factures.";
+  }
   const s = siret.replace(/\s/g, "");
   if (s && !/^\d{14}$/.test(s)) erreurs.siret = "Le SIRET doit comporter exactement 14 chiffres.";
   return erreurs;

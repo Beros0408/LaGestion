@@ -53,7 +53,7 @@ const preparation = `
 \\set ON_ERROR_STOP on
 ${nettoyage}
 insert into auth.users (id, email, aud, role) values ('${ADMIN}', 'concurrence-010@lagestion.invalid', 'authenticated', 'authenticated');
-insert into public.entreprises (id, nom, siret, adresse) values ('${E}', 'Concurrence 010', '11111111100011', '1 rue du Test');
+insert into public.entreprises (id, nom, siret, adresse, forme_juridique, immatriculation_type, tva_intra) values ('${E}', 'Concurrence 010', '11111111100011', '1 rue du Test', 'EI', 'dispense', 'FR00000000000');
 insert into public.memberships (entreprise_id, user_id, role) values ('${E}', '${ADMIN}', 'admin');
 insert into public.clients (id, entreprise_id, nom) values ('${C}', '${E}', 'Client');
 ${AUTH}

@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { supabase } from "../lib/supabase";
 import { useAuth } from "./AuthContext.jsx";
 import { erreurFrancaise, messageErreur } from "../utils/erreurs";
+import { lireLogo } from "../utils/logo";
 
 const EntrepriseContext = createContext(null);
 
@@ -169,6 +170,14 @@ export function EntrepriseProvider({ children }) {
     return data?.signedUrl ?? null;
   }, []);
 
+  // Logo d'un document (chemin figé ou actuel) téléchargé depuis le bucket privé, pour le PDF ; null sans logo.
+  const chargerLogoPdf = useCallback(async (chemin) => {
+    if (!chemin) return null;
+    const { data, error } = await supabase.storage.from("logos").download(chemin);
+    if (error) throw erreurFrancaise(error);
+    return lireLogo(data);
+  }, []);
+
   const value = useMemo(() => {
     const courante = appartenances.find((a) => a.entrepriseId === entrepriseId) ?? null;
     const role = courante?.role ?? null;
@@ -194,9 +203,10 @@ export function EntrepriseProvider({ children }) {
       enregistrerEntreprise,
       enregistrerLogo,
       lienLogo,
+      chargerLogoPdf,
       recharger: charger,
     };
-  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, enregistrerNom, enregistrerEntreprise, enregistrerLogo, lienLogo, charger]);
+  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, enregistrerNom, enregistrerEntreprise, enregistrerLogo, lienLogo, chargerLogoPdf, charger]);
 
   return <EntrepriseContext.Provider value={value}>{children}</EntrepriseContext.Provider>;
 }

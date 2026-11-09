@@ -13,9 +13,12 @@ export const IMMATRICULATIONS = [
 ];
 
 export const PENALITES = [
-  { value: "bce_10", label: "Taux BCE + 10 points (par défaut)" },
-  { value: "trois_interet_legal", label: "3 × taux d'intérêt légal (minimum)" },
-  { value: "taux_fixe", label: "Taux annuel fixe" },
+  { value: "bce_10", label: "Taux BCE + 10 points (par défaut)",
+    aide: "Taux appliqué si rien n'est stipulé (art. L. 441-10 du Code de commerce)." },
+  { value: "trois_interet_legal", label: "3 × taux d'intérêt légal (minimum)",
+    aide: "Minimum légal entre professionnels ; le taux d'intérêt légal est révisé chaque semestre." },
+  { value: "taux_fixe", label: "Taux annuel fixe",
+    aide: "Taux saisi ci-dessous, imprimé sur les factures et cité dans les relances." },
 ];
 
 export const MODES_PAIEMENT = [
@@ -67,7 +70,7 @@ export const normaliserIban = (iban) => sansEspaces(iban).toUpperCase();
 export function erreurTva(tva, siret) {
   const t = normaliserTva(tva);
   if (!t) return null;
-  if (!/^[A-Z]{2}[0-9A-Z]{2,13}$/.test(t)) return "Format attendu : deux lettres du pays puis le numéro (ex. FR32123456789).";
+  if (!/^[A-Z]{2}[0-9A-Z]{2,13}$/.test(t)) return "Format attendu : deux lettres du pays puis le numéro (ex. FR32123456789).";
   if (!t.startsWith("FR")) return null;
   const m = /^FR([0-9]{2})([0-9]{9})$/.exec(t);
   if (!m) return "Un numéro français comporte FR, une clé de 2 chiffres et le SIREN (9 chiffres).";
@@ -100,7 +103,7 @@ export function validerParametres(f) {
     const c = Number(f.capital_social);
     if (Number.isNaN(c) || c < 0) e.capital_social = "Le capital doit être un montant positif ou nul.";
   }
-  if (sansEspaces(f.siret) && !siretValide(f.siret)) e.siret = "SIRET invalide : 14 chiffres avec une clé de contrôle exacte.";
+  if (sansEspaces(f.siret) && !siretValide(f.siret)) e.siret = "SIRET invalide : 14 chiffres avec une clé de contrôle exacte.";
   if ((f.immatriculation_type === "rcs" || f.immatriculation_type === "rm") && !String(f.immatriculation_lieu ?? "").trim()) {
     e.immatriculation_lieu = f.immatriculation_type === "rcs" ? "Indiquez la ville du greffe." : "Indiquez le département de la chambre de métiers.";
   }
@@ -114,7 +117,7 @@ export function validerParametres(f) {
     const t = Number(f.penalites_taux);
     if (f.penalites_taux === "" || Number.isNaN(t) || t <= 0 || t > 100) e.penalites_taux = "Taux annuel en %, supérieur à 0 et au plus 100.";
   }
-  if (normaliserIban(f.iban) && !ibanValide(f.iban)) e.iban = "IBAN invalide : vérifiez sa saisie (clé de contrôle inexacte).";
+  if (normaliserIban(f.iban) && !ibanValide(f.iban)) e.iban = "IBAN invalide : vérifiez sa saisie (clé de contrôle inexacte).";
   return e;
 }
 

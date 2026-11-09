@@ -19,6 +19,9 @@ const CHAMPS_FACTURE = [
   "notes_internes",
   "message_client",
   "motif",
+  "categorie_operation",
+  "date_prestation",
+  "adresse_livraison",
 ];
 const CHAMPS_PAIEMENT = ["date", "montant", "mode", "reference", "sens"];
 

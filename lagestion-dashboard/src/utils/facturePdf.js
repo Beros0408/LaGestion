@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import { ligneHT, remiseGlobale, statutCalcule, totalHTBrut, totalHT, tvaParTaux, totalTTC } from "./facture";
 import { LIBELLE_STATUT } from "../data/factures";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis";
+import { emetteurDocument, lignesIdentite, lignesMentions } from "./mentions";
 
 const COLORS = {
   primary:       [45, 91, 127],
@@ -46,23 +47,35 @@ function descriptionAvecReference(l) {
   return l.reference ? `${base}\n(Réf. ${l.reference})` : base;
 }
 
-// Identité de l'entreprise émettrice (table entreprises) ; les champs vides sont omis.
-function ecrireEmetteur(doc, entreprise, x, largeur) {
+// Logo : 40 × 16 mm au plus, proportions conservées (image lue par utils/logo.js).
+const LOGO_LARGEUR_MAX = 40;
+const LOGO_HAUTEUR_MAX = 16;
+
+// Identité de l'émetteur (figée ou actuelle, voir emetteurDocument) ; les champs vides sont omis.
+function ecrireEmetteur(doc, entreprise, x, largeur, logo) {
+  let haut = 24;
+  if (logo?.dataUrl && logo.largeur > 0 && logo.hauteur > 0) {
+    const echelle = Math.min(LOGO_LARGEUR_MAX / logo.largeur, LOGO_HAUTEUR_MAX / logo.hauteur);
+    const h = logo.hauteur * echelle;
+    doc.addImage(logo.dataUrl, logo.format, x, 12, logo.largeur * echelle, h);
+    haut = 12 + h + 6;
+  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   doc.setTextColor(...COLORS.primary);
   const nom = doc.splitTextToSize(entreprise?.nom || "—", largeur);
-  doc.text(nom, x, 24);
-  let y = 24 + (nom.length - 1) * 6;
+  doc.text(nom, x, haut);
+  let y = haut + (nom.length - 1) * 6;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...COLORS.textSecondary);
-  const siret = (entreprise?.siret || "").trim();
-  if (siret) {
+  lignesIdentite(entreprise).forEach((texte) => {
+    const lignes = doc.splitTextToSize(texte, largeur);
     y += 5;
-    doc.text(`SIRET ${siret}`, x, y);
-  }
+    doc.text(lignes, x, y);
+    y += (lignes.length - 1) * 4;
+  });
   const adresse = (entreprise?.adresse || "").trim();
   if (adresse) {
     const lignes = doc.splitTextToSize(adresse, largeur);
@@ -95,7 +108,7 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
   const margin = 20;
   const limiteBas = pageH - 26; // au-dessus du pied de page
 
-  const basEmetteur = ecrireEmetteur(doc, entreprise, margin, pageW / 2 - margin);
+  const basEmetteur = ecrireEmetteur(doc, entreprise, margin, pageW / 2 - margin, config.logo);
 
   doc.setFont("helvetica", "bold");
   // Titres longs (facture d'acompte, de solde) : plus petits, pour ne pas toucher l'identité de l'émetteur.
@@ -306,6 +319,31 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
     basContenu = messageY + lignesMessage.length * 4;
   }
 
+  // Mentions légales (utils/mentions.js) : sous les totaux et le message, une page de plus si besoin.
+  const mentionsLegales = config.mentionsLegales ?? [];
+  if (mentionsLegales.length) {
+    doc.setFontSize(8);
+    const blocs = mentionsLegales.map((t) => doc.splitTextToSize(t, pageW - margin * 2));
+    const hauteur = 5 + blocs.reduce((s, b) => s + b.length * 3.6, 0);
+    let mentionsY = basContenu + 12;
+    const reserve = config.bonPourAccord ? HAUTEUR_BON_POUR_ACCORD + 8 : 0;
+    if (mentionsY + hauteur > limiteBas - reserve) {
+      doc.addPage();
+      mentionsY = 25;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.textSecondary);
+    doc.text("MENTIONS", margin, mentionsY);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.textPrimary);
+    mentionsY += 4.5;
+    blocs.forEach((b) => {
+      doc.text(b, margin, mentionsY);
+      mentionsY += b.length * 3.6;
+    });
+    basContenu = mentionsY;
+  }
+
   if (config.bonPourAccord) {
     if (basContenu + 8 + HAUTEUR_BON_POUR_ACCORD > limiteBas) doc.addPage();
     zoneBonPourAccord(doc, margin, limiteBas - HAUTEUR_BON_POUR_ACCORD, pageW - margin * 2);
@@ -320,19 +358,23 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.textSecondary);
   doc.text(`Statut : ${config.statut}`, margin, footerY);
-  if (config.mentionPied) {
-    doc.text(config.mentionPied, pageW - margin, footerY, { align: "right" });
-  }
 
   doc.save(config.nomFichier ?? `${document.numero}.pdf`);
 }
 
-// Facture émise : identités figées à la finalisation. Brouillon : présenté comme tel, sans numéro ni date d'émission.
-export function genererFacturePdf(facture, client, totaux, entreprise, devisOrigine = null) {
+// Facture émise : identités et mentions figées à la finalisation (un document antérieur à la migration 014
+// n'imprime que ce que contient son emetteur_fige). Brouillon : paramètres actuels, sans numéro ni date d'émission.
+// logo : { dataUrl, format, largeur, hauteur } chargé par l'écran (bucket privé), ou null.
+export function genererFacturePdf(facture, client, totaux, entreprise, devisOrigine = null, logo = null) {
   const brouillon = facture.statut === "brouillon";
+  const emetteur = emetteurDocument(facture, entreprise);
+  const clientDoc = facture.client_fige ?? client;
+  const mentionsLegales = lignesMentions({ type: facture.type ?? "facture", document: facture, emetteur, client: clientDoc });
   if (facture.type === "avoir") {
     const dateOrigine = facture.origine_date ? ` du ${formatDate(facture.origine_date)}` : "";
-    genererDocumentPdf(facture, facture.client_fige ?? client, totaux, facture.emetteur_fige ?? entreprise, {
+    genererDocumentPdf(facture, clientDoc, totaux, emetteur, {
+      logo,
+      mentionsLegales,
       titre: brouillon ? "BROUILLON D'AVOIR" : "AVOIR",
       reference: brouillon ? "Sans valeur d'avoir" : undefined,
       nomFichier: brouillon ? "brouillon-avoir.pdf" : undefined,
@@ -350,7 +392,9 @@ export function genererFacturePdf(facture, client, totaux, entreprise, devisOrig
   const estAcompte = facture.type === "acompte";
   const estSolde = facture.type === "solde";
   const refDevis = devisOrigine ? ` ${devisOrigine.numero} du ${formatDate(devisOrigine.date_emission)}` : "";
-  genererDocumentPdf(facture, facture.client_fige ?? client, totaux, facture.emetteur_fige ?? entreprise, {
+  genererDocumentPdf(facture, clientDoc, totaux, emetteur, {
+    logo,
+    mentionsLegales,
     titre: brouillon
       ? (estAcompte ? "BROUILLON D'ACOMPTE" : estSolde ? "BROUILLON DE SOLDE" : "BROUILLON")
       : (estAcompte ? "FACTURE D'ACOMPTE" : estSolde ? "FACTURE DE SOLDE" : "FACTURE"),
@@ -366,12 +410,15 @@ export function genererFacturePdf(facture, client, totaux, entreprise, devisOrig
       { texte: `Échéance le ${formatDate(facture.date_echeance)}` },
     ],
     statut: LIBELLE_STATUT[statutCalcule(facture)] ?? facture.statut ?? "—",
-    mentionPied: "En cas de retard de paiement, des pénalités seront exigibles au taux légal en vigueur.",
   });
 }
 
-export function genererDevisPdf(devis, client, totaux, entreprise) {
-  genererDocumentPdf(devis, client, totaux, entreprise, {
+// Devis : jamais figé, paramètres actuels de l'entreprise.
+export function genererDevisPdf(devis, client, totaux, entreprise, logo = null) {
+  const emetteur = emetteurDocument(null, entreprise);
+  genererDocumentPdf(devis, client, totaux, emetteur, {
+    logo,
+    mentionsLegales: lignesMentions({ type: "devis", document: devis, emetteur, client }),
     titre: "DEVIS",
     destinataire: "DEVIS POUR",
     dates: [
