@@ -26,6 +26,10 @@ export function messageErreur(error) {
       return "Opération impossible : cet élément est lié à d'autres données.";
     case "23502":
       return "Opération impossible : aucune entreprise n'est sélectionnée.";
+    case "23514":
+      // Contraintes de la migration 015 : désignation obligatoire sur les lignes.
+      if (message.includes("description_non_vide")) return "La description de chaque ligne est obligatoire.";
+      return MESSAGE_TECHNIQUE;
     case "P0001":
       // Exceptions levées par nos fonctions et triggers, rédigées en français.
       if (message.includes("même entreprise")) {

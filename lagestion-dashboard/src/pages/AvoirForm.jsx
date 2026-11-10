@@ -6,7 +6,7 @@ import { useFactures } from "../context/FacturesContext.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 import { peutCreerAvoir } from "../data/factures";
 import { resteCreditable, totalTTC, totalHT, totalTVA } from "../utils/facture";
-import { calculerRecap } from "../utils/lignesDocument";
+import { MESSAGE_DESCRIPTION, calculerRecap, descriptionVide } from "../utils/lignesDocument";
 import Input from "../components/form/Input.jsx";
 import Textarea from "../components/form/Textarea.jsx";
 
@@ -103,7 +103,7 @@ export default function AvoirForm({ edition = false }) {
 
   const definirLigne = (taux, cle, valeur) => {
     setForm((prev) => ({ ...prev, parTaux: { ...prev.parTaux, [taux]: { ...prev.parTaux[taux], [cle]: valeur } } }));
-    setErrors((prev) => ({ ...prev, [`ht${taux}`]: undefined, lignes: undefined }));
+    setErrors((prev) => ({ ...prev, [`${cle === "ht" ? "ht" : "desc"}${taux}`]: undefined, lignes: undefined }));
   };
 
   const valider = () => {
@@ -115,6 +115,8 @@ export default function AvoirForm({ edition = false }) {
         const ht = Number(brut);
         if (brut !== "" && (Number.isNaN(ht) || ht < 0)) errs[`ht${r.taux}`] = "Montant positif attendu.";
         else if (Math.round(ht * 100) > Math.round(r.base * 100)) errs[`ht${r.taux}`] = `Au plus ${euroCentimes(r.base)} HT.`;
+        // Ligne créée seulement si le montant est positif : la description n'est exigée que dans ce cas.
+        if (ht > 0 && descriptionVide(form.parTaux[r.taux]?.description)) errs[`desc${r.taux}`] = MESSAGE_DESCRIPTION;
       });
       if (lignes.length === 0) errs.lignes = "Indiquez au moins un montant à créditer.";
     }
@@ -125,7 +127,11 @@ export default function AvoirForm({ edition = false }) {
     e.preventDefault();
     const errs = valider();
     setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length > 0) {
+      const taux = reste.find((r) => errs[`desc${r.taux}`])?.taux;
+      if (taux !== undefined) document.getElementById(`avoir-description-${taux}`)?.focus();
+      return;
+    }
     setErreurEnvoi(null);
     setEnvoi(true);
     try {
@@ -202,10 +208,12 @@ export default function AvoirForm({ edition = false }) {
               {reste.map((r) => (
                 <div key={r.taux} className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <Input
+                    id={`avoir-description-${r.taux}`}
                     label={`Description (TVA ${String(r.taux).replace(".", ",")} %)`}
                     className="md:col-span-2"
                     value={form.parTaux[r.taux]?.description ?? ""}
                     onChange={(e) => definirLigne(r.taux, "description", e.target.value)}
+                    error={errors[`desc${r.taux}`]}
                   />
                   <Input
                     label="Montant HT (€)"

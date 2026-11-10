@@ -4,7 +4,7 @@ import { Plus, Trash2, Boxes } from "lucide-react";
 import { C, alpha, euroCentimes } from "../../theme";
 import { TAUX_TVA } from "../../data/factures";
 import { ligneHT } from "../../utils/facture";
-import { LIGNE_VIDE, ligneRemplie } from "../../utils/lignesDocument";
+import { LIGNE_VIDE, idChampLigne, ligneRemplie } from "../../utils/lignesDocument";
 import Input from "../form/Input.jsx";
 import Select from "../form/Select.jsx";
 import ChoixCatalogue from "../ChoixCatalogue.jsx";
@@ -62,8 +62,11 @@ export default function LignesDocument({ lignes, errors, setForm, setErrors }) {
       ),
     }));
     setErrors((prev) => {
-      if (!prev.ligneItems?.[i]?.prix_unitaire) return prev;
-      return { ...prev, ligneItems: prev.ligneItems.map((e, idx) => (idx === i ? { ...e, prix_unitaire: undefined } : e)) };
+      if (!prev.ligneItems?.[i]?.prix_unitaire && !prev.ligneItems?.[i]?.description) return prev;
+      return {
+        ...prev,
+        ligneItems: prev.ligneItems.map((e, idx) => (idx === i ? { ...e, prix_unitaire: undefined, description: undefined } : e)),
+      };
     });
   };
 
@@ -137,10 +140,13 @@ export default function LignesDocument({ lignes, errors, setForm, setErrors }) {
                   </div>
                   <div className="col-span-12 md:col-span-8">
                     <Input
+                      id={idChampLigne(i, "description")}
                       label={`Description ligne ${i + 1}`}
+                      required
                       value={l.description}
                       onChange={(e) => majLigne(i, "description", e.target.value)}
                       placeholder="Prestation, produit…"
+                      error={erreursLigne.description}
                     />
                   </div>
                   <div className="col-span-6 md:col-span-2">
@@ -162,6 +168,7 @@ export default function LignesDocument({ lignes, errors, setForm, setErrors }) {
       
                   <div className="col-span-4 md:col-span-2">
                     <Input
+                      id={idChampLigne(i, "quantite")}
                       label="Quantité"
                       type="number"
                       inputMode="decimal"
@@ -174,6 +181,7 @@ export default function LignesDocument({ lignes, errors, setForm, setErrors }) {
                   </div>
                   <div className="col-span-4 md:col-span-2">
                     <Input
+                      id={idChampLigne(i, "prix_unitaire")}
                       label="Prix U. HT (€)"
                       type="number"
                       inputMode="decimal"
@@ -186,6 +194,7 @@ export default function LignesDocument({ lignes, errors, setForm, setErrors }) {
                   </div>
                   <div className="col-span-4 md:col-span-2">
                     <Input
+                      id={idChampLigne(i, "remise")}
                       label="Remise (€)"
                       type="number"
                       inputMode="decimal"

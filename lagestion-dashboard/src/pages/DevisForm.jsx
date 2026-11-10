@@ -11,6 +11,7 @@ import {
   calculerRecap,
   ligneDepuisFormulaire,
   ligneVersFormulaire,
+  premierChampEnErreur,
   validerLignes,
 } from "../utils/lignesDocument";
 import Input from "../components/form/Input.jsx";
@@ -158,7 +159,11 @@ export default function DevisForm() {
     e.preventDefault();
     const errs = valider(form);
     setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length > 0) {
+      const champ = premierChampEnErreur(errs.ligneItems);
+      if (champ) document.getElementById(champ)?.focus();
+      return;
+    }
 
     const payload = {
       client_id: form.client_id,

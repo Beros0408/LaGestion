@@ -2,6 +2,20 @@
 import { totalHTBrut, remiseGlobale, totalHT, tvaParTaux, totalTVA, totalTTC } from "./facture.js";
 
 export const MESSAGE_REMISE_PLAFOND = "La remise globale ne peut pas dépasser le total HT des lignes.";
+export const MESSAGE_DESCRIPTION = "La description est obligatoire.";
+
+// Description vide ou faite d'espaces (trim retire aussi l'espace insécable) : mention obligatoire refusée.
+export const descriptionVide = (d) => (d ?? "").trim() === "";
+
+// Identifiant du champ d'une ligne (focus sur la première erreur).
+export const idChampLigne = (i, cle) => `ligne-${i}-${cle}`;
+const ORDRE_CHAMPS = ["description", "quantite", "prix_unitaire", "remise"];
+
+// Premier champ en erreur de la première ligne en erreur, ou null.
+export function premierChampEnErreur(ligneItems) {
+  const i = (ligneItems ?? []).findIndex((e) => e && ORDRE_CHAMPS.some((c) => e[c]));
+  return i < 0 ? null : idChampLigne(i, ORDRE_CHAMPS.find((c) => ligneItems[i][c]));
+}
 
 export const LIGNE_VIDE = {
   description: "",
@@ -54,6 +68,7 @@ export function validerLignes(lignes) {
     const q = Number(l.quantite);
     const p = Number(l.prix_unitaire);
     const r = Number(l.remise);
+    if (descriptionVide(l.description)) e.description = MESSAGE_DESCRIPTION;
     if (l.quantite === "" || Number.isNaN(q) || q <= 0) e.quantite = "Quantité positive.";
     if (l.prix_unitaire === "" || Number.isNaN(p) || p <= 0) e.prix_unitaire = "Prix positif.";
     if (l.remise !== "" && (Number.isNaN(r) || r < 0)) e.remise = "Remise ≥ 0.";

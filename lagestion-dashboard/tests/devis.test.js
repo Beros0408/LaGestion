@@ -3,7 +3,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { calculerTotaux } from "../src/utils/facture.js";
-import { calculerRecap, preparerLignes, validerLignes } from "../src/utils/lignesDocument.js";
+import {
+  MESSAGE_DESCRIPTION, calculerRecap, descriptionVide, premierChampEnErreur, preparerLignes, validerLignes,
+} from "../src/utils/lignesDocument.js";
+import { messageErreur } from "../src/utils/erreurs.js";
 import { aujourdhui, dansJours, devisModifiable, statutsSuivants, validiteDepassee } from "../src/data/devis.js";
 
 test("statuts proposés : converti jamais, accepté réservé à la direction", () => {
@@ -50,9 +53,38 @@ test("lignes préparées pour un devis : clé du parent et valeurs normalisées"
 
 test("validation des lignes", () => {
   assert.deepEqual(validerLignes([]), { lignes: "Ajoutez au moins une ligne." });
-  assert.deepEqual(validerLignes([{ quantite: "1", prix_unitaire: "10", remise: "0" }]), {});
-  const { ligneItems } = validerLignes([{ quantite: "0", prix_unitaire: "", remise: "-1" }]);
+  assert.deepEqual(validerLignes([{ description: "Pose", quantite: "1", prix_unitaire: "10", remise: "0" }]), {});
+  const { ligneItems } = validerLignes([{ description: "Pose", quantite: "0", prix_unitaire: "", remise: "-1" }]);
   assert.deepEqual(Object.keys(ligneItems[0]).sort(), ["prix_unitaire", "quantite", "remise"]);
+});
+
+test("description obligatoire : vide, espaces, tabulation, espaces insécables refusés", () => {
+  const ligne = { quantite: "1", prix_unitaire: "10", remise: "0" };
+  for (const d of ["", "   ", "\t", " ", "   ", undefined, null]) {
+    assert.equal(descriptionVide(d), true, JSON.stringify(d));
+    assert.deepEqual(validerLignes([{ ...ligne, description: d }]), { ligneItems: [{ description: MESSAGE_DESCRIPTION }] }, JSON.stringify(d));
+  }
+  assert.equal(MESSAGE_DESCRIPTION, "La description est obligatoire.");
+  assert.equal(descriptionVide(" Pose "), false);
+  // Ligne choisie dans le catalogue : la description reprise (nom de l'article) suffit
+  assert.deepEqual(validerLignes([{ ...ligne, description: "Carrelage 30×30", produit_id: "p1" }]), {});
+});
+
+test("focus : premier champ en erreur de la première ligne en erreur", () => {
+  const ligne = { description: "Pose", quantite: "1", prix_unitaire: "10", remise: "0" };
+  const { ligneItems } = validerLignes([ligne, { ...ligne, description: " ", prix_unitaire: "" }, { ...ligne, description: "" }]);
+  assert.equal(premierChampEnErreur(ligneItems), "ligne-1-description");
+  assert.equal(premierChampEnErreur([{}, { prix_unitaire: "Prix positif." }]), "ligne-1-prix_unitaire");
+  assert.equal(premierChampEnErreur([{}, { description: undefined }]), null);
+  assert.equal(premierChampEnErreur(undefined), null);
+});
+
+test("erreur de la contrainte 015 traduite en français", () => {
+  assert.equal(
+    messageErreur({ code: "23514", message: 'new row for relation "lignes_facture" violates check constraint "lignes_facture_description_non_vide"' }),
+    "La description de chaque ligne est obligatoire."
+  );
+  assert.match(messageErreur({ code: "23514", message: 'violates check constraint "autre"' }), /erreur technique/);
 });
 
 test("récapitulatif : remise supérieure au HT signalée et plafonnée", () => {

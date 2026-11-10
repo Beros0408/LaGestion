@@ -331,14 +331,17 @@ function LayoutContenu() {
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full" style={{ backgroundColor: C.error }} />
           </button>
 
-          {peutEcrire && (
-            <button
+          {/* Masqué sur /factures (la page a son propre bouton) et sur /factures/nouvelle. */}
+          {peutEcrire && !["/factures", "/factures/nouvelle"].includes(location.pathname) && (
+            <Link
+              to="/factures/nouvelle"
+              onClick={lienProtege("/factures/nouvelle")}
               className="hidden items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 sm:flex"
               style={{ backgroundColor: C.primary }}
             >
               <Plus size={16} aria-hidden="true" />
               Nouvelle facture
-            </button>
+            </Link>
           )}
         </header>
 
