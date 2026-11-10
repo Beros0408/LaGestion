@@ -7,6 +7,9 @@ export const C = {
   accent: "#F4A261",
   bgMain: "#E3E7EB",
   bgCard: "#ECEFF2",
+  // Fond des cartes (premier niveau posé sur la page), un peu plus soutenu que bgCard contre l'éblouissement.
+  // bgCard reste le fond des champs, fenêtres, menus, info-bulles et cartes imbriquées.
+  fondCarte: "#E9ECEF",
   bgHover: "#DDE2E7",
   textPrimary: "#2D3436",
   textSecondary: "#4F5A5F",
@@ -42,6 +45,10 @@ export const C = {
   chart7: "#A5571F",
   chart8: "#717D89",
 };
+
+// Bordure des cartes : même valeur que le fond de la barre latérale, par référence (un futur thème la suit).
+C.bordureCarte = C.sidebarBg;
+export const BORDURE_CARTE = `1px solid ${C.bordureCarte}`;
 
 // Fonds d'avatar (initiales blanches) : ratio du blanc ≥ 5,2:1 sur chaque teinte.
 export const AVATARS = {

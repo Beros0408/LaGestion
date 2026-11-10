@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, Plus, Pencil, Trash2, SearchX, Boxes, AlertCircle, Upload } from "lucide-react";
-import { C, alpha, euroCentimes } from "../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes } from "../theme";
 import { useProduits } from "../context/ProduitsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
@@ -113,7 +113,7 @@ export default function Catalogue() {
         </div>
       )}
 
-      <div className="rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-4" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <div className="flex flex-wrap items-end gap-4">
           <div className="min-w-[220px] flex-1">
             <label htmlFor="recherche-catalogue" className="mb-1 block text-xs font-medium" style={{ color: C.textSecondary }}>
@@ -137,7 +137,7 @@ export default function Catalogue() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         {chargement && produits.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm" role="status" aria-live="polite" style={{ color: C.textSecondary }}>
             Chargement du catalogue…

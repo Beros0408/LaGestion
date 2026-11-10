@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
-import { C, OMBRE, alpha } from "../theme";
+import { BORDURE_CARTE, C, OMBRE, alpha } from "../theme";
 import Input from "../components/form/Input.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { MESSAGE_TECHNIQUE } from "../utils/erreurs";
@@ -62,8 +62,8 @@ export default function Login() {
       <main
         className="w-full max-w-md rounded-2xl p-6 sm:p-8"
         style={{
-          backgroundColor: C.bgCard,
-          border: `1px solid ${C.border}`,
+          backgroundColor: C.fondCarte,
+          border: BORDURE_CARTE,
           boxShadow: OMBRE.md,
         }}
         aria-labelledby="titre-connexion"

@@ -4,7 +4,7 @@ import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   ChevronLeft, ChevronRight, Eye, Pencil, Trash2, SearchX, Download, AlertCircle, CheckCircle2, CircleDashed, Upload,
 } from "lucide-react";
-import { C, AVATARS, alpha, COULEURS_ETAT, ETAT_SITUATION } from "../theme";
+import { BORDURE_CARTE, C, AVATARS, alpha, COULEURS_ETAT, ETAT_SITUATION } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -256,7 +256,7 @@ export default function Clients() {
       )}
 
       {/* Barre d'outils */}
-      <div className="rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-4" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <div className="flex flex-wrap items-end gap-4">
           <div className="min-w-[220px] flex-1">
             <label htmlFor="recherche-clients" className="mb-1 block text-xs font-medium" style={{ color: C.textSecondary }}>
@@ -295,7 +295,7 @@ export default function Clients() {
       </div>
 
       {/* Tableau */}
-      <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         {chargement && tousClients.length === 0 ? (
           <EtatChargement />
         ) : total === 0 ? (

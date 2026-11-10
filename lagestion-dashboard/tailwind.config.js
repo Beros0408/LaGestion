@@ -10,6 +10,8 @@ export default {
         lg: {
           main: C.bgMain,
           card: C.bgCard,
+          "fond-carte": C.fondCarte,
+          "bordure-carte": C.bordureCarte,
           hover: C.bgHover,
           border: C.border,
           "text-secondary": C.textSecondary,

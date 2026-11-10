@@ -4,7 +4,7 @@ import {
   AlertCircle, AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Copy, Download, ExternalLink, FileSpreadsheet,
   MinusCircle, PlusCircle, RefreshCw, Upload,
 } from "lucide-react";
-import { C, COULEURS_ETAT, alpha } from "../theme";
+import { BORDURE_CARTE, C, COULEURS_ETAT, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useGardeModifications, useSignalerImport } from "../context/GardeModificationsContext.jsx";
@@ -169,7 +169,7 @@ export default function Import({ type = "clients" }) {
     <>
       <EnTete titre={config.titre} />
       <Etapes etape={etape} />
-      <section aria-labelledby="titre-etape" className="mt-5 rounded-2xl p-4 sm:p-6" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <section aria-labelledby="titre-etape" className="mt-5 rounded-2xl p-4 sm:p-6" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         {etape === 1 && <EtapeFichier titreRef={titreRef} lecture={lecture} onFichier={(f) => charger(f)} />}
         {etape === 2 && tableau && (
           <EtapeColonnes

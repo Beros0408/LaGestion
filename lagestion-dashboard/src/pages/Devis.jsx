@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown, Eye, Pencil, Trash2, SearchX, FileSignature, AlertCircle,
 } from "lucide-react";
-import { C, alpha, euro } from "../theme";
+import { BORDURE_CARTE, C, alpha, euro } from "../theme";
 import { useDevis } from "../context/DevisContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -144,7 +144,7 @@ export default function Devis() {
         </div>
       )}
 
-      <div className="rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-4" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <div className="flex flex-wrap items-end gap-4">
           <div className="min-w-[220px] flex-1">
             <label htmlFor="recherche-devis" className="mb-1 block text-xs font-medium" style={{ color: C.textSecondary }}>
@@ -191,7 +191,7 @@ export default function Devis() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         {chargement && devis.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm" role="status" aria-live="polite" style={{ color: C.textSecondary }}>
             Chargement des devis…

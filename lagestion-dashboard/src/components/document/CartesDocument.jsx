@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin, ChevronDown, ExternalLink } from "lucide-react";
-import { C, OMBRE, alpha, euroCentimes } from "../../theme";
+import { BORDURE_CARTE, C, OMBRE, alpha, euroCentimes } from "../../theme";
 import { ligneHT } from "../../utils/facture";
 
 // Briques communes aux fiches facture et devis.
@@ -97,7 +97,7 @@ export function MenuStatut({ badge, ariaLabel, statutActuel, options, ouvert, on
 // negatif : montants de ligne affichés en négatif (avoir).
 export function CarteLignes({ lignes, legende, negatif = false }) {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Lignes d'articles</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -139,7 +139,7 @@ export function CarteLignes({ lignes, legende, negatif = false }) {
 // children : lignes supplémentaires du résumé (ex. paiements de la facture).
 export function CarteResume({ recap, children }) {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Résumé financier</h3>
       <dl className="space-y-2 text-sm">
         {recap.remise !== 0 && (
@@ -185,7 +185,7 @@ export function CarteResume({ recap, children }) {
 
 export function CarteClient({ client, chargement, messageAbsent = "Client introuvable." }) {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Client</h3>
       {client ? (
         <div className="space-y-3">
@@ -259,7 +259,7 @@ export function CarteClient({ client, chargement, messageAbsent = "Client introu
 
 export function CarteBloc({ titre, contenu, chapeau }) {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-1" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>{titre}</h3>
       {chapeau && (
         <p className="mb-2 text-xs" style={{ color: C.textSecondary }}>{chapeau}</p>
@@ -275,7 +275,7 @@ export function Panneau({ children, centre }) {
   return (
     <div
       className={`rounded-2xl p-8 ${centre ? "flex flex-col items-center gap-3 text-center" : ""}`}
-      style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+      style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
     >
       {children}
     </div>

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Send, AlertCircle } from "lucide-react";
-import { C, alpha, euroCentimes, couleurEtat } from "../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes, couleurEtat } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -108,7 +108,7 @@ export default function Impayes() {
         </div>
       )}
 
-      <div className="rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-4" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <div className="flex flex-wrap items-end gap-4">
           <Select label="Client" className="min-w-[220px]" value={client} onChange={(e) => setClient(e.target.value)} options={optionsClients} />
           <div>
@@ -131,7 +131,7 @@ export default function Impayes() {
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="mt-5 rounded-2xl" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         {visibles.length === 0 ? (
           <p className="px-6 py-12 text-center text-sm" style={{ color: C.textSecondary }}>
             {chargement ? "Chargement des impayés…" : "Aucun impayé pour ces filtres."}

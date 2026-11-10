@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, AlertCircle, ExternalLink } from "lucide-react";
-import { C, alpha } from "../theme";
+import { BORDURE_CARTE, C, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { detecterDoublons } from "../utils/doublons";
 import Input from "../components/form/Input.jsx";
@@ -80,7 +80,7 @@ function BoiteMessage({ enfants, action }) {
   return (
     <div
       className="rounded-2xl p-8 text-center"
-      style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+      style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
     >
       <p className="text-sm" style={{ color: C.textSecondary }}>{enfants}</p>
       {action}
@@ -279,7 +279,7 @@ function FormulaireClient({ modeEdition, idClient, existant }) {
       <form onSubmit={handleSubmit} noValidate>
         <div
           className="rounded-2xl p-5"
-          style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+          style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Select

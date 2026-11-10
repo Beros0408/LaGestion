@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Trash2, Boxes } from "lucide-react";
-import { C, alpha, euroCentimes } from "../../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes } from "../../theme";
 import { TAUX_TVA } from "../../data/factures";
 import { ligneHT } from "../../utils/facture";
 import { LIGNE_VIDE, idChampLigne, ligneRemplie } from "../../utils/lignesDocument";
@@ -87,7 +87,7 @@ export default function LignesDocument({ lignes, errors, setForm, setErrors }) {
 
   return (
     <>
-        <div className="mt-4 rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+        <div className="mt-4 rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
           <div className="mb-3 flex items-center justify-between">
             <h3 style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Lignes d'articles</h3>
             <button

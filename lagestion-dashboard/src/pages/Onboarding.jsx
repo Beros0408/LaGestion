@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
-import { C, OMBRE, alpha } from "../theme";
+import { BORDURE_CARTE, C, OMBRE, alpha } from "../theme";
 import Input from "../components/form/Input.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
@@ -71,8 +71,8 @@ export default function Onboarding({ ajout = false }) {
     <Cadre
       className={`w-full max-w-md rounded-2xl p-6 sm:p-8${ajout ? " mx-auto" : ""}`}
       style={{
-        backgroundColor: C.bgCard,
-        border: `1px solid ${C.border}`,
+        backgroundColor: C.fondCarte,
+        border: BORDURE_CARTE,
         boxShadow: OMBRE.md,
       }}
       aria-labelledby="titre-onboarding"

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   List, Pencil, Download, Printer, Copy, CreditCard, Trash2, AlertCircle, Plus, Lock, FileMinus, Send,
 } from "lucide-react";
-import { C, alpha, euroCentimes } from "../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useDevis } from "../context/DevisContext.jsx";
@@ -124,7 +124,7 @@ export default function FactureDetail() {
     return (
       <div
         className="rounded-2xl p-8 text-center"
-        style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+        style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
       >
         <p className="text-sm" style={{ color: C.textSecondary }}>Facture introuvable.</p>
         <button
@@ -559,7 +559,7 @@ export default function FactureDetail() {
 function CarteAcomptesDeduits({ acomptes, net }) {
   const cumul = acomptes.reduce((s, a) => s + Math.round(Number(a.total_ttc) * 100), 0) / 100;
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Acomptes déduits</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -607,7 +607,7 @@ function CarteAcomptesDeduits({ acomptes, net }) {
 function CarteRelances({ relances }) {
   const triees = [...relances].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Relances préparées</h3>
       <ul className="space-y-3 text-sm">
         {triees.map((r) => (
@@ -631,7 +631,7 @@ function CarteRelances({ relances }) {
 
 function CarteAvoirs({ avoirs }) {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Avoirs</h3>
       <ul className="space-y-2 text-sm">
         {avoirs.map((a) => (
@@ -660,7 +660,7 @@ function CartePaiements({
 }) {
   const paiements = facture.paiements ?? [];
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <div className="mb-3 flex items-center justify-between">
         <h3 style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Paiements</h3>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -933,7 +933,7 @@ function CarteMetaFacture({ facture }) {
   if (items.length === 0) return null;
 
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Conditions</h3>
       <dl className="space-y-3">
         {items.map((info) => (

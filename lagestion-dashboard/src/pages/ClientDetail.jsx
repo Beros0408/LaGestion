@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, List, Pencil, Phone, Mail, MapPin, CalendarDays, StickyNote, Send, Plus, Trash2 } from "lucide-react";
-import { C, AVATARS, alpha, euro, euroCentimes, couleurEtat } from "../theme";
+import { BORDURE_CARTE, C, AVATARS, alpha, euro, euroCentimes, couleurEtat } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -78,7 +78,7 @@ export default function ClientDetail() {
       return (
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+          style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
           role="status"
           aria-live="polite"
         >
@@ -89,7 +89,7 @@ export default function ClientDetail() {
     return (
       <div
         className="rounded-2xl p-8 text-center"
-        style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+        style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
       >
         <p className="text-base font-semibold" style={{ color: C.textPrimary }}>Client introuvable</p>
         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
@@ -141,7 +141,7 @@ export default function ClientDetail() {
       {/* En-tête de la fiche */}
       <div
         className="rounded-2xl p-5"
-        style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+        style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-4">
@@ -250,7 +250,7 @@ export default function ClientDetail() {
         <div className="space-y-5 lg:col-span-2">
           <CarteHistorique clientId={client.id} />
 
-          <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+          <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
             <h3
               className="mb-3 text-base font-semibold"
               style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
@@ -275,7 +275,7 @@ export default function ClientDetail() {
         {/* Colonne latérale */}
         <div className="space-y-5">
           {infosEntreprise.length > 0 && (
-            <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+            <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
               <h3
                 className="mb-3 text-base font-semibold"
                 style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
@@ -346,7 +346,7 @@ function CarteFacturesClient({ clientId }) {
     ...(solde.tropPercu > 0 ? [["Trop-perçu à rembourser", solde.tropPercu]] : []),
   ];
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3 text-base font-semibold" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
         Factures liées
       </h3>
@@ -434,7 +434,7 @@ function CarteHistorique({ clientId }) {
   };
 
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
           Historique des interactions
@@ -535,7 +535,7 @@ function CarteOpportunitesClient({ clientId }) {
   );
   if (liste.length === 0) return <CarteVide titre="Opportunités liées" message="Aucune opportunité liée." />;
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3 text-base font-semibold" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>
         Opportunités liées
       </h3>
@@ -558,7 +558,7 @@ function CarteOpportunitesClient({ clientId }) {
 
 function CarteVide({ titre, message }) {
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3
         className="mb-3 text-base font-semibold"
         style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}

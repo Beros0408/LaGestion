@@ -141,7 +141,8 @@ Neutres
 Thème « gris perle » :
 | Fond de page #E3E7EB | Surface (cartes, tableaux, menus, champs) #ECEFF2 | Survol #DDE2E7 | Bordure #C9D1D8 | Bordure des champs #717D89 | Texte secondaire #4F5A5F | Texte principal #2D3436 |
 Le blanc pur #FFFFFF est réservé au texte sur fond plein (boutons primaires, avatars).
-Tokens (src/theme.js) : bgMain #E3E7EB · bgCard #ECEFF2 · bgHover #DDE2E7 · border #C9D1D8 (cartes, tableaux, séparateurs) · borderInput #717D89 (input, select, textarea : contraste ≥ 3:1) · textSecondary #4F5A5F · onPrimary #FFFFFF.
+Tokens (src/theme.js) : bgMain #E3E7EB · bgCard #ECEFF2 (champs, fenêtres, menus, info-bulles, cartes imbriquées ; base des teintes de badge) · bgHover #DDE2E7 · border #C9D1D8 (tableaux, séparateurs, cartes imbriquées, contrôles) · borderInput #717D89 (input, select, textarea : contraste ≥ 3:1) · textSecondary #4F5A5F · onPrimary #FFFFFF.
+Cartes (premier niveau posé sur la page) : fond fondCarte #E9ECEF (textPrimary 10,69:1, textSecondary 5,98:1, errorText 5,07:1 ; 1,05:1 avec bgMain : la bordure assure la séparation) ; bordure bordureCarte = sidebarBg (#1B2A38) par référence, BORDURE_CARTE (`1px solid …`) en style en ligne, lg-fond-carte et lg-bordure-carte en Tailwind. Une seule source dans theme.js ; aucune bordure de carte en dur (tests/carte.test.js). Gardent leur style : fenêtres, menus, info-bulles, champs, boutons, groupes de filtres et onglets, messages d'erreur, cartes imbriquées (cartes d'opportunité, lignes d'import, lignes de document). Colonnes du pipeline : bordureCarte au repos, couleur d'étape au survol de dépôt. Le liseré de 4 px « En retard » (ombre interne d'une cellule ou d'une ligne) reste à l'intérieur de la carte.
 Barre latérale sombre : sidebarBg #1B2A38 · sidebarHover #223444 (survol, bloc profil) · sidebarActiveBg #26394B · sidebarText #E4E8EC · sidebarTextMuted #9AA8B5 · sidebarAccent #A9C4DC (texte et liseré du lien actif) · sidebarBorder #2E4256 · sidebarFocus #7DA5C9 (anneau de focus).
 Échelle neutre de référence : 300 #CBD5DA · 400 #9AA5AD · 700 #4B545A · 800 #3A4146.
 Fonds teintés : alpha(couleur, opacité) ; ombres : OMBRE.xs/sm/md/lg ; classes Tailwind lg-* (ex. hover:bg-lg-hover) générées depuis theme.js.
@@ -221,8 +222,9 @@ Ombres :
 Briques réutilisables : Card, Button (états : normal, survol, pressé, chargement, désactivé, ghost, outline), Input/Select/Checkbox/Switch, Badge, KpiCard. Toute recette « CSS premium » se traduit en composant React + tokens, jamais en feuille CSS séparée.
 
 **Card** (`src/components/Card.jsx`) : conteneur de surface partagé par toutes les cartes du tableau de bord.
-- Base : fond surface (#ECEFF2), bordure 1 px (#C9D1D8), rayon 16 px, padding 20 px, ombre SM (`0 1px 3px rgba(45,52,54,.06)`).
-- Survol : translation `-2px`, ombre MD (`0 4px 12px rgba(45,52,54,.08)`), bordure primaire-200 (#A9C4DC), transition 200 ms sur `transform`, `box-shadow`, `border-color`.
+- Base : fond fondCarte (#E9ECEF), bordure 1 px bordureCarte (#1B2A38, fond de la barre latérale), rayon 16 px, padding 20 px, ombre SM (`0 1px 3px rgba(45,52,54,.06)`).
+- Survol : translation `-2px`, ombre MD (`0 4px 12px rgba(45,52,54,.08)`), bordure inchangée, transition 200 ms sur `transform` et `box-shadow`.
+- Tuiles KPI (TuileKpi) : même bordure BORDURE_CARTE sur leur dégradé.
 - Apparition : fondu + translation 8 px vers le haut, 400 ms, avec un décalage de 60 ms par carte via le prop `index` (`animation-delay: index * 60ms`).
 - `prefers-reduced-motion: reduce` désactive transitions et animation.
 - Interdit sur les cartes : halo, lueur, pulsation, rotation, ombre colorée.

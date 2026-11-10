@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
-import { C, TUILES, OMBRE, alpha } from "../../theme";
+import { C, TUILES, OMBRE, BORDURE_CARTE, alpha } from "../../theme";
 
 // variation : nombre (en %) → pastille ; null → pas de base de comparaison ; undefined → aucune pastille.
 function Pastille({ variation }) {
@@ -31,6 +31,7 @@ function TuileKpi({ titre, valeur, detail, variation, teinte, index = 0 }) {
       className="lg-card-enter rounded-2xl p-5"
       style={{
         background: `linear-gradient(135deg, ${debut}, ${fin})`,
+        border: BORDURE_CARTE,
         boxShadow: OMBRE.sm,
         animationDelay: `${index * 60}ms`,
         color: C.onPrimary,

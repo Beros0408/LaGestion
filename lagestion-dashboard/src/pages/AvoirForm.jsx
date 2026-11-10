@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Lock } from "lucide-react";
-import { C, alpha, euroCentimes } from "../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 import { peutCreerAvoir } from "../data/factures";
@@ -72,7 +72,7 @@ export default function AvoirForm({ edition = false }) {
     return { ht: -r.ht, tva: -r.tva, ttc: -r.ttc };
   }, [form.total, origine, lignes]);
 
-  const carte = { backgroundColor: C.bgCard, border: `1px solid ${C.border}` };
+  const carte = { backgroundColor: C.fondCarte, border: BORDURE_CARTE };
 
   if (!chargement && (!origine || (edition && !avoir))) {
     return (

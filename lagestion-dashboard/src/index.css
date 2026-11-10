@@ -9,19 +9,19 @@ body,
   margin: 0;
 }
 
+/* Fond et bordure : jetons C.fondCarte et C.bordureCarte (src/theme.js). Le survol ne change pas la bordure. */
 .lg-card {
-  background-color: theme('colors.lg.card');
-  border: 1px solid theme('colors.lg.border');
+  background-color: theme('colors.lg.fond-carte');
+  border: 1px solid theme('colors.lg.bordure-carte');
   border-radius: 16px;
   padding: 20px;
   box-shadow: theme('boxShadow.lg-sm');
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transition: transform 200ms ease, box-shadow 200ms ease;
 }
 
 .lg-card:hover {
   transform: translateY(-2px);
   box-shadow: theme('boxShadow.lg-md');
-  border-color: theme('colors.lg.primary-200');
 }
 
 .lg-card-enter {

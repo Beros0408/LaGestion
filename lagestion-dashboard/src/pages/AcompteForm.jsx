@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Lock } from "lucide-react";
-import { C, alpha, euroCentimes } from "../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes } from "../theme";
 import { useDevis } from "../context/DevisContext.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 import { totalTTC } from "../utils/facture";
@@ -51,7 +51,7 @@ export default function AcompteForm() {
     return () => { annule = true; clearTimeout(minuterie); };
   }, [apercuAcompte, devisAccepte, id, mode, nombre, saisieValide]);
 
-  const carte = { backgroundColor: C.bgCard, border: `1px solid ${C.border}` };
+  const carte = { backgroundColor: C.fondCarte, border: BORDURE_CARTE };
 
   if (!chargement && !devis) {
     return (

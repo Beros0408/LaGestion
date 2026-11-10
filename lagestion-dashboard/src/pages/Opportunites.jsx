@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Calendar, User, AlertCircle } from "lucide-react";
-import { C, OMBRE, alpha, euro } from "../theme";
+import { BORDURE_CARTE, C, OMBRE, alpha, euro } from "../theme";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -130,7 +130,7 @@ export default function Opportunites() {
       {chargement && opportunites.length === 0 ? (
         <div
           className="flex flex-col items-center gap-3 rounded-2xl px-6 py-16 text-center"
-          style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+          style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
         >
           <div
             className="h-8 w-8 animate-spin rounded-full border-2"
@@ -170,8 +170,9 @@ export default function Opportunites() {
               }}
               className="flex flex-col rounded-2xl p-3 transition-colors"
               style={{
-                backgroundColor: C.bgCard,
-                border: `1px solid ${estSurvolee ? style.couleur : C.border}`,
+                backgroundColor: C.fondCarte,
+                // Au repos : bordure des cartes ; survol de dépôt : couleur de l'étape (repère de dépôt).
+                border: estSurvolee ? `1px solid ${style.couleur}` : BORDURE_CARTE,
                 boxShadow: OMBRE.sm,
               }}
               aria-label={`Colonne ${etape}`}

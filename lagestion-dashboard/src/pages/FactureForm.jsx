@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Lock } from "lucide-react";
-import { C, alpha, euroCentimes } from "../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { factureModifiable } from "../data/factures";
@@ -108,7 +108,7 @@ export default function FactureForm() {
     return (
       <div
         className="rounded-2xl p-8 text-center"
-        style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+        style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
       >
         <p className="text-sm" style={{ color: C.textSecondary }}>Facture introuvable.</p>
         <button
@@ -133,7 +133,7 @@ export default function FactureForm() {
     return (
       <div
         className="rounded-2xl p-8 text-center"
-        style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+        style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
       >
         <Lock size={24} aria-hidden="true" className="mx-auto" style={{ color: C.textSecondary }} />
         <p className="mt-3 text-sm" style={{ color: C.textPrimary }}>
@@ -248,7 +248,7 @@ export default function FactureForm() {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+        <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Select
               label="Client"
@@ -314,13 +314,13 @@ export default function FactureForm() {
           </>
         )}
         {estSolde && (
-          <p role="status" className="mt-4 rounded-2xl p-5 text-sm" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}`, color: C.textPrimary }}>
+          <p role="status" className="mt-4 rounded-2xl p-5 text-sm" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE, color: C.textPrimary }}>
             {`Acomptes déduits : ${euroCentimes(totalAcomptesDeduits(existant))}. Net à payer après déduction : ${euroCentimes(Math.round((recap.ttc - totalAcomptesDeduits(existant)) * 100) / 100)}.`}
           </p>
         )}
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+          <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
             <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Notes internes</h3>
             <Textarea
               label="Non transmises au client"
@@ -330,7 +330,7 @@ export default function FactureForm() {
               placeholder="Informations pour l'équipe : historique, points d'attention…"
             />
           </div>
-          <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+          <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
             <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Message client</h3>
             <Textarea
               label="Apparaît sur la facture (PDF)"

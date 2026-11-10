@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { List, Pencil, Download, Trash2, AlertCircle, FileOutput, Lock, ExternalLink, HandCoins } from "lucide-react";
-import { C, alpha, euroCentimes } from "../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes } from "../theme";
 import { useDevis } from "../context/DevisContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
@@ -65,7 +65,7 @@ export default function DevisDetail() {
 
   if (!devis) {
     return (
-      <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <p className="text-sm" style={{ color: C.textSecondary }}>Devis introuvable.</p>
         <button
           type="button"
@@ -316,7 +316,7 @@ function CarteAcomptes({ acomptes, ttcDevis }) {
   const factures = acomptes.filter((a) => a.statut !== "brouillon" && a.statut !== "annulee");
   const cumul = factures.reduce((s, a) => s + Math.round((totalTTC(a) - totalAvoirs(a)) * 100), 0) / 100;
   return (
-    <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Acomptes</h3>
       <ul className="space-y-2 text-sm">
         {acomptes.map((a) => (

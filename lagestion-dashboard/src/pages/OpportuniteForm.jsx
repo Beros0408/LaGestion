@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
-import { C, alpha } from "../theme";
+import { BORDURE_CARTE, C, alpha } from "../theme";
 import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { ETAPES } from "../data/opportunites";
@@ -75,7 +75,7 @@ export default function OpportuniteForm() {
     return (
       <div
         className="rounded-2xl p-8 text-center"
-        style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+        style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
       >
         <p className="text-sm" style={{ color: C.textSecondary }}>
           Opportunité introuvable.
@@ -187,7 +187,7 @@ export default function OpportuniteForm() {
       <form onSubmit={handleSubmit} noValidate>
         <div
           className="rounded-2xl p-5"
-          style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}
+          style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input

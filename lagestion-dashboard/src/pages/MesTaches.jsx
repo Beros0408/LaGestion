@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertCircle, Check, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { C, alpha, couleurEtat } from "../theme";
+import { BORDURE_CARTE, C, alpha, couleurEtat } from "../theme";
 import { useTaches } from "../context/TachesContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -209,13 +209,13 @@ export default function MesTaches() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-4 rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="flex flex-wrap items-end gap-4 rounded-2xl p-4" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <Filtre titre="Responsable" options={QUI} valeur={qui} onChange={setQui} />
         <Filtre titre="Statut" options={STATUTS} valeur={statut} onChange={setStatut} />
       </div>
 
       <p role="status" className="sr-only">{annonce}</p>
-      <div ref={refListe} tabIndex={-1} aria-label="Liste des tâches" className="mt-5 rounded-2xl focus:outline-none focus-visible:ring-2" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div ref={refListe} tabIndex={-1} aria-label="Liste des tâches" className="mt-5 rounded-2xl focus:outline-none focus-visible:ring-2" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         {lignes.length === 0 ? (
           <p className="px-6 py-12 text-center text-sm" style={{ color: C.textSecondary }}>
             {chargement ? "Chargement des tâches…" : "Aucune tâche pour ces filtres."}

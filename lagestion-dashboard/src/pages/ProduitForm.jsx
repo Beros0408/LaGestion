@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
-import { C, alpha } from "../theme";
+import { BORDURE_CARTE, C, alpha } from "../theme";
 import { useProduits } from "../context/ProduitsContext.jsx";
 import { TAUX_TVA } from "../data/factures";
 import { TYPES_ARTICLE, LIBELLE_TYPE_ARTICLE } from "../data/catalogue";
@@ -62,7 +62,7 @@ export default function ProduitForm() {
 
   if (modeEdition && !chargement && !existant) {
     return (
-      <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <p className="text-sm" style={{ color: C.textSecondary }}>Article introuvable.</p>
         <button
           type="button"
@@ -154,7 +154,7 @@ export default function ProduitForm() {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+        <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               label="Nom de l'article"

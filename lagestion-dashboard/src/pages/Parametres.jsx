@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { AlertCircle, CheckCircle2, ImageOff, Lock, Upload } from "lucide-react";
-import { C, alpha } from "../theme";
+import { BORDURE_CARTE, C, alpha } from "../theme";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 import Input from "../components/form/Input.jsx";
@@ -81,7 +81,7 @@ function versPatch(f) {
 
 function Carte({ titre, description, children }) {
   return (
-    <section className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+    <section className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
       <h3 className="text-[18px] font-semibold" style={{ color: C.textPrimary }}>{titre}</h3>
       {description && <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>{description}</p>}
       <div className="mt-4">{children}</div>
@@ -296,7 +296,7 @@ function Entreprise() {
   return (
     <form onSubmit={soumettre} noValidate className="space-y-4">
       {!estAdmin && (
-        <p role="note" className="flex items-start gap-2 rounded-xl p-3 text-sm" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}`, color: C.textSecondary }}>
+        <p role="note" className="flex items-start gap-2 rounded-xl p-3 text-sm" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE, color: C.textSecondary }}>
           <Lock size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
           Seul un administrateur peut modifier ces informations.
         </p>

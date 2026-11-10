@@ -1,11 +1,11 @@
 import React from "react";
-import { C, euroCentimes } from "../../theme";
+import { BORDURE_CARTE, C, euroCentimes } from "../../theme";
 import Input from "../form/Input.jsx";
 
 // Récapitulatif d'une facture ou d'un devis : remise globale et totaux (voir calculerRecap).
 export default function RecapitulatifDocument({ remise, onRemise, erreurRemise, recap }) {
   return (
-      <div className="mt-4 rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="mt-4 rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Récapitulatif</h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>

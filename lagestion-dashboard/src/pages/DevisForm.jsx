@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Lock } from "lucide-react";
-import { C, alpha } from "../theme";
+import { BORDURE_CARTE, C, alpha } from "../theme";
 import { useDevis } from "../context/DevisContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { aujourdhui, dansJours, devisModifiable, LIBELLE_STATUT_DEVIS } from "../data/devis";
@@ -93,7 +93,7 @@ export default function DevisForm() {
 
   if (modeEdition && !chargement && !existant) {
     return (
-      <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <p className="text-sm" style={{ color: C.textSecondary }}>Devis introuvable.</p>
         <button
           type="button"
@@ -110,7 +110,7 @@ export default function DevisForm() {
   // Lien direct vers le formulaire d'un devis verrouillé : la base refuserait de toute façon l'écriture.
   if (existant && !devisModifiable(existant.statut)) {
     return (
-      <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <Lock size={24} aria-hidden="true" className="mx-auto" style={{ color: C.textSecondary }} />
         <p className="mt-3 text-sm" style={{ color: C.textPrimary }}>
           {`Le devis ${existant.numero} est ${LIBELLE_STATUT_DEVIS[existant.statut].toLowerCase()} : il ne peut plus être modifié.`}
@@ -217,7 +217,7 @@ export default function DevisForm() {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+        <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Select
               label="Client"
@@ -251,7 +251,7 @@ export default function DevisForm() {
         <RecapitulatifDocument remise={form.remise} onRemise={definir("remise")} erreurRemise={erreurRemise} recap={recap} />
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+          <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
             <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Notes internes</h3>
             <Textarea
               label="Non transmises au client"
@@ -261,7 +261,7 @@ export default function DevisForm() {
               placeholder="Informations pour l'équipe : historique, points d'attention…"
             />
           </div>
-          <div className="rounded-2xl p-5" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+          <div className="rounded-2xl p-5" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
             <h3 className="mb-3" style={{ color: C.textPrimary, fontSize: 18, fontWeight: 600 }}>Message client</h3>
             <Textarea
               label="Apparaît sur le devis (PDF)"

@@ -4,7 +4,7 @@ import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   Eye, Pencil, Trash2, SearchX, MoreHorizontal, RefreshCw, Download, AlertCircle,
 } from "lucide-react";
-import { C, OMBRE, alpha, euro, couleurEtat } from "../theme";
+import { BORDURE_CARTE, C, OMBRE, alpha, euro, couleurEtat } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -208,7 +208,7 @@ export default function Factures() {
         </div>
       )}
 
-      <div className="rounded-2xl p-4" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="rounded-2xl p-4" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         <div className="flex flex-wrap items-end gap-4">
           <div className="min-w-[220px] flex-1">
             <label htmlFor="recherche-factures" className="mb-1 block text-xs font-medium" style={{ color: C.textSecondary }}>
@@ -245,7 +245,7 @@ export default function Factures() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.bgCard, border: `1px solid ${C.border}` }}>
+      <div className="mt-5 overflow-hidden rounded-2xl" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE }}>
         {chargement && factures.length === 0 ? (
           <EtatChargement />
         ) : triees.length === 0 ? (
