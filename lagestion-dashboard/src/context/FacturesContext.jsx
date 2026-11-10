@@ -198,6 +198,7 @@ export function FacturesProvider({ children }) {
       .from("factures")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select("id");
     if (error || data.length === 0) {
       setErreur(error ? messageErreur(error) : MESSAGE_REFUS);
@@ -205,7 +206,7 @@ export function FacturesProvider({ children }) {
     }
     setFactures((prev) => prev.filter((f) => f.id !== id));
     return true;
-  }, []);
+  }, [entrepriseId]);
 
   // Un refus est affiché par la liste (erreur) et renvoyé à la fiche, qui a son propre message.
   const changerStatut = useCallback(async (id, nouveauStatut) => {
@@ -215,6 +216,7 @@ export function FacturesProvider({ children }) {
       .from("factures")
       .update({ statut: nouveauStatut })
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select()
       .single();
     if (error) {
@@ -223,7 +225,7 @@ export function FacturesProvider({ children }) {
     }
     setFactures((prev) => prev.map((f) => (f.id === id ? { ...f, statut: maj.statut } : f)));
     return maj;
-  }, []);
+  }, [entrepriseId]);
 
   const ajouterPaiement = useCallback(
     async (factureId, data) => {
@@ -242,13 +244,13 @@ export function FacturesProvider({ children }) {
 
   const supprimerPaiement = useCallback(
     async (paiementId) => {
-      const { data, error } = await supabase.from("paiements").delete().eq("id", paiementId).select("id");
+      const { data, error } = await supabase.from("paiements").delete().eq("id", paiementId).eq("entreprise_id", entrepriseId).select("id");
       if (error) throw erreurFrancaise(error);
       if (data.length === 0) throw new Error(MESSAGE_REFUS);
       await chargerFactures();
       return true;
     },
-    [chargerFactures]
+    [entrepriseId, chargerFactures]
   );
 
   const dupliquerFacture = useCallback(

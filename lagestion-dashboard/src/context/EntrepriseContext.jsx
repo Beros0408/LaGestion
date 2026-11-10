@@ -1,12 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "./AuthContext.jsx";
 import { erreurFrancaise, messageErreur } from "../utils/erreurs";
 import { lireLogo } from "../utils/logo";
+import {
+  ANCIENNE_CLE, cleMemorisation, entrepriseInitiale, cheminLogoAutorise, MESSAGE_LOGO_REFUSE,
+} from "../utils/entrepriseCourante";
 
 const EntrepriseContext = createContext(null);
 
-const CLE_ENTREPRISE = "lagestion.entrepriseCourante";
 const ROLES_ECRITURE = ["admin", "manager", "commercial", "comptable"];
 const ROLES_SUPPRESSION = ["admin", "manager"];
 
@@ -18,17 +21,18 @@ export const LIBELLE_ROLE = {
   lecture: "Lecture seule",
 };
 
-function lireEntrepriseMemorisee() {
+function lireEntrepriseMemorisee(userId) {
   try {
-    return localStorage.getItem(CLE_ENTREPRISE);
+    localStorage.removeItem(ANCIENNE_CLE);
+    return localStorage.getItem(cleMemorisation(userId));
   } catch {
     return null;
   }
 }
 
-function memoriserEntreprise(id) {
+function memoriserEntreprise(userId, id) {
   try {
-    localStorage.setItem(CLE_ENTREPRISE, id);
+    localStorage.setItem(cleMemorisation(userId), id);
   } catch {
     // Stockage indisponible (navigation privée) : l'entreprise par défaut sera reprise.
   }
@@ -84,6 +88,10 @@ export function EntrepriseProvider({ children }) {
   // vers l'onboarding entre la connexion et la fin du premier chargement.
   const [chargePour, setChargePour] = useState(null);
   const [erreur, setErreur] = useState(null);
+  // Entreprise demandée, appliquée une fois le tableau de bord affiché (voir basculerVers).
+  const [cible, setCible] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const charger = useCallback(async () => {
     if (!userId) return;
@@ -92,9 +100,10 @@ export function EntrepriseProvider({ children }) {
       const [p, liste] = await Promise.all([chargerProfil(userId), chargerAppartenances(userId)]);
       setProfil(p);
       setAppartenances(liste);
-      const memorisee = lireEntrepriseMemorisee();
-      const courante = liste.find((a) => a.entrepriseId === memorisee) ?? liste[0] ?? null;
-      setEntrepriseId(courante?.entrepriseId ?? null);
+      // Un rechargement (création depuis le sélecteur, « Réessayer ») garde l'entreprise courante si elle existe encore.
+      setEntrepriseId((actuelle) =>
+        liste.some((a) => a.entrepriseId === actuelle) ? actuelle : entrepriseInitiale(liste, lireEntrepriseMemorisee(userId))
+      );
     } catch (e) {
       setErreur(messageErreur(e));
     }
@@ -109,6 +118,7 @@ export function EntrepriseProvider({ children }) {
       setEntrepriseId(null);
       setErreur(null);
       setChargePour(null);
+      setCible(null);
       return;
     }
     charger();
@@ -116,18 +126,41 @@ export function EntrepriseProvider({ children }) {
 
   const chargement = chargementAuth || (userId !== null && chargePour !== userId);
 
+  // Changement d'entreprise : le tableau de bord d'abord, l'entreprise ensuite. La navigation passe par
+  // startTransition (React Router) : changées ensemble, l'entreprise serait rendue avant la nouvelle URL,
+  // et une page de l'ancienne entreprise (« /clients/42 ») s'afficherait un instant comme introuvable.
+  // Refs : basculerVers reste stable d'une navigation à l'autre (pas de re-rendu des consommateurs).
+  const cheminRef = useRef(location.pathname);
+  cheminRef.current = location.pathname;
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+  const basculerVers = useCallback((id) => {
+    setCible(id);
+    if (cheminRef.current !== "/dashboard") navigateRef.current("/dashboard");
+  }, []);
+
+  useEffect(() => {
+    if (!cible || location.pathname !== "/dashboard") return;
+    if (appartenances.some((a) => a.entrepriseId === cible)) {
+      memoriserEntreprise(userId, cible);
+      setEntrepriseId(cible);
+    }
+    setCible(null);
+  }, [cible, location.pathname, appartenances, userId]);
+
+  // activer = false (création depuis le sélecteur) : l'entreprise courante ne change pas ici ; l'appelant bascule ensuite.
   const creerEntreprise = useCallback(
-    async (nom, siret) => {
+    async (nom, siret, { activer = true } = {}) => {
       const { data: id, error } = await supabase.rpc("create_entreprise", {
         p_nom: nom,
         p_siret: siret || null,
       });
       if (error) throw erreurFrancaise(error);
-      memoriserEntreprise(id);
+      if (activer) memoriserEntreprise(userId, id);
       await charger();
       return id;
     },
-    [charger]
+    [userId, charger]
   );
 
   // Nom de l'utilisateur courant (RLS : chacun ne modifie que son profil).
@@ -162,21 +195,23 @@ export function EntrepriseProvider({ children }) {
     [entrepriseId, enregistrerEntreprise]
   );
 
-  // Lien temporaire (1 h) vers le logo : le bucket est privé.
+  // Lien temporaire (1 h) vers le logo : le bucket est privé. Chemin hors du dossier de l'entreprise courante : refusé.
   const lienLogo = useCallback(async (chemin) => {
     if (!chemin) return null;
+    if (!cheminLogoAutorise(chemin, entrepriseId)) throw new Error(MESSAGE_LOGO_REFUSE);
     const { data, error } = await supabase.storage.from("logos").createSignedUrl(chemin, 3600);
     if (error) throw erreurFrancaise(error);
     return data?.signedUrl ?? null;
-  }, []);
+  }, [entrepriseId]);
 
   // Logo d'un document (chemin figé ou actuel) téléchargé depuis le bucket privé, pour le PDF ; null sans logo.
   const chargerLogoPdf = useCallback(async (chemin) => {
     if (!chemin) return null;
+    if (!cheminLogoAutorise(chemin, entrepriseId)) throw new Error(MESSAGE_LOGO_REFUSE);
     const { data, error } = await supabase.storage.from("logos").download(chemin);
     if (error) throw erreurFrancaise(error);
     return lireLogo(data);
-  }, []);
+  }, [entrepriseId]);
 
   const value = useMemo(() => {
     const courante = appartenances.find((a) => a.entrepriseId === entrepriseId) ?? null;
@@ -199,6 +234,7 @@ export function EntrepriseProvider({ children }) {
       email: user?.email ?? "",
       nomProfil: profil?.nom ?? "",
       creerEntreprise,
+      basculerVers,
       enregistrerNom,
       enregistrerEntreprise,
       enregistrerLogo,
@@ -206,7 +242,7 @@ export function EntrepriseProvider({ children }) {
       chargerLogoPdf,
       recharger: charger,
     };
-  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, enregistrerNom, enregistrerEntreprise, enregistrerLogo, lienLogo, chargerLogoPdf, charger]);
+  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, basculerVers, enregistrerNom, enregistrerEntreprise, enregistrerLogo, lienLogo, chargerLogoPdf, charger]);
 
   return <EntrepriseContext.Provider value={value}>{children}</EntrepriseContext.Provider>;
 }

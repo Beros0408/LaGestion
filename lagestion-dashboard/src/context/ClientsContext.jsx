@@ -82,12 +82,13 @@ export function ClientsProvider({ children }) {
       .from("clients")
       .update(payload)
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select()
       .single();
     if (error) throw erreurFrancaise(error);
     setClients((prev) => prev.map((c) => (c.id === id ? maj : c)));
     return maj;
-  }, []);
+  }, [entrepriseId]);
 
   const deleteClient = useCallback(async (id) => {
     setErreur(null);
@@ -95,6 +96,7 @@ export function ClientsProvider({ children }) {
       .from("clients")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select("id");
     if (error || data.length === 0) {
       setErreur(error ? messageErreur(error) : MESSAGE_REFUS);
@@ -102,7 +104,7 @@ export function ClientsProvider({ children }) {
     }
     setClients((prev) => prev.filter((c) => c.id !== id));
     return true;
-  }, []);
+  }, [entrepriseId]);
 
   // Import (utils/import.js) : insertion par lots, entreprise_id sur chaque ligne ; un seul rechargement à la fin.
   const importerClients = useCallback(

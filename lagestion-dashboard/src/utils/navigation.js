@@ -32,6 +32,7 @@ const ROUTES = [
   { motif: "/catalogue/:id/modifier", libelle: "Modifier l'article", parent: () => "/catalogue" },
   { motif: "/parametres/profil", libelle: "Paramètres du profil", parent: () => "/dashboard" },
   { motif: "/parametres/entreprise", libelle: "Paramètres de l'entreprise", parent: () => "/dashboard" },
+  { motif: "/entreprises/nouvelle", libelle: "Nouvelle entreprise", parent: () => "/dashboard" },
 ];
 
 function trouver(chemin) {

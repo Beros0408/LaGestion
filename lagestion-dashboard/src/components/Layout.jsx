@@ -5,7 +5,7 @@ import {
   FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut, ArrowLeft, Boxes, FileSignature,
   Clock, ListChecks, AlertCircle,
 } from "lucide-react";
-import { C, AVATARS, VOILE, alpha } from "../theme";
+import { C, VOILE, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useTaches } from "../context/TachesContext.jsx";
@@ -14,6 +14,7 @@ import { libelleEnRetard, nombreEnRetard } from "../utils/taches";
 import { GardeModificationsProvider, useQuitter } from "../context/GardeModificationsContext.jsx";
 import { pageParente, libellePage } from "../utils/navigation";
 import logoLaGestion from "../assets/logo-lagestion.png";
+import SelecteurEntreprise from "./SelecteurEntreprise.jsx";
 
 const navItems = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, to: "/dashboard" },
@@ -65,8 +66,7 @@ function LayoutContenu() {
   const { taches } = useTaches();
   // Compteur de l'en-tête : tâches en retard dont l'utilisateur connecté est responsable.
   const enRetard = nombreEnRetard(taches, user?.id, jourParis());
-  const { nomAffiche, prenomAffiche, initiales, entreprise, libelleRole, peutEcrire } = useEntreprise();
-  const sousTitreProfil = [entreprise?.nom, libelleRole].filter(Boolean).join(" · ");
+  const { prenomAffiche, peutEcrire } = useEntreprise();
   const breadcrumb = libellePage(location.pathname);
   const parente = pageParente(location.pathname);
 
@@ -190,22 +190,7 @@ function LayoutContenu() {
         })}
       </nav>
 
-      <div className="m-2 rounded-xl p-2.5 xl:m-3 xl:p-3" style={{ backgroundColor: C.sidebarHover }}>
-        <div className="flex items-center gap-3 md:justify-center md:gap-0 xl:justify-start xl:gap-3">
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
-            style={{ backgroundColor: AVATARS.vertEau }}
-            aria-label={`Profil de ${nomAffiche}`}
-            title={`${nomAffiche} — ${sousTitreProfil}`}
-          >
-            {initiales}
-          </div>
-          <div className="min-w-0 flex-1 md:hidden xl:block">
-            <p className="truncate text-[15px] font-semibold" style={{ color: C.sidebarText }}>{nomAffiche}</p>
-            <p className="truncate text-xs" style={{ color: C.sidebarTextMuted }}>{sousTitreProfil}</p>
-          </div>
-        </div>
-      </div>
+      <SelecteurEntreprise onAction={closeMobile} />
 
       <div className="px-2 pb-3 xl:px-3">
         <button

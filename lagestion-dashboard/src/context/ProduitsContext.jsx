@@ -77,11 +77,11 @@ export function ProduitsProvider({ children }) {
 
   const updateProduit = useCallback(async (id, patch) => {
     const payload = preparerPayload(patch);
-    const { data: maj, error } = await supabase.from("produits").update(payload).eq("id", id).select().single();
+    const { data: maj, error } = await supabase.from("produits").update(payload).eq("id", id).eq("entreprise_id", entrepriseId).select().single();
     if (error) throw erreurFrancaise(error);
     setProduits((prev) => prev.map((p) => (p.id === id ? maj : p)));
     return maj;
-  }, []);
+  }, [entrepriseId]);
 
   const deleteProduit = useCallback(async (id) => {
     setErreur(null);
@@ -89,6 +89,7 @@ export function ProduitsProvider({ children }) {
       .from("produits")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select("id");
     if (error || data.length === 0) {
       setErreur(error ? messageErreur(error) : MESSAGE_REFUS);
@@ -96,7 +97,7 @@ export function ProduitsProvider({ children }) {
     }
     setProduits((prev) => prev.filter((p) => p.id !== id));
     return true;
-  }, []);
+  }, [entrepriseId]);
 
   // Import (utils/import.js) : insertion par lots, entreprise_id sur chaque ligne ; un seul rechargement à la fin.
   const importerProduits = useCallback(

@@ -67,6 +67,7 @@ export default function App() {
           <Route path="/parametres" element={<Navigate to="/parametres/profil" replace />} />
           <Route path="/parametres/profil" element={<Parametres section="profil" />} />
           <Route path="/parametres/entreprise" element={<Parametres section="entreprise" />} />
+          <Route path="/entreprises/nouvelle" element={<Onboarding ajout />} />
         </Route>
       </Route>
     </Routes>

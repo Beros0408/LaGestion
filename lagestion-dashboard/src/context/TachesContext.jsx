@@ -75,21 +75,21 @@ export function TachesProvider({ children }) {
   );
 
   const updateTache = useCallback(async (id, patch) => {
-    const { data, error } = await supabase.from("taches").update(preparerPayload(patch)).eq("id", id).select();
+    const { data, error } = await supabase.from("taches").update(preparerPayload(patch)).eq("id", id).eq("entreprise_id", entrepriseId).select();
     if (error) throw erreurFrancaise(error);
     if (!data?.length) throw new Error(MESSAGE_REFUS);
     setTaches((prev) => prev.map((t) => (t.id === id ? data[0] : t)));
     return data[0];
-  }, []);
+  }, [entrepriseId]);
 
   const changerStatut = useCallback((id, statut) => updateTache(id, { statut }), [updateTache]);
 
   const supprimerTache = useCallback(async (id) => {
-    const { data, error } = await supabase.from("taches").update({ deleted_at: new Date().toISOString() }).eq("id", id).select("id");
+    const { data, error } = await supabase.from("taches").update({ deleted_at: new Date().toISOString() }).eq("id", id).eq("entreprise_id", entrepriseId).select("id");
     if (error) throw erreurFrancaise(error);
     if (!data?.length) throw new Error(MESSAGE_REFUS);
     setTaches((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  }, [entrepriseId]);
 
   const value = useMemo(
     () => ({ taches, membres, chargement, erreur, rechargerTaches: chargerTaches, addTache, updateTache, changerStatut, supprimerTache }),

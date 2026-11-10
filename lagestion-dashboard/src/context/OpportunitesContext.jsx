@@ -77,12 +77,13 @@ export function OpportunitesProvider({ children }) {
       .from("opportunites")
       .update(payload)
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select()
       .single();
     if (error) throw erreurFrancaise(error);
     setOpportunites((prev) => prev.map((o) => (o.id === id ? maj : o)));
     return maj;
-  }, []);
+  }, [entrepriseId]);
 
   const deleteOpportunite = useCallback(async (id) => {
     setErreur(null);
@@ -90,6 +91,7 @@ export function OpportunitesProvider({ children }) {
       .from("opportunites")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select("id");
     if (error || data.length === 0) {
       setErreur(error ? messageErreur(error) : MESSAGE_REFUS);
@@ -97,7 +99,7 @@ export function OpportunitesProvider({ children }) {
     }
     setOpportunites((prev) => prev.filter((o) => o.id !== id));
     return true;
-  }, []);
+  }, [entrepriseId]);
 
   const moveOpportunite = useCallback(async (id, nouvelleEtape) => {
     if (!ETAPES.includes(nouvelleEtape)) return null;
@@ -106,6 +108,7 @@ export function OpportunitesProvider({ children }) {
       .from("opportunites")
       .update({ etape: nouvelleEtape })
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select()
       .single();
     if (error) {
@@ -114,7 +117,7 @@ export function OpportunitesProvider({ children }) {
     }
     setOpportunites((prev) => prev.map((o) => (o.id === id ? maj : o)));
     return maj;
-  }, []);
+  }, [entrepriseId]);
 
   const value = useMemo(
     () => ({

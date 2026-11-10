@@ -64,19 +64,19 @@ export function ActivitesProvider({ children }) {
   );
 
   const updateActivite = useCallback(async (id, patch) => {
-    const { data, error } = await supabase.from("activites").update(preparerPayload(patch)).eq("id", id).select();
+    const { data, error } = await supabase.from("activites").update(preparerPayload(patch)).eq("id", id).eq("entreprise_id", entrepriseId).select();
     if (error) throw erreurFrancaise(error);
     if (!data?.length) throw new Error(MESSAGE_REFUS);
     setActivites((prev) => prev.map((a) => (a.id === id ? data[0] : a)));
     return data[0];
-  }, []);
+  }, [entrepriseId]);
 
   const supprimerActivite = useCallback(async (id) => {
-    const { data, error } = await supabase.from("activites").update({ deleted_at: new Date().toISOString() }).eq("id", id).select("id");
+    const { data, error } = await supabase.from("activites").update({ deleted_at: new Date().toISOString() }).eq("id", id).eq("entreprise_id", entrepriseId).select("id");
     if (error) throw erreurFrancaise(error);
     if (!data?.length) throw new Error(MESSAGE_REFUS);
     setActivites((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+  }, [entrepriseId]);
 
   const value = useMemo(
     () => ({ activites, chargement, erreur, rechargerActivites: chargerActivites, addActivite, updateActivite, supprimerActivite }),

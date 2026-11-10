@@ -9,6 +9,8 @@ const GardeModificationsContext = createContext(null);
 export function GardeModificationsProvider({ children }) {
   const [modifie, setModifie] = useState(false);
   const [demande, setDemande] = useState(null); // { action, origine }
+  // Import en cours d'écriture : changement d'entreprise et création d'entreprise refusés (sélecteur).
+  const [importEnCours, setImportEnCours] = useState(false);
 
   const quitter = useCallback(
     (action) => {
@@ -28,7 +30,7 @@ export function GardeModificationsProvider({ children }) {
     action();
   };
 
-  const value = useMemo(() => ({ setModifie, quitter }), [quitter]);
+  const value = useMemo(() => ({ setModifie, quitter, importEnCours, setImportEnCours }), [quitter, importEnCours]);
 
   return (
     <GardeModificationsContext.Provider value={value}>
@@ -73,4 +75,18 @@ export function useGardeModifications(modifie) {
 export function useQuitter() {
   const ctx = useContext(GardeModificationsContext);
   return ctx?.quitter ?? ((action) => action());
+}
+
+// À appeler par l'écran d'import : signale l'écriture en cours.
+export function useSignalerImport(actif) {
+  const setImportEnCours = useContext(GardeModificationsContext)?.setImportEnCours;
+  useEffect(() => {
+    if (!setImportEnCours) return undefined;
+    setImportEnCours(actif);
+    return () => setImportEnCours(false);
+  }, [actif, setImportEnCours]);
+}
+
+export function useImportEnCours() {
+  return useContext(GardeModificationsContext)?.importEnCours ?? false;
 }

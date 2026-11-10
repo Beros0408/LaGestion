@@ -7,7 +7,7 @@ import {
 import { C, COULEURS_ETAT, alpha } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
-import { useGardeModifications } from "../context/GardeModificationsContext.jsx";
+import { useGardeModifications, useSignalerImport } from "../context/GardeModificationsContext.jsx";
 import Select from "../components/form/Select.jsx";
 import {
   DELAI_LECTURE_MS, LIMITE_LIGNES, LIMITE_OCTETS, compterRapport, detecterEntete, estVide, issuesFinales,
@@ -103,6 +103,8 @@ export default function Import({ type = "clients" }) {
 
   // Colonnes, prévisualisation ou import en cours : quitter la page (barre latérale, Retour, onglet) demande confirmation.
   useGardeModifications(etape === 2 || etape === 3 || (etape === 4 && !final));
+  // Écriture en cours : changement et création d'entreprise refusés (sélecteur).
+  useSignalerImport(etape === 4 && !final);
 
   // Focus sur le titre de chaque étape (lecteurs d'écran, clavier).
   useEffect(() => { titreRef.current?.focus(); }, [etape]);

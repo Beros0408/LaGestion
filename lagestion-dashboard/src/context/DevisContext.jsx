@@ -111,6 +111,7 @@ export function DevisProvider({ children }) {
       .from("devis")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id)
+      .eq("entreprise_id", entrepriseId)
       .select("id");
     if (error || data.length === 0) {
       setErreur(error ? messageErreur(error) : MESSAGE_REFUS);
@@ -118,19 +119,19 @@ export function DevisProvider({ children }) {
     }
     setDevis((prev) => prev.filter((d) => d.id !== id));
     return true;
-  }, []);
+  }, [entrepriseId]);
 
   // En cas de refus, la page peut ne plus être à jour : le devis est relu avant d'afficher le message.
   const changerStatutDevis = useCallback(
     async (id, statut) => {
-      const { data, error } = await supabase.from("devis").update({ statut }).eq("id", id).select("id");
+      const { data, error } = await supabase.from("devis").update({ statut }).eq("id", id).eq("entreprise_id", entrepriseId).select("id");
       if (error || data.length === 0) {
         await chargerDevis();
         throw error ? erreurFrancaise(error) : new Error(MESSAGE_REFUS);
       }
       await chargerDevis();
     },
-    [chargerDevis]
+    [entrepriseId, chargerDevis]
   );
 
   // Transaction côté base (fonction convertir_devis) ; renvoie l'identifiant de la facture créée.
