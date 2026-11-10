@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { ligneHT, remiseGlobale, statutCalcule, totalHTBrut, totalHT, tvaParTaux, totalTTC } from "./facture";
 import { LIBELLE_STATUT } from "../data/factures";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis";
-import { emetteurDocument, lignesIdentite, lignesMentions } from "./mentions";
+import { emetteurDocument, formaterSiren, lignesIdentite, lignesMentions } from "./mentions";
 
 const COLORS = {
   primary:       [45, 91, 127],
@@ -151,7 +151,7 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
   doc.setTextColor(...COLORS.textSecondary);
   if (client?.type === "entreprise" && client?.siren) {
     y += 5;
-    doc.text(`SIREN ${client.siren}`, margin, y);
+    doc.text(`SIREN ${formaterSiren(client.siren)}`, margin, y);
   }
   if (client?.type === "entreprise" && client?.tva_intra) {
     y += 5;
@@ -187,7 +187,7 @@ function genererDocumentPdf(document, client, totaux, entreprise, config) {
     descriptionAvecReference(l),
     formatQuantiteUnite(l),
     formatEuro(l.prix_unitaire),
-    Number(l.remise) > 0 ? `- ${formatEuro(l.remise)}` : "",
+    Number(l.remise) > 0 ? `- ${formatEuro(l.remise)}` : "—",
     formatTaux(l.taux_tva),
     formatEuro(config.lignesNegatives && ligneHT(l) !== 0 ? -ligneHT(l) : ligneHT(l)),
   ]);

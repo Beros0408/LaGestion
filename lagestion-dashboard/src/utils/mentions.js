@@ -32,6 +32,20 @@ function dateLongue(iso) {
 
 const groupes = (s, n) => String(s).replace(new RegExp(`(.{${n}})(?=.)`, "g"), `$1${N}`);
 
+// Affichage seul (la valeur stockée ne change pas) : SIRET 3-3-3-5, SIREN 3-3-3, espaces insécables.
+// Valeur vide → "" ; valeur invalide → laissée telle quelle.
+export function formaterSiret(v) {
+  if (vide(v)) return "";
+  const s = String(v).replace(/\s/g, "");
+  return /^\d{14}$/.test(s) ? `${groupes(s.slice(0, 9), 3)}${N}${s.slice(9)}` : String(v).trim();
+}
+
+export function formaterSiren(v) {
+  if (vide(v)) return "";
+  const s = String(v).replace(/\s/g, "");
+  return /^\d{9}$/.test(s) ? groupes(s, 3) : String(v).trim();
+}
+
 // Émetteur d'un document : figé s'il est émis, sinon paramètres actuels (logo_url → logo, comme instantane_emetteur).
 export function emetteurDocument(document, entreprise) {
   if (document?.statut && document.statut !== "brouillon" && document.emetteur_fige) return document.emetteur_fige;
@@ -62,7 +76,7 @@ export function lignesIdentite(e) {
   if (forme === "EI") lignes.push("Entrepreneur individuel (EI)");
   else if (forme && !vide(e.capital_social)) lignes.push(`${forme} au capital de ${montant(e.capital_social)}`);
   else if (forme) lignes.push(forme);
-  if (!vide(e.siret)) lignes.push(`SIRET ${String(e.siret).trim()}`);
+  if (!vide(e.siret)) lignes.push(`SIRET ${formaterSiret(e.siret)}`);
   const siren = vide(e.siret) ? "" : String(e.siret).replace(/\s/g, "").slice(0, 9);
   const sirenAffiche = siren.length === 9 ? ` ${groupes(siren, 3)}` : "";
   if (e.immatriculation_type === "rcs" && !vide(e.immatriculation_lieu)) lignes.push(`RCS ${e.immatriculation_lieu.trim()}${sirenAffiche}`);

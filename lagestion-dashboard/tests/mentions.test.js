@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  avertissementSirenClient, emetteurDocument, lignesIdentite, lignesMentions, mentionsManquantes, texteTauxPenalites,
+  avertissementSirenClient, emetteurDocument, formaterSiren, formaterSiret, lignesIdentite, lignesMentions, mentionsManquantes, texteTauxPenalites,
 } from "../src/utils/mentions.js";
 
 const N = " ";
@@ -24,7 +24,7 @@ const PARTICULIER = { type: "particulier" };
 test("identité de l'émetteur : forme et capital, SIRET, RCS avec SIREN, TVA", () => {
   assert.deepEqual(lignesIdentite(EMETTEUR), [
     `SAS au capital de 10${N}000,00${N}€`,
-    "SIRET 12121212000012",
+    `SIRET 121${N}212${N}120${N}00012`,
     `RCS Paris 121${N}212${N}120`,
     "N° TVA intracommunautaire FR56121212120",
   ]);
@@ -32,8 +32,36 @@ test("identité de l'émetteur : forme et capital, SIRET, RCS avec SIREN, TVA", 
     ["Entrepreneur individuel (EI)", "RM 75"]);
   assert.deepEqual(lignesIdentite({ forme_juridique: "SCI", immatriculation_type: "dispense" }), ["SCI", "Dispensé d'immatriculation au RCS et au RM"]);
   // Document antérieur à 014 : seul le SIRET figurait
-  assert.deepEqual(lignesIdentite({ nom: "Ancien", siret: "11111111100011", adresse: "1 rue" }), ["SIRET 11111111100011"]);
+  assert.deepEqual(lignesIdentite({ nom: "Ancien", siret: "11111111100011", adresse: "1 rue" }), [`SIRET 111${N}111${N}111${N}00011`]);
   assert.deepEqual(lignesIdentite(null), []);
+});
+
+test("formatage du SIRET (affichage seul) : 3-3-3-5 en espaces insécables", () => {
+  assert.equal(formaterSiret("73282932000074"), `732${N}829${N}320${N}00074`);
+  // Valeur vide
+  assert.equal(formaterSiret(""), "");
+  assert.equal(formaterSiret("   "), "");
+  assert.equal(formaterSiret(null), "");
+  assert.equal(formaterSiret(undefined), "");
+  // Valeur déjà espacée (espaces normales, insécables ou mal groupées)
+  assert.equal(formaterSiret("732 829 320 00074"), `732${N}829${N}320${N}00074`);
+  assert.equal(formaterSiret(`732${N}829${N}320${N}00074`), `732${N}829${N}320${N}00074`);
+  assert.equal(formaterSiret(" 7328 2932 0000 74 "), `732${N}829${N}320${N}00074`);
+  // Valeur invalide laissée telle quelle (espaces de bord retirées)
+  assert.equal(formaterSiret("123"), "123");
+  assert.equal(formaterSiret("7328293200007A"), "7328293200007A");
+  assert.equal(formaterSiret("732829320000745"), "732829320000745");
+  assert.equal(formaterSiret(" 732-829-320 "), "732-829-320");
+  // Nombre
+  assert.equal(formaterSiret(73282932000074), `732${N}829${N}320${N}00074`);
+});
+
+test("formatage du SIREN (affichage seul) : 3-3-3 en espaces insécables", () => {
+  assert.equal(formaterSiren("732829320"), `732${N}829${N}320`);
+  assert.equal(formaterSiren("732 829 320"), `732${N}829${N}320`);
+  assert.equal(formaterSiren(""), "");
+  assert.equal(formaterSiren(null), "");
+  assert.equal(formaterSiren("12345678"), "12345678");
 });
 
 test("mentions d'une facture pour un professionnel : texte exact et ordre", () => {
