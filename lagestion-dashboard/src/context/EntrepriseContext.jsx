@@ -65,6 +65,13 @@ async function chargerAppartenances(userId) {
     .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 }
 
+// Entreprises où l'utilisateur est suspendu (migration 017) : la RLS les lui masque ; leur nom vient de la base.
+async function chargerSuspendues() {
+  const { data, error } = await supabase.rpc("mes_acces_suspendus");
+  if (error) throw error;
+  return (data ?? []).map((e) => ({ entrepriseId: e.entreprise_id, nom: e.nom }));
+}
+
 // Appartenance : tous les paramètres de l'entreprise (migration 013), son identifiant et le rôle de l'utilisateur.
 const versAppartenance = (entreprise, role) => ({ ...entreprise, entrepriseId: entreprise.id, role });
 
@@ -83,6 +90,7 @@ export function EntrepriseProvider({ children }) {
   const userId = user?.id ?? null;
   const [profil, setProfil] = useState(null);
   const [appartenances, setAppartenances] = useState([]);
+  const [suspendues, setSuspendues] = useState([]);
   const [entrepriseId, setEntrepriseId] = useState(null);
   // Utilisateur pour lequel les données ont été chargées : évite une redirection
   // vers l'onboarding entre la connexion et la fin du premier chargement.
@@ -97,9 +105,10 @@ export function EntrepriseProvider({ children }) {
     if (!userId) return;
     setErreur(null);
     try {
-      const [p, liste] = await Promise.all([chargerProfil(userId), chargerAppartenances(userId)]);
+      const [p, liste, sus] = await Promise.all([chargerProfil(userId), chargerAppartenances(userId), chargerSuspendues()]);
       setProfil(p);
       setAppartenances(liste);
+      setSuspendues(sus);
       // Un rechargement (création depuis le sélecteur, « Réessayer ») garde l'entreprise courante si elle existe encore.
       setEntrepriseId((actuelle) =>
         liste.some((a) => a.entrepriseId === actuelle) ? actuelle : entrepriseInitiale(liste, lireEntrepriseMemorisee(userId))
@@ -115,6 +124,7 @@ export function EntrepriseProvider({ children }) {
     if (!userId) {
       setProfil(null);
       setAppartenances([]);
+      setSuspendues([]);
       setEntrepriseId(null);
       setErreur(null);
       setChargePour(null);
@@ -161,6 +171,23 @@ export function EntrepriseProvider({ children }) {
       return id;
     },
     [userId, charger]
+  );
+
+  // Invitation (migration 017) : la base vérifie jeton, expiration, adresse confirmée ; un membre existant garde
+  // son rôle. Le nom saisi à l'inscription remplit un profil encore sans nom. Puis bascule vers l'entreprise.
+  const accepterInvitation = useCallback(
+    async (token) => {
+      const { data: id, error } = await supabase.rpc("accept_invitation", { p_token: token });
+      if (error) throw erreurFrancaise(error);
+      const nomInscription = user?.user_metadata?.nom?.trim();
+      if (nomInscription && !profil?.nom?.trim()) {
+        await supabase.from("profiles").update({ nom: nomInscription }).eq("id", userId);
+      }
+      await charger();
+      basculerVers(id);
+      return id;
+    },
+    [user, userId, profil, charger, basculerVers]
   );
 
   // Nom de l'utilisateur courant (RLS : chacun ne modifie que son profil).
@@ -221,6 +248,7 @@ export function EntrepriseProvider({ children }) {
       chargement,
       erreur,
       appartenances,
+      suspendues,
       entrepriseId,
       entreprise: courante,
       role,
@@ -235,6 +263,7 @@ export function EntrepriseProvider({ children }) {
       nomProfil: profil?.nom ?? "",
       creerEntreprise,
       basculerVers,
+      accepterInvitation,
       enregistrerNom,
       enregistrerEntreprise,
       enregistrerLogo,
@@ -242,7 +271,7 @@ export function EntrepriseProvider({ children }) {
       chargerLogoPdf,
       recharger: charger,
     };
-  }, [chargement, erreur, appartenances, entrepriseId, profil, user, creerEntreprise, basculerVers, enregistrerNom, enregistrerEntreprise, enregistrerLogo, lienLogo, chargerLogoPdf, charger]);
+  }, [chargement, erreur, appartenances, suspendues, entrepriseId, profil, user, creerEntreprise, basculerVers, accepterInvitation, enregistrerNom, enregistrerEntreprise, enregistrerLogo, lienLogo, chargerLogoPdf, charger]);
 
   return <EntrepriseContext.Provider value={value}>{children}</EntrepriseContext.Provider>;
 }

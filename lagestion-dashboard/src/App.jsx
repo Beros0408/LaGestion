@@ -23,6 +23,7 @@ import AcompteForm from "./pages/AcompteForm.jsx";
 import Catalogue from "./pages/Catalogue.jsx";
 import ProduitForm from "./pages/ProduitForm.jsx";
 import Parametres from "./pages/Parametres.jsx";
+import Invitation from "./pages/Invitation.jsx";
 
 // Import CSV/XLSX : chargé à la demande (lecture xlsx dans un Web Worker).
 const Import = lazy(() => import("./pages/Import.jsx"));
@@ -34,6 +35,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {/* Lien d'invitation : ouvert aussi sans compte ni entreprise, hors de ProtectedRoute. */}
+      <Route path="/invitation/:token" element={<Invitation />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/onboarding" element={<Onboarding />} />
         <Route element={<Layout />}>
@@ -67,6 +70,7 @@ export default function App() {
           <Route path="/parametres" element={<Navigate to="/parametres/profil" replace />} />
           <Route path="/parametres/profil" element={<Parametres section="profil" />} />
           <Route path="/parametres/entreprise" element={<Parametres section="entreprise" />} />
+          <Route path="/parametres/equipe" element={<Parametres section="equipe" />} />
           <Route path="/entreprises/nouvelle" element={<Onboarding ajout />} />
         </Route>
       </Route>

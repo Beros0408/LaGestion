@@ -31,7 +31,7 @@ export function TachesProvider({ children }) {
     setErreur(null);
     const [t, m] = await Promise.all([
       supabase.from("taches").select("*").eq("entreprise_id", entrepriseId).is("deleted_at", null).order("echeance", { ascending: true }),
-      supabase.from("memberships").select("user_id, role").eq("entreprise_id", entrepriseId),
+      supabase.from("memberships").select("user_id, role, statut").eq("entreprise_id", entrepriseId),
     ]);
     if (t.error || m.error) {
       setErreur(messageErreur(t.error || m.error));
@@ -46,7 +46,10 @@ export function TachesProvider({ children }) {
     setTaches(t.data ?? []);
     setMembres(
       (m.data ?? [])
-        .map((x) => ({ id: x.user_id, role: x.role, nom: noms.get(x.user_id)?.trim() || "Membre sans nom" }))
+        .map((x) => {
+          const nom = noms.get(x.user_id)?.trim() || "Membre sans nom";
+          return { id: x.user_id, role: x.role, statut: x.statut, nom: x.statut === "suspendu" ? `${nom} (accès suspendu)` : nom };
+        })
         .sort((a, b) => a.nom.localeCompare(b.nom, "fr"))
     );
     setChargement(false);

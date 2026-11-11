@@ -3,10 +3,11 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { C } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
+import AccesSuspendu from "../pages/AccesSuspendu.jsx";
 
 export default function ProtectedRoute() {
   const { user, chargement: chargementAuth } = useAuth();
-  const { chargement: chargementEntreprise, entrepriseId, erreur, recharger } = useEntreprise();
+  const { chargement: chargementEntreprise, entrepriseId, suspendues, erreur, recharger } = useEntreprise();
   const location = useLocation();
   const chargement = chargementAuth || (user && chargementEntreprise);
 
@@ -62,7 +63,10 @@ export default function ProtectedRoute() {
     );
   }
 
+  // Aucune entreprise active : accès suspendu partout → page dédiée (création d'une entreprise possible) ;
+  // sinon, création de la première entreprise.
   if (!entrepriseId && location.pathname !== "/onboarding") {
+    if (suspendues.length > 0) return <AccesSuspendu />;
     return <Navigate to="/onboarding" replace />;
   }
 

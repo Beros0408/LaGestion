@@ -21,8 +21,9 @@ const TYPES_LIEN = [
 ];
 const lienDe = (t) => TYPES_LIEN.find((l) => l.value && t?.[l.value]);
 
-// Création ou modification d'une tâche. Un seul objet lié au plus ; responsable parmi les membres de l'entreprise
-// au rôle qui écrit (un membre lecture ne pourrait pas marquer sa tâche faite ; refusé aussi en base).
+// Création ou modification d'une tâche. Un seul objet lié au plus ; responsable parmi les membres actifs de l'entreprise
+// au rôle qui écrit (un membre lecture ne pourrait pas marquer sa tâche faite ; refusé aussi en base, migration 017
+// pour le statut). Le responsable actuel reste dans la liste, même suspendu, pour que le choix affiché soit le vrai.
 // La base refuse ce qui sort des droits (auteur, responsable, admin, manager) ou de l'entreprise.
 export default function FenetreTache({ tache, initiale = {}, elementRetour, onFermer }) {
   const { membres, addTache, updateTache } = useTaches();
@@ -84,7 +85,7 @@ export default function FenetreTache({ tache, initiale = {}, elementRetour, onFe
           required
           value={responsable}
           onChange={(e) => setResponsable(e.target.value)}
-          options={membres.filter((m) => ROLES_ECRITURE.includes(m.role)).map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.nom} (moi)` : m.nom }))}
+          options={membres.filter((m) => (ROLES_ECRITURE.includes(m.role) && m.statut === "actif") || m.id === depart.responsable).map((m) => ({ value: m.id, label: m.id === user?.id ? `${m.nom} (moi)` : m.nom }))}
         />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

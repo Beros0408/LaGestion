@@ -7,6 +7,8 @@ import { useGardeModifications, useQuitter } from "../context/GardeModifications
 import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
 import Textarea from "../components/form/Textarea.jsx";
+import SectionEquipe from "../components/equipe/SectionEquipe.jsx";
+import { EquipeProvider } from "../context/EquipeContext.jsx";
 import {
   DELAI_MAX_JOURS, FORMES_JURIDIQUES, FORME_AUTRE, IMMATRICULATIONS, MODES_PAIEMENT, PENALITES, TAILLE_MAX_LOGO, TYPES_LOGO,
   normaliserIban, normaliserTva, validerParametres,
@@ -18,6 +20,7 @@ const N = " ";
 const SECTIONS = [
   { to: "/parametres/profil", label: "Profil" },
   { to: "/parametres/entreprise", label: "Entreprise" },
+  { to: "/parametres/equipe", label: "Équipe" },
 ];
 
 const FORME_OPTIONS = [
@@ -399,7 +402,7 @@ export default function Parametres({ section }) {
     <>
       <div className="mb-5">
         <h2 className="text-[28px] font-semibold leading-tight" style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}>Paramètres</h2>
-        <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>Votre profil et les informations de l'entreprise courante.</p>
+        <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>Votre profil, les informations de l'entreprise courante et son équipe.</p>
       </div>
       <nav aria-label="Sections des paramètres" className="mb-5 flex flex-wrap gap-2">
         {SECTIONS.map((s) => (
@@ -417,7 +420,9 @@ export default function Parametres({ section }) {
           </NavLink>
         ))}
       </nav>
-      {section === "entreprise" ? <Entreprise /> : <Profil />}
+      {section === "entreprise" && <Entreprise />}
+      {section === "equipe" && <EquipeProvider><SectionEquipe /></EquipeProvider>}
+      {section === "profil" && <Profil />}
     </>
   );
 }

@@ -6,8 +6,9 @@ import usePiegeFocus from "../hooks/usePiegeFocus";
 // Fenêtre modale de saisie : titre, erreur, champs, Annuler / Enregistrer. Focus piégé, Échap ferme.
 export default function FenetreFormulaire({ titre, erreur, envoi, libelleValider = "Enregistrer", valide = true, elementRetour, onFermer, onValider, children }) {
   const refFenetre = useRef(null);
-  // Focus initial : premier champ de la fenêtre (les champs partagés ne transmettent pas de ref).
-  const refInitial = useRef({ focus: () => refFenetre.current?.querySelector("input, select, textarea")?.focus() });
+  // Focus initial : premier champ de la fenêtre (les champs partagés ne transmettent pas de ref) ;
+  // sans champ (simple confirmation), le premier bouton : « Annuler ».
+  const refInitial = useRef({ focus: () => refFenetre.current?.querySelector("input, select, textarea, button")?.focus() });
   const id = useId();
   const auClavier = usePiegeFocus({ ouvert: true, refFenetre, refInitial, elementRetour, onEchap: onFermer });
 
