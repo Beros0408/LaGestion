@@ -4,6 +4,7 @@ import { ligneHT, remiseGlobale, statutCalcule, totalHTBrut, totalHT, tvaParTaux
 import { LIBELLE_STATUT } from "../data/factures";
 import { LIBELLE_STATUT_DEVIS } from "../data/devis";
 import { emetteurDocument, formaterSiren, lignesIdentite, lignesMentions } from "./mentions";
+import { nomFichierBrouillon } from "./nomFichierPdf";
 
 const COLORS = {
   primary:       [45, 91, 127],
@@ -377,7 +378,7 @@ export function genererFacturePdf(facture, client, totaux, entreprise, devisOrig
       mentionsLegales,
       titre: brouillon ? "BROUILLON D'AVOIR" : "AVOIR",
       reference: brouillon ? "Sans valeur d'avoir" : undefined,
-      nomFichier: brouillon ? "brouillon-avoir.pdf" : undefined,
+      nomFichier: brouillon ? nomFichierBrouillon("avoir", clientDoc?.nom) : undefined,
       destinataire: "AVOIR POUR",
       dates: brouillon ? [] : [{ texte: `Émis le ${formatDate(facture.date_emission)}` }],
       mentions: [
@@ -399,7 +400,7 @@ export function genererFacturePdf(facture, client, totaux, entreprise, devisOrig
       ? (estAcompte ? "BROUILLON D'ACOMPTE" : estSolde ? "BROUILLON DE SOLDE" : "BROUILLON")
       : (estAcompte ? "FACTURE D'ACOMPTE" : estSolde ? "FACTURE DE SOLDE" : "FACTURE"),
     reference: brouillon ? "Sans valeur de facture" : undefined,
-    nomFichier: brouillon ? `brouillon-${estAcompte ? "acompte" : estSolde ? "solde" : "facture"}.pdf` : undefined,
+    nomFichier: brouillon ? nomFichierBrouillon(facture.type ?? "facture", clientDoc?.nom) : undefined,
     destinataire: "FACTURÉ À",
     mentions: estAcompte ? [`Acompte sur le devis${refDevis}`] : estSolde ? [`Solde du devis${refDevis}`] : undefined,
     acomptes: estSolde ? facture.acomptes_deduits : undefined,
