@@ -5,6 +5,8 @@ import assert from "node:assert/strict";
 import { calculerTableauDeBord, bornesPeriode, phraseActivite, variation, pourcentage } from "../src/utils/dashboard.js";
 
 const AUJOURDHUI = "2026-11-05";
+const N = " ";
+const eur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
 const ligne = (quantite, prix_unitaire, taux_tva) => ({ quantite, prix_unitaire, taux_tva, remise: 0 });
 
 const clients = [
@@ -157,22 +159,54 @@ test("phrases d'activité", () => {
   const facturesParId = new Map([["f9", { numero: "DEMO-0009" }]]);
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
     old_data: { numero: "DEMO-0009", statut: "envoyee" }, new_data: { numero: "DEMO-0009", statut: "payee" } }),
-    "Facture DEMO-0009 marquée payée");
+    `Facture marquée payée${N}: DEMO-0009`);
   assert.equal(phraseActivite({ table_name: "clients", action: "insert", new_data: { nom: "Boulangerie Fournier" } }),
-    "Client Boulangerie Fournier créé");
+    `Nouveau client${N}: Boulangerie Fournier`);
   assert.equal(phraseActivite({ table_name: "opportunites", action: "update",
     old_data: { nom: "Terrasse", etape: "Proposition" }, new_data: { nom: "Terrasse", etape: "Négociation" } }),
-    "Opportunité « Terrasse » passée en Négociation");
+    `Opportunité passée en Négociation${N}: Terrasse`);
   assert.equal(phraseActivite({ table_name: "paiements", action: "insert", new_data: { facture_id: "f9", montant: 1908 } }, facturesParId),
-    "Paiement de 1 908,00 € enregistré sur la facture DEMO-0009");
+    `Paiement enregistré${N}: ${eur(1908)} sur DEMO-0009`);
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
     old_data: { numero: "F1", deleted_at: null }, new_data: { numero: "F1", deleted_at: "2026-11-01" } }),
-    "Facture F1 supprimée");
+    `Facture supprimée${N}: F1`);
   assert.equal(phraseActivite({ table_name: "devis", action: "insert", new_data: { numero: "DEV-2026-0001" } }),
-    "Devis DEV-2026-0001 créé");
+    `Nouveau devis${N}: DEV-2026-0001`);
   assert.equal(phraseActivite({ table_name: "devis", action: "update",
     old_data: { numero: "D1", statut: "accepte" }, new_data: { numero: "D1", statut: "envoye" } }),
-    "Devis D1 marqué envoyé");
+    `Devis marqué envoyé${N}: D1`);
+});
+
+test("journal : le mot « Client » n'est pas répété quand le nom commence par « Client »", () => {
+  assert.equal(phraseActivite({ table_name: "clients", action: "insert", new_data: { nom: "Client B" } }), `Nouveau client${N}: Client B`);
+  assert.equal(phraseActivite({ table_name: "clients", action: "update", old_data: { nom: "Client B" }, new_data: { nom: "Client B" } }), `Client modifié${N}: Client B`);
+  assert.equal(phraseActivite({ table_name: "clients", action: "update", old_data: { nom: "Client B" }, new_data: { nom: "Client B", deleted_at: "2026-11-01" } }), `Client supprimé${N}: Client B`);
+  assert.equal(phraseActivite({ table_name: "clients", action: "update", old_data: { nom: "Client B", deleted_at: "2026-11-01" }, new_data: { nom: "Client B" } }), `Client restauré${N}: Client B`);
+  assert.equal(phraseActivite({ table_name: "clients", action: "delete", old_data: { nom: "Client B" } }), `Client supprimé définitivement${N}: Client B`);
+});
+
+test("journal : tâches, activités (sans commentaire) et articles", () => {
+  const clientsParId = new Map([["c1", { nom: "Client B" }]]);
+  const t = { titre: "Rappeler M. Martin", statut: "a_faire" };
+  assert.equal(phraseActivite({ table_name: "taches", action: "insert", new_data: t }), `Nouvelle tâche${N}: Rappeler M. Martin`);
+  assert.equal(phraseActivite({ table_name: "taches", action: "update", old_data: t, new_data: { ...t, statut: "faite" } }), `Tâche faite${N}: Rappeler M. Martin`);
+  assert.equal(phraseActivite({ table_name: "taches", action: "update", old_data: { ...t, statut: "faite" }, new_data: t }), `Tâche rouverte${N}: Rappeler M. Martin`);
+  assert.equal(phraseActivite({ table_name: "taches", action: "update", old_data: t, new_data: { ...t } }), `Tâche modifiée${N}: Rappeler M. Martin`);
+  assert.equal(phraseActivite({ table_name: "taches", action: "update", old_data: t, new_data: { ...t, deleted_at: "2026-11-01" } }), `Tâche supprimée${N}: Rappeler M. Martin`);
+  const a = { type: "appel", client_id: "c1", commentaire: "Secret : ne pas afficher" };
+  assert.equal(phraseActivite({ table_name: "activites", action: "insert", new_data: a }, new Map(), clientsParId), `Appel noté${N}: Client B`);
+  assert.equal(phraseActivite({ table_name: "activites", action: "insert", new_data: { ...a, type: "rendez_vous" } }, new Map(), clientsParId), `Rendez-vous noté${N}: Client B`);
+  assert.equal(phraseActivite({ table_name: "activites", action: "insert", new_data: { ...a, type: "email" } }, new Map(), clientsParId), `E-mail noté${N}: Client B`);
+  assert.equal(phraseActivite({ table_name: "activites", action: "insert", new_data: { ...a, type: "note", client_id: null } }), "Note ajoutée");
+  assert.equal(phraseActivite({ table_name: "activites", action: "update", old_data: { ...a, type: "note" }, new_data: { ...a, type: "note", deleted_at: "2026-11-01" } }, new Map(), clientsParId), `Note supprimée${N}: Client B`);
+  for (const type of ["appel", "rendez_vous", "email", "note"]) {
+    for (const action of ["insert", "update", "delete"]) {
+      const p = phraseActivite({ table_name: "activites", action, old_data: { ...a, type }, new_data: { ...a, type } }, new Map(), clientsParId);
+      assert.equal(p.includes("Secret"), false, `commentaire repris : ${p}`);
+    }
+  }
+  assert.equal(phraseActivite({ table_name: "produits", action: "insert", new_data: { nom: "Pose de carrelage" } }), `Nouvel article${N}: Pose de carrelage`);
+  assert.equal(phraseActivite({ table_name: "produits", action: "update", old_data: { nom: "Pose de carrelage" }, new_data: { nom: "Pose de carrelage", deleted_at: "2026-11-01" } }), `Article supprimé${N}: Pose de carrelage`);
 });
 
 test("relances au tableau de bord : niveau proposé, délai de 15 jours", () => {
@@ -186,25 +220,27 @@ test("relances au tableau de bord : niveau proposé, délai de 15 jours", () => 
 
 test("journal : relance préparée", () => {
   const facturesParId = new Map([["f9", { numero: "DEMO-0009" }]]);
-  assert.equal(phraseActivite({ table_name: "relances", action: "insert", new_data: { niveau: 3, facture_id: "f9" } }, facturesParId), "Mise en demeure préparée sur la facture DEMO-0009");
+  assert.equal(phraseActivite({ table_name: "relances", action: "insert", new_data: { niveau: 3, facture_id: "f9" } }, facturesParId), `Mise en demeure préparée${N}: DEMO-0009`);
+  assert.equal(phraseActivite({ table_name: "relances", action: "insert", new_data: { niveau: 2, facture_id: "inconnue" } }, facturesParId), "2e relance préparée");
 });
 
 test("journal : acompte et solde", () => {
-  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "acompte" } }), "Brouillon d'acompte créé");
-  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "solde" } }), "Brouillon de solde créé");
+  const clientsParId = new Map([["c1", { nom: "Client B" }]]);
+  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "acompte", client_id: "c1" } }, new Map(), clientsParId), `Nouveau brouillon d'acompte${N}: Client B`);
+  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "solde" } }), "Nouveau brouillon de solde");
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
-    old_data: { numero: null, statut: "brouillon", type: "acompte" }, new_data: { numero: "FAC-2026-0001", statut: "finalisee", type: "acompte" } }), "Facture d'acompte FAC-2026-0001 finalisée");
+    old_data: { numero: null, statut: "brouillon", type: "acompte" }, new_data: { numero: "FAC-2026-0001", statut: "finalisee", type: "acompte" } }), `Facture d'acompte finalisée${N}: FAC-2026-0001`);
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
-    old_data: { numero: null, statut: "brouillon", type: "solde" }, new_data: { numero: "FAC-2026-0002", statut: "finalisee", type: "solde" } }), "Facture de solde FAC-2026-0002 finalisée");
+    old_data: { numero: null, statut: "brouillon", type: "solde" }, new_data: { numero: "FAC-2026-0002", statut: "finalisee", type: "solde" } }), `Facture de solde finalisée${N}: FAC-2026-0002`);
 });
 
 test("journal : avoir et remboursement", () => {
-  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "avoir" } }), "Brouillon d'avoir créé");
+  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null, type: "avoir" } }), "Nouveau brouillon d'avoir");
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
-    old_data: { numero: null, statut: "brouillon", type: "avoir" }, new_data: { numero: "AV-2026-0001", statut: "finalisee", type: "avoir" } }), "Avoir AV-2026-0001 finalisé");
+    old_data: { numero: null, statut: "brouillon", type: "avoir" }, new_data: { numero: "AV-2026-0001", statut: "finalisee", type: "avoir" } }), `Avoir finalisé${N}: AV-2026-0001`);
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
-    old_data: { numero: "FAC-2026-0001", statut: "envoyee" }, new_data: { numero: "FAC-2026-0001", statut: "annulee" } }), "Facture FAC-2026-0001 annulée par avoir");
-  assert.equal(phraseActivite({ table_name: "paiements", action: "insert", new_data: { montant: 240, sens: "remboursement" } }).startsWith("Remboursement de"), true);
+    old_data: { numero: "FAC-2026-0001", statut: "envoyee" }, new_data: { numero: "FAC-2026-0001", statut: "annulee" } }), `Facture annulée par avoir${N}: FAC-2026-0001`);
+  assert.equal(phraseActivite({ table_name: "paiements", action: "insert", new_data: { montant: 240, sens: "remboursement" } }), `Remboursement enregistré${N}: ${eur(240)}`);
 });
 
 test("tableau de bord : facture à sa date, avoir en négatif à la sienne ; encaissement net", () => {
@@ -227,11 +263,11 @@ test("tableau de bord : facture à sa date, avoir en négatif à la sienne ; enc
 });
 
 test("journal : brouillon sans numéro et finalisation", () => {
-  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null } }), "Brouillon de facture créé");
+  assert.equal(phraseActivite({ table_name: "factures", action: "insert", new_data: { numero: null } }), "Nouveau brouillon de facture");
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
-    old_data: { numero: null, statut: "brouillon" }, new_data: { numero: null, statut: "brouillon" } }), "Brouillon de facture modifié");
+    old_data: { numero: null, statut: "brouillon" }, new_data: { numero: null, statut: "brouillon", client_fige: { nom: "Client B" } } }), `Brouillon de facture modifié${N}: Client B`);
   assert.equal(phraseActivite({ table_name: "factures", action: "update",
-    old_data: { numero: null, statut: "brouillon" }, new_data: { numero: "FAC-2026-0001", statut: "finalisee" } }), "Facture FAC-2026-0001 finalisée");
+    old_data: { numero: null, statut: "brouillon" }, new_data: { numero: "FAC-2026-0001", statut: "finalisee" } }), `Facture finalisée${N}: FAC-2026-0001`);
 });
 
 test("suggestion de relance : niveau de niveauPropose selon le rôle (mise en demeure jamais proposée au commercial)", () => {

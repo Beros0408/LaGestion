@@ -260,7 +260,7 @@ export default function Dashboard() {
             <ActionsSuggerees groupes={t.actions} taches={taches} peutCreer={peutChangerStatut(role)} enCours={tacheEnCours} onCreerTache={creerTache} />
           </Bloc>
           <Bloc titre="Activités récentes" index={5} chargement={chargement} hauteur={180}>
-            <ActivitesRecentes entrepriseId={entrepriseId} estAdmin={role === "admin"} factures={factures} />
+            <ActivitesRecentes entrepriseId={entrepriseId} estAdmin={role === "admin"} factures={factures} clients={clients} />
           </Bloc>
         </div>
       </div>

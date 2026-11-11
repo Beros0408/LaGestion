@@ -8,7 +8,7 @@ const COULEURS = { clients: C.chart2, devis: C.chart4, factures: C.chart1, oppor
 const LIMITE = 12;
 
 // Lecture de audit_events : la RLS (002) la réserve aux administrateurs.
-function ActivitesRecentes({ entrepriseId, estAdmin, factures }) {
+function ActivitesRecentes({ entrepriseId, estAdmin, factures, clients }) {
   const [evenements, setEvenements] = useState(null);
   const [erreur, setErreur] = useState(null);
 
@@ -32,6 +32,7 @@ function ActivitesRecentes({ entrepriseId, estAdmin, factures }) {
   }, [estAdmin, entrepriseId]);
 
   const facturesParId = useMemo(() => new Map(factures.map((f) => [f.id, f])), [factures]);
+  const clientsParId = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
 
   if (!estAdmin) return <p className="text-sm" style={{ color: C.textSecondary }}>Réservé aux administrateurs.</p>;
   if (erreur) return <p role="alert" className="text-sm" style={{ color: C.errorText }}>{erreur}</p>;
@@ -45,7 +46,7 @@ function ActivitesRecentes({ entrepriseId, estAdmin, factures }) {
         <li key={e.id} className="flex gap-3">
           <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: COULEURS[e.table_name] ?? C.chart8 }} aria-hidden="true" />
           <div className="min-w-0">
-            <p className="text-sm leading-snug" style={{ color: C.textPrimary }}>{phraseActivite(e, facturesParId)}</p>
+            <p className="text-sm leading-snug" style={{ color: C.textPrimary }}>{phraseActivite(e, facturesParId, clientsParId)}</p>
             <p className="text-xs" style={{ color: C.textSecondary }}>{quandRelatif(e.created_at, maintenant)}</p>
           </div>
         </li>

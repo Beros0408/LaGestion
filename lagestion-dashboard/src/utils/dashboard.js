@@ -347,66 +347,83 @@ const statutMinuscule = (s) => (LIBELLE_STATUT[s] ?? s ?? "").toLocaleLowerCase(
 const fmtEuro = (n) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2 }).format(n);
 
-export function phraseActivite(evt, facturesParId = new Map()) {
+// « Événement : objet » (espace insécable avant les deux-points) ; sans objet connu, l'événement seul.
+// Le commentaire d'une activité n'est jamais repris.
+const phrase = (evenement, objet) => (objet ? `${evenement}${N}: ${objet}` : evenement);
+const ACTIVITE = {
+  appel: { nom: "Appel", e: "", ajout: "Appel noté" },
+  rendez_vous: { nom: "Rendez-vous", e: "", ajout: "Rendez-vous noté" },
+  email: { nom: "E-mail", e: "", ajout: "E-mail noté" },
+  note: { nom: "Note", e: "e", ajout: "Note ajoutée" },
+};
+
+export function phraseActivite(evt, facturesParId = new Map(), clientsParId = new Map()) {
   const n = evt.new_data ?? {};
   const o = evt.old_data ?? {};
   const d = evt.action === "delete" ? o : n;
   const supprimee = evt.action === "update" && !o.deleted_at && n.deleted_at;
   const restauree = evt.action === "update" && o.deleted_at && !n.deleted_at;
+  const nomClient = (id) => clientsParId.get(id)?.nom;
+  // Suppression définitive, suppression logique, restauration, modification ; e : accord au féminin.
+  const cycle = (nom, e, objet) => {
+    if (evt.action === "delete") return phrase(`${nom} supprimé${e} définitivement`, objet);
+    if (supprimee) return phrase(`${nom} supprimé${e}`, objet);
+    if (restauree) return phrase(`${nom} restauré${e}`, objet);
+    return phrase(`${nom} modifié${e}`, objet);
+  };
 
   switch (evt.table_name) {
-    case "clients": {
-      if (evt.action === "insert") return `Client ${d.nom} créé`;
-      if (evt.action === "delete") return `Client ${d.nom} supprimé définitivement`;
-      if (supprimee) return `Client ${d.nom} supprimé`;
-      if (restauree) return `Client ${d.nom} restauré`;
-      return `Fiche client ${d.nom} modifiée`;
-    }
+    case "clients":
+      if (evt.action === "insert") return phrase("Nouveau client", d.nom);
+      return cycle("Client", "", d.nom);
     case "factures": {
-      // Un brouillon n'a pas de numéro ; « Facture … » au féminin, « Avoir … » et « Brouillon … » au masculin.
+      // Un brouillon n'a pas de numéro : objet = client. « Facture … » au féminin, « Avoir » et « Brouillon » au masculin.
       const avoir = d.type === "avoir";
       const nom = d.numero
-        ? `${LIBELLE_TYPE[d.type] ?? "Facture"} ${d.numero}`
+        ? (LIBELLE_TYPE[d.type] ?? "Facture")
         : `Brouillon ${avoir ? "d'avoir" : d.type === "acompte" ? "d'acompte" : d.type === "solde" ? "de solde" : "de facture"}`;
+      const objet = d.numero ?? (d.client_fige?.nom || nomClient(d.client_id));
       const e = d.numero && !avoir ? "e" : "";
-      if (evt.action === "insert") return `${nom} créé${e}`;
-      if (evt.action === "delete") return `${nom} supprimé${e} définitivement`;
-      if (supprimee) return `${nom} supprimé${e}`;
-      if (restauree) return `${nom} restauré${e}`;
-      if (o.statut !== n.statut && n.statut === "finalisee") return `${nom} finalisé${n.numero && !avoir ? "e" : ""}`;
-      if (o.statut !== n.statut && n.statut === "annulee") return `${nom} annulée par avoir`;
-      if (o.statut !== n.statut) return `${nom} marqué${e} ${statutMinuscule(n.statut)}`;
-      return `${nom} modifié${e}`;
+      if (evt.action === "insert") return phrase(d.numero ? `Nouvel${e ? "le" : ""} ${nom.toLocaleLowerCase("fr")}` : `Nouveau ${nom.toLocaleLowerCase("fr")}`, objet);
+      if (evt.action === "update" && o.statut !== n.statut && !supprimee && !restauree) {
+        if (n.statut === "finalisee") return phrase(`${nom} finalisé${e}`, objet);
+        if (n.statut === "annulee") return phrase(`${nom} annulé${e} par avoir`, objet);
+        return phrase(`${nom} marqué${e} ${statutMinuscule(n.statut)}`, objet);
+      }
+      return cycle(nom, e, objet);
     }
-    case "devis": {
-      if (evt.action === "insert") return `Devis ${d.numero} créé`;
-      if (evt.action === "delete") return `Devis ${d.numero} supprimé définitivement`;
-      if (supprimee) return `Devis ${d.numero} supprimé`;
-      if (restauree) return `Devis ${d.numero} restauré`;
-      if (o.statut !== n.statut) return `Devis ${d.numero} marqué ${(LIBELLE_STATUT_DEVIS[n.statut] ?? n.statut ?? "").toLocaleLowerCase("fr")}`;
-      return `Devis ${d.numero} modifié`;
-    }
-    case "opportunites": {
-      if (evt.action === "insert") return `Opportunité « ${d.nom} » créée`;
-      if (evt.action === "delete") return `Opportunité « ${d.nom} » supprimée définitivement`;
-      if (supprimee) return `Opportunité « ${d.nom} » supprimée`;
-      if (restauree) return `Opportunité « ${d.nom} » restaurée`;
-      if (o.etape !== n.etape) return `Opportunité « ${d.nom} » passée en ${n.etape}`;
-      return `Opportunité « ${d.nom} » modifiée`;
-    }
-    case "relances": {
-      const numero = facturesParId.get(d.facture_id)?.numero;
-      const niveau = LIBELLE_NIVEAU[d.niveau] ?? "Relance";
-      return `${niveau} préparée${numero ? ` sur la facture ${numero}` : ""}`;
-    }
+    case "devis":
+      if (evt.action === "insert") return phrase("Nouveau devis", d.numero);
+      if (evt.action === "update" && o.statut !== n.statut && !supprimee && !restauree)
+        return phrase(`Devis marqué ${(LIBELLE_STATUT_DEVIS[n.statut] ?? n.statut ?? "").toLocaleLowerCase("fr")}`, d.numero);
+      return cycle("Devis", "", d.numero);
+    case "opportunites":
+      if (evt.action === "insert") return phrase("Nouvelle opportunité", d.nom);
+      if (evt.action === "update" && o.etape !== n.etape && !supprimee && !restauree) return phrase(`Opportunité passée en ${n.etape}`, d.nom);
+      return cycle("Opportunité", "e", d.nom);
+    case "relances":
+      return phrase(`${LIBELLE_NIVEAU[d.niveau] ?? "Relance"} préparée`, facturesParId.get(d.facture_id)?.numero);
     case "paiements": {
       const numero = facturesParId.get(d.facture_id)?.numero;
-      const sur = numero ? ` sur la facture ${numero}` : "";
       const genre = d.sens === "remboursement" ? "Remboursement" : "Paiement";
-      if (evt.action === "insert") return `${genre} de ${fmtEuro(Number(d.montant) || 0)} enregistré${sur}`;
-      if (evt.action === "delete") return `${genre} de ${fmtEuro(Number(d.montant) || 0)} supprimé${sur}`;
-      return `${genre} modifié${sur}`;
+      const montant = `${fmtEuro(Number(d.montant) || 0)}${numero ? ` sur ${numero}` : ""}`;
+      if (evt.action === "insert") return phrase(`${genre} enregistré`, montant);
+      if (evt.action === "delete") return phrase(`${genre} supprimé`, montant);
+      return phrase(`${genre} modifié`, numero);
     }
+    case "taches":
+      if (evt.action === "insert") return phrase("Nouvelle tâche", d.titre);
+      if (evt.action === "update" && o.statut !== n.statut && !supprimee && !restauree)
+        return phrase(n.statut === "faite" ? "Tâche faite" : "Tâche rouverte", d.titre);
+      return cycle("Tâche", "e", d.titre);
+    case "activites": {
+      const a = ACTIVITE[d.type] ?? { nom: "Activité", e: "e", ajout: "Activité ajoutée" };
+      if (evt.action === "insert") return phrase(a.ajout, nomClient(d.client_id));
+      return cycle(a.nom, a.e, nomClient(d.client_id));
+    }
+    case "produits":
+      if (evt.action === "insert") return phrase("Nouvel article", d.nom);
+      return cycle("Article", "", d.nom);
     default:
       return `Modification dans ${evt.table_name}`;
   }
