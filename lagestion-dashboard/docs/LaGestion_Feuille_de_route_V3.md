@@ -226,12 +226,12 @@ Avant de coder, liste les mentions à faire valider par l'expert-comptable et pr
    - paiement : taux exact des pénalités de retard (remplace la phrase actuelle « taux légal en vigueur » du PDF), indemnité forfaitaire de 40 € pour les clients professionnels, conditions d'escompte ;
    - client : n° de TVA si assujetti ; opération : date de la prestation ou de la livraison, adresse de livraison si elle diffère.
    Ces mentions alimentent le PDF des factures, avoirs, acomptes et soldes, et les modèles de relance (taux des pénalités dans la 2e relance et la mise en demeure).
-4. Paramètres → Équipe (admin) : liste des membres et de leur rôle, changement de rôle, suspension et retrait d'un membre, invitations par lien (la table invitations existe déjà). Interdiction en base de retirer, suspendre ou rétrograder le dernier admin. L'envoi d'e-mail d'invitation viendra plus tard : pour l'instant, l'admin copie le lien. Quand un membre passe au rôle lecture ou est retiré, proposer de réassigner ses tâches ouvertes (depuis la migration 012, le responsable d'une tâche doit avoir un rôle qui écrit).
+4. (Temps 4, migration 017_equipe.sql.) Paramètres → Équipe (admin) : liste des membres et de leur rôle, changement de rôle, suspension et retrait d'un membre, invitations par lien (la table invitations existe déjà). Interdiction en base de retirer, suspendre ou rétrograder le dernier admin. L'envoi d'e-mail d'invitation viendra plus tard : pour l'instant, l'admin copie le lien. Quand un membre passe au rôle lecture ou est retiré, proposer de réassigner ses tâches ouvertes (depuis la migration 012, le responsable d'une tâche doit avoir un rôle qui écrit).
 5. Changement d'entreprise : un utilisateur membre de plusieurs entreprises choisit l'entreprise courante dans l'en-tête, sans aucune fuite de données entre elles (test à deux entreprises).
    Écart assumé (migration 016) : le sélecteur est dans la carte utilisateur en bas de la barre latérale (visible aussi dans le tiroir mobile), pas dans l'en-tête ; il donne aussi accès à « Créer une entreprise ».
 6. Sécurité des comptes : MFA (TOTP de Supabase Auth) proposée à tous et exigée pour les admins ; propose le parcours et attends mon accord avant de rendre la MFA obligatoire.
 7. Devise : propose de rester en euro seul pour le MVP ou d'ajouter une devise explicite (PRD) ; à arbitrer avant de coder.
-8. Supprime les colonnes doublons profiles.role et profiles.entreprise_id (memberships est la seule source de vérité), après vérification qu'aucun code ne les lit.
+8. (Temps 5, migration 018, avec la MFA du point 6 si elle demande une migration.) Supprime les colonnes doublons profiles.role et profiles.entreprise_id (memberships est la seule source de vérité), après vérification qu'aucun code ne les lit.
 9. Prochaine migration numérotée libre et son test ; les factures déjà émises gardent leur emetteur_fige d'origine.
 
 Présente ton plan et attends mon go.
