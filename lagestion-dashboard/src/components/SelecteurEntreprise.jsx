@@ -70,7 +70,7 @@ export default function SelecteurEntreprise({ onAction }) {
   };
 
   return (
-    <div ref={conteneurRef} className="relative m-2 xl:m-3">
+    <div ref={conteneurRef} className="relative m-2">
       <button
         ref={boutonRef}
         type="button"
@@ -79,7 +79,7 @@ export default function SelecteurEntreprise({ onAction }) {
         aria-controls={idListe}
         aria-label={`${nomAffiche}, ${sousTitre}. Changer d'entreprise`}
         title={`${nomAffiche} — ${sousTitre}`}
-        className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors duration-150 hover:bg-lg-sidebar-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-lg-sidebar-focus md:justify-center md:gap-0 xl:justify-start xl:gap-3 xl:p-3"
+        className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors duration-150 hover:bg-lg-sidebar-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-lg-sidebar-focus md:justify-center md:gap-0 xl:justify-start xl:gap-3"
         style={{ backgroundColor: ouvert ? C.sidebarActiveBg : C.sidebarHover }}
       >
         <span
@@ -89,9 +89,11 @@ export default function SelecteurEntreprise({ onAction }) {
         >
           {initiales}
         </span>
+        {/* Trois lignes : nom, entreprise (deux lignes au plus), rôle ; texte complet dans title et aria-label. */}
         <span className="min-w-0 flex-1 md:hidden xl:block">
           <span className="block truncate text-[15px] font-semibold" style={{ color: C.sidebarText }}>{nomAffiche}</span>
-          <span className="block truncate text-xs" style={{ color: C.sidebarTextMuted }}>{sousTitre}</span>
+          {entreprise?.nom && <span className="line-clamp-2 break-words text-xs" style={{ color: C.sidebarText }}>{entreprise.nom}</span>}
+          {libelleRole && <span className="block truncate text-xs" style={{ color: C.sidebarTextMuted }}>{libelleRole}</span>}
         </span>
         <ChevronsUpDown size={16} aria-hidden="true" className="shrink-0 md:hidden xl:block" style={{ color: C.sidebarTextMuted }} />
       </button>
@@ -116,9 +118,10 @@ export default function SelecteurEntreprise({ onAction }) {
                     aria-current={courante ? "true" : undefined}
                     className={optionClass}
                     style={courante ? { backgroundColor: C.sidebarActiveBg } : undefined}
+                    title={a.nom}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium" style={{ color: courante ? C.sidebarAccent : C.sidebarText }}>
+                      <span className="line-clamp-2 break-words font-medium" style={{ color: courante ? C.sidebarAccent : C.sidebarText }}>
                         {a.nom}
                       </span>
                       <span className="block truncate text-xs" style={{ color: C.sidebarTextMuted }}>
