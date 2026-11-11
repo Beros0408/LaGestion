@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Briefcase, FileText, Package, Mail, BarChart3, Bot,
-  FolderOpen, Settings, HelpCircle, Bell, Search, Plus, Menu, LogOut, ArrowLeft, Boxes, FileSignature,
+  FolderOpen, Settings, HelpCircle, Search, Plus, Menu, LogOut, ArrowLeft, Boxes, FileSignature,
   Clock, ListChecks, AlertCircle,
 } from "lucide-react";
 import { C, VOILE, alpha } from "../theme";
@@ -306,15 +306,6 @@ function LayoutContenu() {
               <span className="hidden sm:inline">{libelleEnRetard(enRetard)}</span>
             </Link>
           )}
-
-          <button
-            className="relative rounded-xl p-2 transition-colors focus:outline-none focus-visible:ring-2"
-            style={{ color: C.textSecondary }}
-            aria-label="Notifications"
-          >
-            <Bell size={20} />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full" style={{ backgroundColor: C.error }} />
-          </button>
 
           {/* Masqué sur /factures (la page a son propre bouton) et sur /factures/nouvelle. */}
           {peutEcrire && !["/factures", "/factures/nouvelle"].includes(location.pathname) && (
