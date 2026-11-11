@@ -4,7 +4,7 @@ import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   Eye, Pencil, Trash2, SearchX, MoreHorizontal, RefreshCw, Download, AlertCircle,
 } from "lucide-react";
-import { BORDURE_CARTE, C, OMBRE, alpha, euro, couleurEtat } from "../theme";
+import { BORDURE_CARTE, C, OMBRE, alpha, euro, LISERE_RETARD } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -387,7 +387,7 @@ function LigneFacture({ facture, onView, onEdit, onDelete, onChangerStatut }) {
     >
       <td
         className="px-3 py-3 font-medium tabular-nums"
-        style={{ color: C.textPrimary, boxShadow: facture.statutAffiche === "en_retard" ? `inset 4px 0 0 ${couleurEtat("en_retard").trait}` : undefined }}
+        style={{ color: C.textPrimary, ...(facture.statutAffiche === "en_retard" ? LISERE_RETARD : undefined) }}
       >
         {libelleNumero(facture)}
         {facture.type !== "facture" && facture.numero && (

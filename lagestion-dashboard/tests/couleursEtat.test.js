@@ -140,3 +140,15 @@ test("résumé client : à jour, y compris avec une facture à échoir sans paie
   assert.equal(situationClient([payee, fac("finalisee", -50, null, 0, { type: "avoir" })], JOUR), "a_jour");
   assert.equal(situationClient([fac("envoyee", 100, JOUR)], JOUR), "a_jour");
 });
+
+test("liseré « En retard » : 4 px de errorText, détaché de 2 px de la bordure de carte", async () => {
+  const { LISERE_RETARD, LISERE_EN_RETARD, ECART_LISERE } = await import("../src/theme.js");
+  assert.equal(LISERE_EN_RETARD, 4);
+  assert.ok(ECART_LISERE >= 2);
+  assert.equal(LISERE_RETARD.backgroundRepeat, "no-repeat");
+  assert.equal(LISERE_RETARD.backgroundImage,
+    `linear-gradient(to right, transparent 2px, ${C.errorText} 2px, ${C.errorText} 6px, transparent 6px)`);
+  // Collé à la bordure, le liseré s'y confondait (2,43:1) ; l'écart de fond de carte le sépare des deux côtés.
+  assert.ok(contraste(C.errorText, C.bordureCarte) < 3);
+  assert.ok(contraste(C.fondCarte, C.bordureCarte) >= 3 && contraste(C.fondCarte, C.errorText) >= 3);
+});

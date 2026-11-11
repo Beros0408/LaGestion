@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Send, AlertCircle } from "lucide-react";
-import { BORDURE_CARTE, C, alpha, euroCentimes, couleurEtat } from "../theme";
+import { BORDURE_CARTE, C, alpha, euroCentimes, LISERE_RETARD } from "../theme";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -71,7 +71,7 @@ export default function Impayes() {
         derniere: derniereRelance(f),
         relancable: peutEcrire && peutRelancer(f, jour),
         niveau: niveauPropose(f, role),
-        lisere: echeance === "en_retard" ? { boxShadow: `inset 4px 0 0 ${couleurEtat("en_retard").trait}` } : undefined,
+        lisere: echeance === "en_retard" ? LISERE_RETARD : undefined,
       };
     }),
     [visibles, jour, peutEcrire, role]
@@ -139,13 +139,14 @@ export default function Impayes() {
         ) : (
           <>
             {/* Tableau à partir de 1 280 px (76 px de défilement à 1 024) ; en dessous, cartes. L'un des deux est toujours en display: none. */}
-            <div className="relative hidden overflow-x-auto xl:block">
+            {/* Coins arrondis à 15 px (16 − bordure) : le liseré « En retard » suit l'arrondi de la carte. */}
+            <div className="relative hidden overflow-x-auto rounded-b-[15px] xl:block">
               <table className="w-full text-sm">
                 <caption className="sr-only">Factures impayées, de la plus en retard à la plus lointaine</caption>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                     {[["Facture", "left"], ["Client", "left"], ["Échéance", "left"], ["Retard", "left"], ["Reste à payer", "right"], ["Statut", "left"], ["Dernière relance", "left"], ["", "right"]].map(([h, a], i) => (
-                      <th key={i} scope="col" className={`px-2 py-2.5 text-xs font-semibold uppercase tracking-wider ${a === "right" ? "text-right" : "text-left"}`} style={{ color: C.textSecondary }}>
+                      <th key={i} scope="col" className={`${i === 0 ? "pl-3 pr-2" : "px-2"} py-2.5 text-xs font-semibold uppercase tracking-wider ${a === "right" ? "text-right" : "text-left"}`} style={{ color: C.textSecondary }}>
                         {h || <span className="sr-only">Actions</span>}
                       </th>
                     ))}
@@ -154,7 +155,7 @@ export default function Impayes() {
                 <tbody>
                   {lignes.map((l) => (
                     <tr key={l.f.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td className="whitespace-nowrap px-2 py-3 font-medium tabular-nums" style={l.lisere}>
+                      <td className="whitespace-nowrap py-3 pl-3 pr-2 font-medium tabular-nums" style={l.lisere}>
                         <LienFacture f={l.f} />
                         {l.f.type !== "facture" && <span className="block text-xs font-normal" style={{ color: C.textSecondary }}>{LIBELLE_TYPE[l.f.type]}</span>}
                       </td>
@@ -178,7 +179,7 @@ export default function Impayes() {
 
             <ul className="xl:hidden" aria-label="Factures impayées, de la plus en retard à la plus lointaine">
               {lignes.map((l, i) => (
-                <li key={l.f.id} className="px-4 py-4" style={{ ...l.lisere, borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}>
+                <li key={l.f.id} className="px-4 py-4 first:rounded-t-[15px] last:rounded-b-[15px]" style={{ ...l.lisere, borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium tabular-nums"><LienFacture f={l.f} /></p>

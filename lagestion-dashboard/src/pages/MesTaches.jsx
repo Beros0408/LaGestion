@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertCircle, Check, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { BORDURE_CARTE, C, alpha, couleurEtat } from "../theme";
+import { BORDURE_CARTE, C, alpha, LISERE_RETARD } from "../theme";
 import { useTaches } from "../context/TachesContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
@@ -139,7 +139,7 @@ export default function MesTaches() {
           moi: t.responsable === user?.id,
           statutModifiable: peutChangerStatut(role),
           modifiable: peutModifierTache(t, user?.id, role),
-          lisere: etat === "en_retard" ? { boxShadow: `inset 4px 0 0 ${couleurEtat("en_retard").trait}` } : undefined,
+          lisere: etat === "en_retard" ? LISERE_RETARD : undefined,
         };
       }),
     [taches, qui, statut, user, jour, objets, noms, role]
@@ -252,7 +252,7 @@ export default function MesTaches() {
 
             <ul className="xl:hidden" aria-label="Tâches, les plus anciennes échéances d'abord">
               {lignes.map((l, i) => (
-                <li key={l.t.id} className="px-4 py-4" style={{ ...l.lisere, borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}>
+                <li key={l.t.id} className="px-4 py-4 first:rounded-t-[15px] last:rounded-b-[15px]" style={{ ...l.lisere, borderTop: i > 0 ? `1px solid ${C.border}` : undefined }}>
                   <div className="flex items-start justify-between gap-3">
                     <p className="min-w-0 font-medium" style={{ color: C.textPrimary }}>{l.t.titre}</p>
                     <BadgeTache etat={l.etat} />

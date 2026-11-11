@@ -127,6 +127,16 @@ export const CONTOUR_JAUGE = melange(C.textSecondary, 0.7);
 export const etatDuStatut = (statut, type) => (type === "avoir" ? "neutre" : ETAT_PAR_STATUT[statut] ?? "neutre");
 export const couleurEtat = (statut, type) => COULEURS_ETAT[etatDuStatut(statut, type)];
 
+// Liseré « En retard » (première cellule ou carte de ligne) : 4 px de errorText, détaché de la bordure de carte
+// (bordureCarte, sombre) par 2 px transparents qui laissent voir le fond de la ligne, survol compris.
+// Dégradé plutôt qu'ombre interne : il suit l'arrondi de l'élément et ne se confond plus avec la bordure.
+export const LISERE_EN_RETARD = 4;
+export const ECART_LISERE = 2;
+export const LISERE_RETARD = {
+  backgroundImage: `linear-gradient(to right, transparent ${ECART_LISERE}px, ${COULEURS_ETAT.erreur.trait} ${ECART_LISERE}px, ${COULEURS_ETAT.erreur.trait} ${ECART_LISERE + LISERE_EN_RETARD}px, transparent ${ECART_LISERE + LISERE_EN_RETARD}px)`,
+  backgroundRepeat: "no-repeat",
+};
+
 // Tâche (etatTache, utils/taches.js) → état : à venir neutre, aujourd'hui information, en retard erreur, faite succès.
 export const ETAT_TACHE = { a_venir: "neutre", aujourdhui: "info", en_retard: "erreur", faite: "succes" };
 

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, List, Pencil, Phone, Mail, MapPin, CalendarDays, StickyNote, Send, Plus, Trash2 } from "lucide-react";
-import { BORDURE_CARTE, C, AVATARS, alpha, euro, euroCentimes, couleurEtat } from "../theme";
+import { BORDURE_CARTE, C, AVATARS, alpha, euro, euroCentimes, LISERE_RETARD } from "../theme";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
@@ -363,8 +363,8 @@ function CarteFacturesClient({ clientId }) {
           <caption className="sr-only">Factures et avoirs de ce client</caption>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-              {["Numéro", "TTC", "Reste"].map((h) => (
-                <th key={h} scope="col" className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: C.textSecondary }}>{h}</th>
+              {["Numéro", "TTC", "Reste"].map((h, i) => (
+                <th key={h} scope="col" className={`${i === 0 ? "pl-3 pr-2" : "px-2"} py-2 text-left text-xs font-semibold uppercase tracking-wider`} style={{ color: C.textSecondary }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -372,13 +372,13 @@ function CarteFacturesClient({ clientId }) {
             {liste.map((f) => {
               // À encaisser : badge d'échéance ; sinon (payée, brouillon, annulée, avoir) : statut habituel.
               const statut = estImpayee(f) ? etatEcheance(f) : statutCalcule(f);
-              const lisere = statut === "en_retard" ? { boxShadow: `inset 4px 0 0 ${couleurEtat("en_retard").trait}` } : undefined;
+              const lisere = statut === "en_retard" ? LISERE_RETARD : undefined;
               const jauge = reglementAffichable(f);
               const trait = `1px solid ${C.border}`;
               return (
                 <React.Fragment key={f.id}>
                   <tr style={{ borderBottom: jauge ? undefined : trait }}>
-                    <td className="px-2 py-2 font-medium tabular-nums" style={lisere}>
+                    <td className="py-2 pl-3 pr-2 font-medium tabular-nums" style={lisere}>
                       <Link to={`/factures/${f.id}`} className="whitespace-nowrap rounded underline focus:outline-none focus-visible:ring-2" style={{ color: C.primary }}>
                         {libelleNumero(f)}
                       </Link>
@@ -389,7 +389,7 @@ function CarteFacturesClient({ clientId }) {
                   </tr>
                   {jauge && (
                     <tr style={{ borderBottom: trait }}>
-                      <td colSpan={3} className="px-2 pb-2.5" style={lisere}>
+                      <td colSpan={3} className="pb-2.5 pl-3 pr-2" style={lisere}>
                         <BarreReglement facture={f} />
                       </td>
                     </tr>
