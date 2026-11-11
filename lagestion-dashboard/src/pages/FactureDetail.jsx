@@ -707,7 +707,7 @@ function CartePaiements({
           Aucun paiement enregistré pour cette facture.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full text-sm">
             <caption className="sr-only">Liste des paiements enregistrés</caption>
             <thead>

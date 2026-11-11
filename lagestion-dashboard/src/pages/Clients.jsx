@@ -302,7 +302,7 @@ export default function Clients() {
           <EtatVide onReset={reinitialiserFiltres} />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full text-sm">
                 <caption className="sr-only">Liste des clients filtrés et triés</caption>
                 <thead>

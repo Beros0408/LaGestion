@@ -251,7 +251,7 @@ export default function Factures() {
         ) : triees.length === 0 ? (
           <EtatVide onReset={reinitialiserFiltres} />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full text-sm">
               <caption className="sr-only">Liste des factures filtrées et triées</caption>
               <thead>

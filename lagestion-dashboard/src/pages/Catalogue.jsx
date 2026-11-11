@@ -156,7 +156,7 @@ export default function Catalogue() {
             action={{ libelle: "Réinitialiser les filtres", onClick: reinitialiser }}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full text-sm">
               <caption className="sr-only">Articles du catalogue filtrés</caption>
               <thead>
