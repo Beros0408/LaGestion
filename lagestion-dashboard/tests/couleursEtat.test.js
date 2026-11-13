@@ -152,3 +152,14 @@ test("liseré « En retard » : 4 px de errorText, détaché de 2 px de la bordu
   assert.ok(contraste(C.errorText, C.bordureCarte) < 3);
   assert.ok(contraste(C.fondCarte, C.bordureCarte) >= 3 && contraste(C.fondCarte, C.errorText) >= 3);
 });
+
+test("fond hors application : vert de la tuile Encaissements, texte blanc AA, carte détachée", async () => {
+  const { FOND_HORS_APPLICATION, TUILES } = await import("../src/theme.js");
+  assert.equal(FOND_HORS_APPLICATION, `linear-gradient(135deg, ${TUILES.vert[0]}, ${TUILES.vert[1]})`);
+  for (const teinte of TUILES.vert) {
+    assert.ok(contraste(C.onPrimary, teinte) >= 4.5, `blanc sur ${teinte}`);
+    assert.ok(contraste(C.fondCarte, teinte) >= 3, `carte sur ${teinte}`);
+    // Les gris de texte de l'application n'y sont pas lisibles : jamais de texte gris posé sur ce fond.
+    assert.ok(contraste(C.textSecondary, teinte) < 4.5 && contraste(C.textPrimary, teinte) < 4.5);
+  }
+});

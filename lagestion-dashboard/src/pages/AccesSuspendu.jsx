@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { PauseCircle } from "lucide-react";
-import { BORDURE_CARTE, C, COULEURS_ETAT, OMBRE } from "../theme";
+import { BORDURE_CARTE, C, COULEURS_ETAT, FOND_HORS_APPLICATION, OMBRE } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 
@@ -21,7 +21,7 @@ export default function AccesSuspendu() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: C.bgMain, fontFamily: "Inter, sans-serif" }}>
+    <div className="flex min-h-screen items-center justify-center p-4" style={{ background: FOND_HORS_APPLICATION, fontFamily: "Inter, sans-serif" }}>
       <main
         className="w-full max-w-md rounded-2xl p-6 sm:p-8"
         style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE, boxShadow: OMBRE.md }}

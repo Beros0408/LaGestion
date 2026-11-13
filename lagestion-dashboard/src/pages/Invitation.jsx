@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, CheckCircle2, UserPlus } from "lucide-react";
-import { BORDURE_CARTE, C, OMBRE, alpha } from "../theme";
+import { BORDURE_CARTE, C, FOND_HORS_APPLICATION, OMBRE, alpha } from "../theme";
 import Input from "../components/form/Input.jsx";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -50,7 +50,7 @@ const boutonSecondaire = "rounded-xl px-3.5 py-2 text-sm font-semibold focus:out
 
 function Cadre({ children }) {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4" style={{ backgroundColor: C.bgMain, fontFamily: "Inter, sans-serif" }}>
+    <div className="flex min-h-screen items-center justify-center p-4" style={{ background: FOND_HORS_APPLICATION, fontFamily: "Inter, sans-serif" }}>
       <main className="w-full max-w-md rounded-2xl p-6 sm:p-8" style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE, boxShadow: OMBRE.md }} aria-labelledby="titre-invitation">
         {children}
       </main>
