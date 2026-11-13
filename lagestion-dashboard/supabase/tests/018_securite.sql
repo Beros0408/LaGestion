@@ -19,25 +19,39 @@
 
 begin;
 
--- Banc local sans Supabase Auth complet : table des facteurs simulée dans cette transaction.
-create table if not exists auth.mfa_factors (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  friendly_name text,
-  factor_type text,
-  status text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+-- Banc local sans Supabase Auth complet : table des facteurs simulée dans cette transaction, à la forme de Supabase.
+-- Sur Supabase la table existe : aucune instruction n'est alors exécutée dans le schéma auth (création interdite).
+do $$
+begin
+  if to_regclass('auth.mfa_factors') is null then
+    if to_regtype('auth.factor_type') is null then
+      create type auth.factor_type as enum ('totp', 'webauthn', 'phone');
+    end if;
+    if to_regtype('auth.factor_status') is null then
+      create type auth.factor_status as enum ('unverified', 'verified');
+    end if;
+    create table auth.mfa_factors (
+      id uuid not null primary key,
+      user_id uuid not null references auth.users (id) on delete cascade,
+      friendly_name text,
+      factor_type auth.factor_type not null,
+      status auth.factor_status not null,
+      created_at timestamptz not null,
+      updated_at timestamptz not null,
+      secret text
+    );
+  end if;
+end $$;
 
 -- 1. Données de test (rôle postgres)
 insert into auth.users (id, email, aud, role, email_confirmed_at) values
   ('a0180000-0000-4000-8000-000000000001', 'test-018-m@lagestion.invalid', 'authenticated', 'authenticated', now()),
   ('a0180000-0000-4000-8000-000000000002', 'test-018-s@lagestion.invalid', 'authenticated', 'authenticated', now()),
   ('a0180000-0000-4000-8000-000000000003', 'test-018-n@lagestion.invalid', 'authenticated', 'authenticated', now());
-insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status) values
-  ('a0180000-0000-4000-8000-0000000000f1', 'a0180000-0000-4000-8000-000000000001', 'Téléphone', 'totp', 'verified'),
-  ('a0180000-0000-4000-8000-0000000000f3', 'a0180000-0000-4000-8000-000000000003', 'Inachevé', 'totp', 'unverified');
+-- Colonnes obligatoires de Supabase renseignées (id, dates) ; type et statut : littéraux convertis en types énumérés.
+insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at) values
+  ('a0180000-0000-4000-8000-0000000000f1', 'a0180000-0000-4000-8000-000000000001', 'Téléphone', 'totp', 'verified', now(), now()),
+  ('a0180000-0000-4000-8000-0000000000f3', 'a0180000-0000-4000-8000-000000000003', 'Inachevé', 'totp', 'unverified', now(), now());
 insert into public.profiles (id, nom) values
   ('a0180000-0000-4000-8000-000000000001', 'Admin MFA'),
   ('a0180000-0000-4000-8000-000000000002', 'Admin Sans'),
@@ -104,6 +118,11 @@ begin
      and not exists (select 1 from pg_policies p where p.schemaname = 'public' and p.tablename = c.relname
                       and p.policyname = 'exige_aal2' and p.permissive = 'RESTRICTIVE' and p.cmd = 'ALL');
   if v_sans is not null then raise exception 'ÉCHEC : politique exige_aal2 absente sur : %', v_sans; end if;
+  -- aal_suffisant() (security definer) lit auth.mfa_factors avec les droits de son propriétaire.
+  if not (select p.prosecdef and has_table_privilege(p.proowner, 'auth.mfa_factors', 'select')
+            from pg_proc p where p.oid = 'public.aal_suffisant()'::regprocedure) then
+    raise exception 'ÉCHEC : le propriétaire de aal_suffisant() ne peut pas lire auth.mfa_factors (ou fonction non security definer)';
+  end if;
 end $$;
 
 -- 3. M (facteur vérifié) en aal1 : rien lu, rien écrit, actions sensibles refusées
