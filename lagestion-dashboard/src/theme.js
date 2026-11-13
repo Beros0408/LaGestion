@@ -70,9 +70,9 @@ export const TUILES = {
 };
 
 // Fond des pages hors application (connexion, invitation, accès suspendu, première entreprise, nom du profil,
-// chargement et erreur) : uni, bleu-gris clair. Texte posé dessus : textPrimary (10,43:1) ; cartes inchangées,
-// détachées par leur bordure (12,04:1), pas par leur fond (1,03:1).
-C.fondHorsApplication = "#E2EAF1";
+// chargement et erreur) : uni, couleur du bouton « Se connecter » (C.primary), par référence. Texte et roue posés
+// dessus : blanc (7,21:1) ; cartes inchangées, détachées par leur fond (6,08:1).
+C.fondHorsApplication = C.primary;
 export const FOND_HORS_APPLICATION = C.fondHorsApplication;
 
 // Bandes de l'entonnoir (dégradé gauche → droite), de Qualification à Conclusion ; texte blanc ≥ 4,5:1,

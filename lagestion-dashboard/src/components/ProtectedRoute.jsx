@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { BORDURE_CARTE, C, FOND_HORS_APPLICATION } from "../theme";
+import { BORDURE_CARTE, C, FOND_HORS_APPLICATION, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import AccesSuspendu from "../pages/AccesSuspendu.jsx";
@@ -21,14 +21,14 @@ export default function ProtectedRoute() {
         <div className="flex flex-col items-center gap-3">
           <div
             className="h-10 w-10 animate-spin rounded-full border-2"
-            style={{ borderColor: C.border, borderTopColor: C.primary }}
+            style={{ borderColor: alpha(C.onPrimary, 0.35), borderTopColor: C.onPrimary }}
             aria-hidden="true"
           />
           <p
             className="text-sm"
             role="status"
             aria-live="polite"
-            style={{ color: C.textPrimary }}
+            style={{ color: C.onPrimary }}
           >
             Chargement…
           </p>
@@ -48,7 +48,7 @@ export default function ProtectedRoute() {
         style={{ background: FOND_HORS_APPLICATION, fontFamily: "Inter, sans-serif" }}
       >
         <div role="alert" className="max-w-md text-center">
-          <p className="text-sm" style={{ color: C.textPrimary }}>
+          <p className="text-sm" style={{ color: C.onPrimary }}>
             Impossible de charger votre entreprise : {erreur}
           </p>
           <button
