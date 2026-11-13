@@ -69,9 +69,11 @@ export const TUILES = {
   bleuNuit: ["#1C3950", "#244A68"],
 };
 
-// Fond des pages hors application (connexion, invitation, accès suspendu, première entreprise, chargement) :
-// le vert de la tuile « Encaissements », par référence. Texte posé dessus : blanc (≥ 5,35:1) ; cartes inchangées.
-export const FOND_HORS_APPLICATION = `linear-gradient(135deg, ${TUILES.vert[0]}, ${TUILES.vert[1]})`;
+// Fond des pages hors application (connexion, invitation, accès suspendu, première entreprise, nom du profil,
+// chargement et erreur) : uni, bleu-gris clair. Texte posé dessus : textPrimary (10,43:1) ; cartes inchangées,
+// détachées par leur bordure (12,04:1), pas par leur fond (1,03:1).
+C.fondHorsApplication = "#E2EAF1";
+export const FOND_HORS_APPLICATION = C.fondHorsApplication;
 
 // Bandes de l'entonnoir (dégradé gauche → droite), de Qualification à Conclusion ; texte blanc ≥ 4,5:1,
 // y compris au survol (voile blanc de 5 %).

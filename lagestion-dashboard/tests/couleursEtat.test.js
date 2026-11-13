@@ -153,13 +153,19 @@ test("liseré « En retard » : 4 px de errorText, détaché de 2 px de la bordu
   assert.ok(contraste(C.fondCarte, C.bordureCarte) >= 3 && contraste(C.fondCarte, C.errorText) >= 3);
 });
 
-test("fond hors application : vert de la tuile Encaissements, texte blanc AA, carte détachée", async () => {
+test("fond hors application : uni, texte foncé AA, carte détachée par sa bordure", async () => {
   const { FOND_HORS_APPLICATION, TUILES } = await import("../src/theme.js");
-  assert.equal(FOND_HORS_APPLICATION, `linear-gradient(135deg, ${TUILES.vert[0]}, ${TUILES.vert[1]})`);
-  for (const teinte of TUILES.vert) {
-    assert.ok(contraste(C.onPrimary, teinte) >= 4.5, `blanc sur ${teinte}`);
-    assert.ok(contraste(C.fondCarte, teinte) >= 3, `carte sur ${teinte}`);
-    // Les gris de texte de l'application n'y sont pas lisibles : jamais de texte gris posé sur ce fond.
-    assert.ok(contraste(C.textSecondary, teinte) < 4.5 && contraste(C.textPrimary, teinte) < 4.5);
-  }
+  assert.equal(FOND_HORS_APPLICATION, C.fondHorsApplication);
+  assert.equal(C.fondHorsApplication, "#E2EAF1");
+  assert.deepEqual(TUILES.vert, ["#1B6E3E", "#1E7A45"]); // la tuile Encaissements garde son vert
+  const fond = C.fondHorsApplication;
+  // Texte, roue et bouton posés directement dessus (chargement et erreur de ProtectedRoute).
+  assert.ok(contraste(C.textPrimary, fond) >= 4.5, "texte principal");
+  assert.ok(contraste(C.textSecondary, fond) >= 4.5, "texte secondaire");
+  assert.ok(contraste(C.primary, fond) >= 3, "roue");
+  assert.ok(contraste(C.bordureCarte, fond) >= 3, "bordure de carte et du bouton Réessayer");
+  // Le fond de carte ne se détache pas du fond (1,03:1) : la bordure assure la séparation, comme dans l'application.
+  assert.ok(contraste(C.fondCarte, fond) < 1.1);
+  // Le blanc n'y est pas lisible : plus aucun texte blanc posé sur ce fond.
+  assert.ok(contraste(C.onPrimary, fond) < 4.5);
 });
