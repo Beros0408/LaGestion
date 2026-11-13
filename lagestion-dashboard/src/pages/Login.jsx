@@ -6,7 +6,7 @@ import Input from "../components/form/Input.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { MESSAGE_TECHNIQUE } from "../utils/erreurs";
 // Version d'origine (fond sombre) : la version de la barre latérale a un texte blanc, invisible sur la carte claire.
-import logoLaGestion from "../assets/logo-lagestion-capture.png";
+import logoLaGestion from "../assets/logo-lagestion-connexion.png";
 
 function traduireErreur(err) {
   const message = (err?.message || "").toLowerCase();
