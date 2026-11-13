@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  autresAdminsActifs, emailValide, invitationExpiree, lienInvitation, nomMembre, normaliserEmail, perdAdmin,
+  autresAdminsActifs, emailValide, erreurNomProfil, invitationExpiree, lienInvitation, nomMembre, normaliserEmail, perdAdmin,
   reassignationProposee, repreneursPossibles,
 } from "../src/utils/equipe.js";
 
@@ -60,4 +60,16 @@ test("nom affiché : profil, sinon début de l'e-mail, sinon libellé neutre", (
   assert.equal(nomMembre({ nom: " Marie " }), "Marie");
   assert.equal(nomMembre({ nom: "", email: "paul@exemple.fr" }), "paul");
   assert.equal(nomMembre({ nom: null, email: null }), "Membre sans nom");
+});
+
+test("nom du profil demandé à la connexion : 2 à 80 caractères, pas une adresse e-mail", () => {
+  assert.equal(erreurNomProfil("Marie Dupont"), null);
+  assert.equal(erreurNomProfil("  Al  "), null);
+  assert.match(erreurNomProfil(""), /2 caractères au moins/);
+  assert.match(erreurNomProfil("   "), /2 caractères au moins/);
+  assert.match(erreurNomProfil(null), /2 caractères au moins/);
+  assert.match(erreurNomProfil("M"), /2 caractères au moins/);
+  assert.equal(erreurNomProfil("a".repeat(80)), null);
+  assert.match(erreurNomProfil("a".repeat(81)), /80 caractères au plus/);
+  assert.match(erreurNomProfil(" marie@exemple.fr "), /pas une adresse e-mail/);
 });

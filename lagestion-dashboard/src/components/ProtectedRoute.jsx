@@ -4,10 +4,11 @@ import { BORDURE_CARTE, C, FOND_HORS_APPLICATION, alpha } from "../theme";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import AccesSuspendu from "../pages/AccesSuspendu.jsx";
+import NomProfil from "../pages/NomProfil.jsx";
 
 export default function ProtectedRoute() {
   const { user, chargement: chargementAuth } = useAuth();
-  const { chargement: chargementEntreprise, entrepriseId, suspendues, erreur, recharger } = useEntreprise();
+  const { chargement: chargementEntreprise, entrepriseId, suspendues, erreur, recharger, profilSansNom } = useEntreprise();
   const location = useLocation();
   const chargement = chargementAuth || (user && chargementEntreprise);
 
@@ -62,6 +63,9 @@ export default function ProtectedRoute() {
       </div>
     );
   }
+
+  // Profil sans nom : demandé avant tout autre écran (ses collègues le verraient « Membre sans nom »).
+  if (profilSansNom) return <NomProfil />;
 
   // Aucune entreprise active : accès suspendu partout → page dédiée (création d'une entreprise possible) ;
   // sinon, création de la première entreprise.

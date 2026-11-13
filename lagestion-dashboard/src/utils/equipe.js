@@ -40,5 +40,17 @@ export function perdAdmin(action, membre, nouveauRole) {
 export const MESSAGE_DERNIER_ADMIN =
   "Impossible : l'entreprise doit garder au moins un administrateur actif. Nommez d'abord un autre administrateur.";
 
+// Nom du profil, demandé à la connexion tant qu'il est vide (vu par les collègues, ex. responsable d'une tâche).
+// Message d'erreur, ou null si le nom convient : 2 à 80 caractères, pas une adresse e-mail.
+export const NOM_PROFIL_MIN = 2;
+export const NOM_PROFIL_MAX = 80;
+export function erreurNomProfil(nom) {
+  const n = String(nom ?? "").trim();
+  if (n.length < NOM_PROFIL_MIN) return `Saisissez votre nom (${NOM_PROFIL_MIN} caractères au moins).`;
+  if (n.length > NOM_PROFIL_MAX) return `${NOM_PROFIL_MAX} caractères au plus.`;
+  if (emailValide(n)) return "Saisissez votre nom, pas une adresse e-mail : il est affiché à vos collègues.";
+  return null;
+}
+
 // Nom affiché d'un membre : nom du profil, sinon partie locale de l'e-mail (admin), sinon libellé neutre.
 export const nomMembre = (m) => m.nom?.trim() || (m.email ? m.email.split("@")[0] : "") || "Membre sans nom";

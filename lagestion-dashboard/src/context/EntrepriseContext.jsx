@@ -261,6 +261,9 @@ export function EntrepriseProvider({ children }) {
       estAdmin: role === "admin",
       email: user?.email ?? "",
       nomProfil: profil?.nom ?? "",
+      // Profil chargé mais sans nom : ProtectedRoute demande le nom avant tout écran (page NomProfil).
+      profilSansNom: !!profil && !profil.nom?.trim(),
+      nomInscription: user?.user_metadata?.nom?.trim() ?? "",
       creerEntreprise,
       basculerVers,
       accepterInvitation,
