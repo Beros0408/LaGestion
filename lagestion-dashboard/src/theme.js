@@ -69,12 +69,6 @@ export const TUILES = {
   bleuNuit: ["#1C3950", "#244A68"],
 };
 
-// Fond des pages hors application (connexion, invitation, accès suspendu, première entreprise, nom du profil,
-// chargement et erreur) : uni, couleur du bouton « Se connecter » (C.primary), par référence. Texte et roue posés
-// dessus : blanc (7,21:1) ; cartes inchangées, détachées par leur fond (6,08:1).
-C.fondHorsApplication = C.primary;
-export const FOND_HORS_APPLICATION = C.fondHorsApplication;
-
 // Bandes de l'entonnoir (dégradé gauche → droite), de Qualification à Conclusion ; texte blanc ≥ 4,5:1,
 // y compris au survol (voile blanc de 5 %).
 export const ENTONNOIR = [
@@ -97,6 +91,15 @@ export const melange = (hex, opacite, fond = C.bgCard) => {
     .map((i) => Math.round(c(hex, i) * opacite + c(fond, i) * (1 - opacite)).toString(16).padStart(2, "0"))
     .join("").toUpperCase();
 };
+
+// Bouton principal, un ton plus foncé (survol) : C.primary à 80 % sur du noir → #244966.
+C.primarySurvol = melange(C.primary, 0.8, "#000000");
+
+// Fond des pages hors application (connexion, invitation, accès suspendu, première entreprise, nom du profil,
+// chargement et erreur) : uni, un ton plus foncé que le bouton « Se connecter » (C.primarySurvol), par référence.
+// Texte et roue posés dessus : blanc (9,46:1) ; cartes inchangées, détachées par leur fond (7,98:1).
+C.fondHorsApplication = C.primarySurvol;
+export const FOND_HORS_APPLICATION = C.fondHorsApplication;
 
 // Couleurs d'état du paiement : sémantiques, distinctes de la palette de marque (voir CLAUDE.md, « Couleurs d'état »).
 // trait : liseré, icône, jauge (jeton …Text, la couleur brute n'atteint pas 3:1) ; texte : jeton …Text ;

@@ -153,10 +153,15 @@ test("liseré « En retard » : 4 px de errorText, détaché de 2 px de la bordu
   assert.ok(contraste(C.fondCarte, C.bordureCarte) >= 3 && contraste(C.fondCarte, C.errorText) >= 3);
 });
 
-test("fond hors application : couleur du bouton « Se connecter », texte blanc AA, carte détachée", async () => {
+test("fond hors application : un ton plus foncé que le bouton « Se connecter », texte blanc AA, carte détachée", async () => {
   const { FOND_HORS_APPLICATION, TUILES } = await import("../src/theme.js");
   assert.equal(FOND_HORS_APPLICATION, C.fondHorsApplication);
-  assert.equal(C.fondHorsApplication, C.primary); // par référence au fond du bouton « Se connecter »
+  assert.equal(C.fondHorsApplication, C.primarySurvol); // par référence
+  assert.equal(C.primarySurvol, melange(C.primary, 0.8, "#000000"));
+  assert.equal(C.primarySurvol, "#244966");
+  assert.equal(C.primary, "#2D5B7F"); // le bouton ne change pas
+  // Le bouton « Se connecter » se distingue du fond (identiques auparavant).
+  assert.ok(contraste(C.primary, C.fondHorsApplication) > 1.25);
   assert.deepEqual(TUILES.vert, ["#1B6E3E", "#1E7A45"]); // la tuile Encaissements garde son vert
   const fond = C.fondHorsApplication;
   // Texte et roue posés directement dessus (chargement et erreur de ProtectedRoute) : blanc.
