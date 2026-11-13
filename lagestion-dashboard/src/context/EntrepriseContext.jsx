@@ -86,7 +86,7 @@ function initialesDe(nom) {
 }
 
 export function EntrepriseProvider({ children }) {
-  const { user, chargement: chargementAuth } = useAuth();
+  const { user, chargement: chargementAuth, codeRequis } = useAuth();
   const userId = user?.id ?? null;
   const [profil, setProfil] = useState(null);
   const [appartenances, setAppartenances] = useState([]);
@@ -131,8 +131,11 @@ export function EntrepriseProvider({ children }) {
       setCible(null);
       return;
     }
+    // Code de double authentification attendu : la base ne renverrait rien (migration 018). Aucun chargement,
+    // donc jamais de renvoi à tort vers /onboarding ; chargement relancé dès la saisie du code.
+    if (codeRequis) return;
     charger();
-  }, [userId, chargementAuth, charger]);
+  }, [userId, chargementAuth, codeRequis, charger]);
 
   const chargement = chargementAuth || (userId !== null && chargePour !== userId);
 

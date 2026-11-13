@@ -230,6 +230,12 @@ Avant de coder, liste les mentions à faire valider par l'expert-comptable et pr
 5. Changement d'entreprise : un utilisateur membre de plusieurs entreprises choisit l'entreprise courante dans l'en-tête, sans aucune fuite de données entre elles (test à deux entreprises).
    Écart assumé (migration 016) : le sélecteur est dans la carte utilisateur en bas de la barre latérale (visible aussi dans le tiroir mobile), pas dans l'en-tête ; il donne aussi accès à « Créer une entreprise ».
 6. Sécurité des comptes : MFA (TOTP de Supabase Auth) proposée à tous et exigée pour les admins ; propose le parcours et attends mon accord avant de rendre la MFA obligatoire.
+   Fait au temps 5 (migration 018) : MFA facultative, code à la connexion, aal2 vérifié en base dès qu'un facteur est vérifié (politique restrictive sur toutes les tables, actions admin). Réinitialisation : docs/Procedure_reinitialisation_MFA.md.
+   Temps 6 (suivant, à coder) : MFA obligatoire pour les admins, parcours validé sur le principe :
+   - date d'exigence globale (une constante), délai de grâce de 14 jours à partir de la mise en service ou du jour où un membre devient admin ;
+   - bannière pour l'admin sans MFA : « À partir du {date}, la double authentification sera exigée pour administrer {entreprise}. Activer maintenant » (lien vers Paramètres → Profil) ;
+   - après le délai, admin sans facteur vérifié : actions admin refusées en base (_exiger_admin, politiques admin), message « Activez la double authentification pour administrer l'entreprise. » ; accès aux données comme les autres membres ; la connexion n'est jamais bloquée ;
+   - téléphone perdu : second appareil conseillé à l'activation ; réinitialisation par le support seul (procédure ci-dessus), jamais par un autre admin.
 7. Devise : propose de rester en euro seul pour le MVP ou d'ajouter une devise explicite (PRD) ; à arbitrer avant de coder.
 8. (Temps 5, migration 018, avec la MFA du point 6 si elle demande une migration.) Supprime les colonnes doublons profiles.role et profiles.entreprise_id (memberships est la seule source de vérité), après vérification qu'aucun code ne les lit.
 9. Prochaine migration numérotée libre et son test ; les factures déjà émises gardent leur emetteur_fige d'origine.

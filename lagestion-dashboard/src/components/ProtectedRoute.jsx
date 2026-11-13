@@ -5,12 +5,14 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import AccesSuspendu from "../pages/AccesSuspendu.jsx";
 import NomProfil from "../pages/NomProfil.jsx";
+import VerificationMfa from "../pages/VerificationMfa.jsx";
 
 export default function ProtectedRoute() {
-  const { user, chargement: chargementAuth } = useAuth();
+  const { user, chargement: chargementAuth, codeRequis } = useAuth();
   const { chargement: chargementEntreprise, entrepriseId, suspendues, erreur, recharger, profilSansNom } = useEntreprise();
   const location = useLocation();
-  const chargement = chargementAuth || (user && chargementEntreprise);
+  // Code attendu : l'entreprise n'est pas chargée (EntrepriseContext), on n'attend donc pas son chargement.
+  const chargement = chargementAuth || (user && !codeRequis && chargementEntreprise);
 
   if (chargement) {
     return (
@@ -40,6 +42,9 @@ export default function ProtectedRoute() {
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
+
+  // Double authentification : code demandé avant tout autre écran et toute donnée (migration 018).
+  if (codeRequis) return <VerificationMfa />;
 
   if (erreur) {
     return (

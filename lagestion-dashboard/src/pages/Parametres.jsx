@@ -8,6 +8,7 @@ import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
 import Textarea from "../components/form/Textarea.jsx";
 import SectionEquipe from "../components/equipe/SectionEquipe.jsx";
+import SectionMfa from "../components/parametres/SectionMfa.jsx";
 import { EquipeProvider } from "../context/EquipeContext.jsx";
 import {
   DELAI_MAX_JOURS, FORMES_JURIDIQUES, FORME_AUTRE, IMMATRICULATIONS, MODES_PAIEMENT, PENALITES, TAILLE_MAX_LOGO, TYPES_LOGO,
@@ -168,6 +169,16 @@ function Profil() {
         </button>
       </div>
     </form>
+  );
+}
+
+// Profil : nom (formulaire), puis double authentification (hors du formulaire : ses propres actions).
+function SectionProfil() {
+  return (
+    <div className="space-y-4">
+      <Profil />
+      <SectionMfa />
+    </div>
   );
 }
 
@@ -422,7 +433,7 @@ export default function Parametres({ section }) {
       </nav>
       {section === "entreprise" && <Entreprise />}
       {section === "equipe" && <EquipeProvider><SectionEquipe /></EquipeProvider>}
-      {section === "profil" && <Profil />}
+      {section === "profil" && <SectionProfil />}
     </>
   );
 }

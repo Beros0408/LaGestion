@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { LIBELLE_ROLE, useEntreprise } from "../context/EntrepriseContext.jsx";
 import { MESSAGE_TECHNIQUE } from "../utils/erreurs";
 import { normaliserEmail } from "../utils/equipe";
+import VerificationMfa from "./VerificationMfa.jsx";
 
 const N = " ";
 const MOT_DE_PASSE_MIN = 8;
@@ -78,7 +79,7 @@ function Titre({ children, sousTitre }) {
 export default function Invitation() {
   const { token } = useParams();
   const navigate = useNavigate();
-  const { user, chargement: chargementAuth, signIn, signUp, signOut } = useAuth();
+  const { user, chargement: chargementAuth, codeRequis, signIn, signUp, signOut } = useAuth();
   const { chargement: chargementEntreprise, accepterInvitation } = useEntreprise();
   const [invitation, setInvitation] = useState(undefined);
   const [erreurLecture, setErreurLecture] = useState(null);
@@ -161,6 +162,9 @@ export default function Invitation() {
   };
 
   // Connecté : bonne adresse et confirmée → bouton Rejoindre ; sinon, explication.
+  // Double authentification attendue (migration 018) : code d'abord, puis retour sur cette invitation.
+  if (user && codeRequis) return <VerificationMfa />;
+
   if (user) {
     const memeAdresse = normaliserEmail(user.email) === normaliserEmail(email);
     return (
