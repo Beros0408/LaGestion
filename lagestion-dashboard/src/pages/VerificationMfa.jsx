@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import { BORDURE_CARTE, C, FOND_HORS_APPLICATION, OMBRE, alpha } from "../theme";
 import Input from "../components/form/Input.jsx";
 import Select from "../components/form/Select.jsx";
+import LogoHorsApplication from "../components/LogoHorsApplication.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { MESSAGE_TECHNIQUE } from "../utils/erreurs";
 import { codeValide, facteursVerifies, LONGUEUR_CODE, messageErreurMfa } from "../utils/mfa";
@@ -40,8 +41,10 @@ export default function VerificationMfa() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4" style={{ background: FOND_HORS_APPLICATION, fontFamily: "Inter, sans-serif" }}>
+      <div className="w-full max-w-md">
+      <LogoHorsApplication />
       <main
-        className="w-full max-w-md rounded-2xl p-6 sm:p-8"
+        className="w-full rounded-2xl p-6 sm:p-8"
         style={{ backgroundColor: C.fondCarte, border: BORDURE_CARTE, boxShadow: OMBRE.md }}
         aria-labelledby="titre-mfa"
       >
@@ -106,6 +109,7 @@ export default function VerificationMfa() {
           </p>
         </form>
       </main>
+      </div>
     </div>
   );
 }

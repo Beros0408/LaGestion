@@ -5,8 +5,7 @@ import { BORDURE_CARTE, C, FOND_HORS_APPLICATION, OMBRE, alpha } from "../theme"
 import Input from "../components/form/Input.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { MESSAGE_TECHNIQUE } from "../utils/erreurs";
-// Version d'origine (fond sombre) : la version de la barre latérale a un texte blanc, invisible sur la carte claire.
-import logoLaGestion from "../assets/logo-lagestion-connexion.png";
+import LogoHorsApplication from "../components/LogoHorsApplication.jsx";
 
 function traduireErreur(err) {
   const message = (err?.message || "").toLowerCase();
@@ -59,8 +58,10 @@ export default function Login() {
     >
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap');`}</style>
 
+      <div className="w-full max-w-md">
+      <LogoHorsApplication />
       <main
-        className="w-full max-w-md rounded-2xl p-6 sm:p-8"
+        className="w-full rounded-2xl p-6 sm:p-8"
         style={{
           backgroundColor: C.fondCarte,
           border: BORDURE_CARTE,
@@ -68,14 +69,13 @@ export default function Login() {
         }}
         aria-labelledby="titre-connexion"
       >
-        <div className="mb-6">
-          <h1 id="titre-connexion">
-            <img src={logoLaGestion} alt="LaGestion" className="block h-11 w-auto rounded-lg" />
-          </h1>
-          <p className="mt-2 text-xs" style={{ color: C.textSecondary }}>
-            Connexion à votre espace
-          </p>
-        </div>
+        <h1
+          id="titre-connexion"
+          className="mb-6 text-xl font-bold"
+          style={{ color: C.textPrimary, fontFamily: "Sora, sans-serif" }}
+        >
+          Connexion à votre espace
+        </h1>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <Input
@@ -121,6 +121,7 @@ export default function Login() {
           </button>
         </form>
       </main>
+      </div>
     </div>
   );
 }

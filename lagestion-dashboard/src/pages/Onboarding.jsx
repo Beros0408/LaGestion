@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
 import { BORDURE_CARTE, C, FOND_HORS_APPLICATION, OMBRE, alpha } from "../theme";
 import Input from "../components/form/Input.jsx";
+import LogoHorsApplication from "../components/LogoHorsApplication.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useGardeModifications, useQuitter } from "../context/GardeModificationsContext.jsx";
 
@@ -175,7 +176,10 @@ export default function Onboarding({ ajout = false }) {
       style={{ background: FOND_HORS_APPLICATION, fontFamily: "Inter, sans-serif" }}
     >
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap');`}</style>
-      {carte}
+      <div className="w-full max-w-md">
+        <LogoHorsApplication />
+        {carte}
+      </div>
     </div>
   );
 }
