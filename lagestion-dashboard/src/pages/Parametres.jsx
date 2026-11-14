@@ -14,6 +14,7 @@ import {
   DELAI_MAX_JOURS, FORMES_JURIDIQUES, FORME_AUTRE, IMMATRICULATIONS, MODES_PAIEMENT, PENALITES, TAILLE_MAX_LOGO, TYPES_LOGO,
   normaliserIban, normaliserTva, validerParametres,
 } from "../utils/parametres";
+import { erreurNomProfil, NOM_PROFIL_MAX } from "../utils/equipe";
 
 const ESCOMPTE_DEFAUT = "Pas d'escompte pour paiement anticipé.";
 const N = " ";
@@ -137,14 +138,19 @@ function Profil() {
   const [nom, setNom] = useState(nomProfil);
   const [etat, setEtat] = useState(null);
   const [envoi, setEnvoi] = useState(false);
+  const [erreurNom, setErreurNom] = useState(null);
   useGardeModifications(nom.trim() !== nomProfil.trim());
 
   const soumettre = async (e) => {
     e.preventDefault();
     setEtat(null);
+    // Même règle que la page « Comment vous appelez-vous ? » : un nom vide renverrait vers cette page.
+    const err = erreurNomProfil(nom);
+    setErreurNom(err);
+    if (err) return;
     setEnvoi(true);
     try {
-      await enregistrerNom(nom.trim() || null);
+      await enregistrerNom(nom.trim());
       setNom(nom.trim());
       setEtat({ type: "ok", texte: "Votre nom est enregistré." });
     } catch (err) {
@@ -158,7 +164,7 @@ function Profil() {
     <form onSubmit={soumettre} noValidate className="space-y-4">
       <Carte titre="Mon profil" description="Votre nom apparaît dans le menu, l'historique des activités et les tâches.">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input label="Nom affiché" autoComplete="name" value={nom} onChange={(e) => setNom(e.target.value)} hint="Laissé vide : la partie de l'e-mail avant @ est affichée." />
+          <Input label="Nom affiché" required autoComplete="name" maxLength={NOM_PROFIL_MAX} value={nom} onChange={(e) => setNom(e.target.value)} error={erreurNom} hint="Prénom et nom, par exemple Marie Dupont." />
           <Input label="E-mail de connexion" value={email} readOnly disabled hint="Modification de l'e-mail : à venir." />
         </div>
       </Carte>

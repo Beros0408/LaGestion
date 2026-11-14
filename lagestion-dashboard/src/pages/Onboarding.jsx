@@ -21,12 +21,11 @@ function valider(nom, siret) {
 // ajout : création d'une entreprise supplémentaire depuis le sélecteur (dans le Layout) ;
 // l'utilisateur en devient admin et elle devient l'entreprise courante, tableau de bord d'abord.
 export default function Onboarding({ ajout = false }) {
-  const { entrepriseId, creerEntreprise, enregistrerNom, basculerVers } = useEntreprise();
+  const { entrepriseId, creerEntreprise, basculerVers } = useEntreprise();
   const navigate = useNavigate();
   const location = useLocation();
   const quitter = useQuitter();
 
-  const [nomPersonne, setNomPersonne] = useState("");
   const [nom, setNom] = useState("");
   const [siret, setSiret] = useState("");
   const [erreurs, setErreurs] = useState({});
@@ -56,7 +55,6 @@ export default function Onboarding({ ajout = false }) {
         basculerVers(id);
         return;
       }
-      if (nomPersonne.trim()) await enregistrerNom(nomPersonne.trim());
       await creerEntreprise(nom.trim(), siret.replace(/\s/g, ""));
       navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -103,15 +101,6 @@ export default function Onboarding({ ajout = false }) {
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        {!ajout && (
-          <Input
-            label="Votre nom (facultatif)"
-            autoComplete="name"
-            value={nomPersonne}
-            onChange={(e) => setNomPersonne(e.target.value)}
-            hint="Affiché dans le menu et les salutations"
-          />
-        )}
         <Input
           label="Nom de l'entreprise"
           required
