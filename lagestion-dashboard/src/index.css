@@ -74,6 +74,45 @@ body,
   to   { opacity: 1; }
 }
 
+/* En-tête des pages hors application (LogoHorsApplication), animation « shift » :
+   arrivée unique depuis la droite (12 px, fondu, 500 ms ; accroche 100 ms après), glissement de 4 px vers la gauche au survol. */
+.lg-shift { transition: transform 250ms ease; }
+.lg-shift:hover { transform: translateX(-4px); }
+.lg-shift-logo { animation: lgShift 500ms ease-out both; }
+.lg-shift-phrase { animation: lgShift 500ms ease-out 100ms both; }
+@keyframes lgShift {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Reflet du « G » : calque masqué par la même image (pixels du dessin seulement) et découpé au symbole
+   (colonnes 0 à 74 sur 282) ; une bande claire le traverse en 720 ms, toutes les 8 s. Le texte n'est jamais recouvert. */
+.lg-reflet {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  clip-path: inset(0 73% 0 0);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.lg-reflet-bande {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 12%;
+  background: linear-gradient(105deg, transparent 0%, theme('colors.lg.on-primary / 55%') 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: lgReflet 8s ease-in-out 1.2s infinite;
+}
+@keyframes lgReflet {
+  0%        { transform: translateX(-100%); }
+  9%, 100%  { transform: translateX(240%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lg-card { transition: none; }
   .lg-card:hover { transform: none; }
@@ -81,6 +120,9 @@ body,
   .lg-bande, .lg-entonnoir .recharts-label-list, .lg-entonnoir-valeur { animation: none; }
   .lg-dialog, .lg-dialog-voile { animation: none; }
   .lg-bande-voile { transition: none; }
+  .lg-shift, .lg-shift:hover { transition: none; transform: none; }
+  .lg-shift-logo, .lg-shift-phrase { animation: none; }
+  .lg-reflet { display: none; }
 }
 
 :root, *, *::before, *::after {

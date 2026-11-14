@@ -166,6 +166,9 @@ test("fond hors application : un ton plus foncé que le bouton « Se connecter �
   const fond = C.fondHorsApplication;
   // Texte et roue posés directement dessus (chargement et erreur de ProtectedRoute) : blanc.
   assert.ok(contraste(C.onPrimary, fond) >= 4.5, "texte et roue blancs");
+  // Accroche sous le logo (LogoHorsApplication) : texte clair de la barre latérale, par référence.
+  assert.equal(C.texteHorsApplication, C.sidebarText);
+  assert.ok(contraste(C.texteHorsApplication, fond) >= 4.5, "accroche");
   // Carte et bouton « Réessayer » (fond de carte) détachés par leur fond ; la bordure sombre, elle, ne suffirait pas.
   assert.ok(contraste(C.fondCarte, fond) >= 3, "carte");
   assert.ok(contraste(C.bordureCarte, fond) < 3);

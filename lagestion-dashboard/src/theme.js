@@ -100,6 +100,8 @@ C.primarySurvol = melange(C.primary, 0.8, "#000000");
 // Texte et roue posés dessus : blanc (9,46:1) ; cartes inchangées, détachées par leur fond (7,98:1).
 C.fondHorsApplication = C.primarySurvol;
 export const FOND_HORS_APPLICATION = C.fondHorsApplication;
+// Phrase d'accroche sous le logo des pages hors application : texte clair de la barre latérale, par référence (7,68:1).
+C.texteHorsApplication = C.sidebarText;
 
 // Couleurs d'état du paiement : sémantiques, distinctes de la palette de marque (voir CLAUDE.md, « Couleurs d'état »).
 // trait : liseré, icône, jauge (jeton …Text, la couleur brute n'atteint pas 3:1) ; texte : jeton …Text ;

@@ -20,6 +20,7 @@ export default {
           "sidebar-hover": C.sidebarHover,
           "sidebar-focus": C.sidebarFocus,
           "sidebar-bg": C.sidebarBg,
+          "on-primary": C.onPrimary,
         },
       },
       boxShadow: {
