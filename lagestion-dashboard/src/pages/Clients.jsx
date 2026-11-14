@@ -9,6 +9,7 @@ import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { useFactures } from "../context/FacturesContext.jsx";
 import { exporterClientsExcel } from "../utils/excel";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import { jourParis, situationClient } from "../utils/facture";
 import { LIBELLE_SITUATION } from "../data/factures";
 
@@ -108,6 +109,7 @@ export default function Clients() {
   const [tri, setTri] = useState({ col: "nom", dir: "asc" });
   const [page, setPage] = useState(1);
   const [selection, setSelection] = useState(() => new Set());
+  const [aSupprimer, setASupprimer] = useState(null);
 
   const filtres = useMemo(() => {
     const q = requeteDeb.trim().toLowerCase();
@@ -180,9 +182,11 @@ export default function Clients() {
 
   const handleView = (client) => navigate(`/clients/${client.id}`);
   const handleEdit = (client) => navigate(`/clients/${client.id}/modifier`);
-  const handleDelete = (client) => {
-    const ok = window.confirm(`Supprimer définitivement « ${client.nom} » ? Cette action est irréversible.`);
-    if (!ok) return;
+  // Confirmation dans ConfirmDialog ; le focus revient au bouton d'origine si l'on annule.
+  const handleDelete = (client) => setASupprimer({ client, element: document.activeElement });
+  const confirmerSuppression = () => {
+    const { client } = aSupprimer;
+    setASupprimer(null);
     deleteClient(client.id);
     setSelection((prev) => {
       if (!prev.has(client.id)) return prev;
@@ -411,6 +415,16 @@ export default function Clients() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        ouvert={Boolean(aSupprimer)}
+        titre="Supprimer ce client ?"
+        message={aSupprimer ? `« ${aSupprimer.client.nom} » sera supprimé définitivement. Cette action est irréversible.` : ""}
+        libelleConfirmer="Supprimer"
+        onAnnuler={() => setASupprimer(null)}
+        onConfirmer={confirmerSuppression}
+        elementRetour={aSupprimer?.element}
+      />
     </>
   );
 }

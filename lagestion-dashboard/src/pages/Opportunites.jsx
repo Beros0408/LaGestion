@@ -6,6 +6,7 @@ import { useOpportunites } from "../context/OpportunitesContext.jsx";
 import { useClients } from "../context/ClientsContext.jsx";
 import { useEntreprise } from "../context/EntrepriseContext.jsx";
 import { ETAPES } from "../data/opportunites";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 
 const ETAPE_STYLE = {
   Qualification: { couleur: C.info,      texte: C.infoText,    bg: alpha(C.info, 0.12) },
@@ -59,6 +60,7 @@ export default function Opportunites() {
   const [colonneSurvolee, setColonneSurvolee] = useState(null);
   const [menuOuvert, setMenuOuvert] = useState(null);
   const [sousMenuOuvert, setSousMenuOuvert] = useState(false);
+  const [aSupprimer, setASupprimer] = useState(null);
 
   const handleDrop = (etape, id) => {
     if (!id) return;
@@ -66,9 +68,14 @@ export default function Opportunites() {
     setColonneSurvolee(null);
   };
 
-  const handleDelete = (op) => {
-    const ok = window.confirm(`Supprimer définitivement « ${op.nom} » ? Cette action est irréversible.`);
-    if (!ok) return;
+  // Confirmation dans ConfirmDialog ; le menu se ferme, le focus revient à son bouton « … » si l'on annule.
+  const handleDelete = (op, element) => {
+    fermerMenu();
+    setASupprimer({ op, element });
+  };
+  const confirmerSuppression = () => {
+    const { op } = aSupprimer;
+    setASupprimer(null);
     deleteOpportunite(op.id);
   };
 
@@ -233,7 +240,7 @@ export default function Opportunites() {
                       onFermerMenu={fermerMenu}
                       onOuvrirSousMenu={() => setSousMenuOuvert(true)}
                       onEdit={peutEcrire ? () => navigate(`/opportunites/${op.id}/modifier`) : null}
-                      onDelete={peutSupprimer ? () => handleDelete(op) : null}
+                      onDelete={peutSupprimer ? (element) => handleDelete(op, element) : null}
                       onMove={peutEcrire ? (nouvelleEtape) => {
                         moveOpportunite(op.id, nouvelleEtape);
                         fermerMenu();
@@ -247,6 +254,16 @@ export default function Opportunites() {
         })}
       </div>
       )}
+
+      <ConfirmDialog
+        ouvert={Boolean(aSupprimer)}
+        titre="Supprimer cette opportunité ?"
+        message={aSupprimer ? `« ${aSupprimer.op.nom} » sera supprimée définitivement. Cette action est irréversible.` : ""}
+        libelleConfirmer="Supprimer"
+        onAnnuler={() => setASupprimer(null)}
+        onConfirmer={confirmerSuppression}
+        elementRetour={aSupprimer?.element}
+      />
     </>
   );
 }
@@ -426,7 +443,7 @@ function CarteOpportunite({
               <button
                 type="button"
                 role="menuitem"
-                onClick={onDelete}
+                onClick={() => onDelete(boutonMenuRef.current)}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-lg-hover focus:outline-none focus-visible:ring-2"
                 style={{ color: C.errorText }}
               >

@@ -14,6 +14,7 @@ import {
 import { estComptabilisee, estImpayee, jourParis, resteAPayer, statutCalcule, totalAvoirs, totalTTC } from "../utils/facture";
 import { exporterFacturesExcel } from "../utils/excel";
 import BadgeStatutFacture from "../components/BadgeStatutFacture.jsx";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 
 const STATUT_OPTIONS = [
   { id: "tous", label: "Tous" },
@@ -65,6 +66,7 @@ export default function Factures() {
   const [statut, setStatut] = useState("tous");
   const [type, setType] = useState("tous");
   const [tri, setTri] = useState({ col: "date_emission", dir: "desc" });
+  const [aSupprimer, setASupprimer] = useState(null);
 
   const clientsParId = useMemo(() => {
     const map = new Map();
@@ -139,10 +141,12 @@ export default function Factures() {
 
   const handleView = (f) => navigate(`/factures/${f.id}`);
   const handleEdit = (f) => navigate(`/factures/${f.id}/modifier`);
-  const handleDelete = (f) => {
-    const ok = window.confirm(`Supprimer le brouillon ${f.type === "avoir" ? "d'avoir" : f.type === "acompte" ? "d'acompte" : "de facture"} de ${f.clientNom} ? Il ne sera plus visible.`);
-    if (!ok) return;
-    deleteFacture(f.id);
+  // Confirmation dans ConfirmDialog ; le focus revient au bouton d'origine si l'on annule.
+  const handleDelete = (f) => setASupprimer({ facture: f, element: document.activeElement });
+  const confirmerSuppression = () => {
+    const { facture } = aSupprimer;
+    setASupprimer(null);
+    deleteFacture(facture.id);
   };
 
   return (
@@ -310,6 +314,16 @@ export default function Factures() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        ouvert={Boolean(aSupprimer)}
+        titre="Supprimer ce brouillon ?"
+        message={aSupprimer ? `Le brouillon ${aSupprimer.facture.type === "avoir" ? "d'avoir" : aSupprimer.facture.type === "acompte" ? "d'acompte" : "de facture"} de ${aSupprimer.facture.clientNom} ne sera plus visible.` : ""}
+        libelleConfirmer="Supprimer"
+        onAnnuler={() => setASupprimer(null)}
+        onConfirmer={confirmerSuppression}
+        elementRetour={aSupprimer?.element}
+      />
     </>
   );
 }

@@ -121,23 +121,6 @@ export default function ClientDetail() {
 
   return (
     <>
-      {/* Fil d'Ariane */}
-      <nav
-        className="mb-4 flex items-center gap-1.5 text-xs"
-        aria-label="Fil d'Ariane"
-        style={{ color: C.textSecondary }}
-      >
-        <Link
-          to="/clients"
-          className="rounded transition-colors hover:underline focus:outline-none focus-visible:ring-2"
-          style={{ color: C.textSecondary }}
-        >
-          Clients
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="truncate font-medium" style={{ color: C.textPrimary }}>{client.nom}</span>
-      </nav>
-
       {/* En-tête de la fiche */}
       <div
         className="rounded-2xl p-5"

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   List, Pencil, Download, Printer, Copy, CreditCard, Trash2, AlertCircle, Plus, Lock, FileMinus, Send,
@@ -867,12 +867,12 @@ function FormulairePaiement({ sens = "encaissement", plafond = null, onAnnuler, 
 function LignePaiement({ paiement, onSupprimer }) {
   const [suppression, setSuppression] = useState(false);
   const [erreur, setErreur] = useState(null);
+  // Confirmation dans ConfirmDialog ; le focus revient au bouton si l'on annule.
+  const [confirmation, setConfirmation] = useState(false);
+  const refBouton = useRef(null);
 
   const handleSupprimer = async () => {
-    const ok = window.confirm(
-      `Supprimer le paiement du ${formaterDateCourte(paiement.date)} (${euroCentimes(paiement.montant)}) ?`
-    );
-    if (!ok) return;
+    setConfirmation(false);
     setErreur(null);
     setSuppression(true);
     try {
@@ -903,8 +903,9 @@ function LignePaiement({ paiement, onSupprimer }) {
       <td className="px-3 py-3 text-right">
         {onSupprimer && (
           <button
+            ref={refBouton}
             type="button"
-            onClick={handleSupprimer}
+            onClick={() => setConfirmation(true)}
             disabled={suppression}
             aria-label={`Supprimer le paiement du ${formaterDateCourte(paiement.date)}`}
             className="rounded-lg p-1.5 transition-colors focus:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-40"
@@ -913,6 +914,15 @@ function LignePaiement({ paiement, onSupprimer }) {
             <Trash2 size={16} aria-hidden="true" />
           </button>
         )}
+        <ConfirmDialog
+          ouvert={confirmation}
+          titre="Supprimer ce paiement ?"
+          message={`Le paiement du ${formaterDateCourte(paiement.date)} (${euroCentimes(paiement.montant)}) sera supprimé.`}
+          libelleConfirmer="Supprimer"
+          onAnnuler={() => setConfirmation(false)}
+          onConfirmer={handleSupprimer}
+          elementRetour={refBouton.current}
+        />
       </td>
     </tr>
   );
